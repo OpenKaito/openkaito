@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from dataclasses import dataclass
 import typing
 import bittensor as bt
 
@@ -38,6 +39,47 @@ import bittensor as bt
 #   dendrite = bt.dendrite()
 #   dummy_output = dendrite.query( Dummy( dummy_input = 1 ) )
 #   assert dummy_output == 2
+
+from enum import StrEnum
+from typing import Optional, List
+from datetime import datetime
+
+
+class SortType(StrEnum):
+    RELEVANCY = "RELEVANCY"
+    RECENCY = "RECENCY"
+
+
+@dataclass
+class SearchQuery:
+    query_string: str
+    sort: SortType
+
+
+@dataclass
+class Document:
+    text: str
+    title: Optional[str]
+    author: Optional[str]
+    created_at: datetime
+    attributes: dict = {}
+
+
+class Search(bt.Synapse):
+    """
+    Search protocol representation for handling request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - query: A `SearchQuery` value representing the input request sent by the validator.
+    - results: A list of `Document` which, when filled, represents the response from the miner.
+    """
+
+    query: SearchQuery
+    results: List[Document] = []
+
+    def deserialize(self) -> List[Document]:
+        return self.results
 
 
 class Dummy(bt.Synapse):
