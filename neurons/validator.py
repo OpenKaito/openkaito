@@ -22,13 +22,38 @@ import time
 
 # Bittensor
 import bittensor as bt
+from opensearchpy import OpenSearch
 
 # Bittensor Validator Template:
 import otika
+from otika.protocol import SearchQuery, SortType
+from otika.utils.uids import get_random_uids
 from otika.validator import forward
 
 # import base validator class which takes care of most of the boilerplate
 from otika.base.validator import BaseValidatorNeuron
+
+import os
+import random
+import torch
+from dotenv import load_dotenv
+from datetime import datetime
+
+
+def random_line(a_file="queries.txt"):
+    if not os.path.exists(a_file):
+        bt.logging.error(f"Keyword file not found at location: {a_file}")
+        exit(1)
+    lines = open(a_file).read().splitlines()
+    return random.choice(lines)
+
+
+def check_integrity(response):
+    """
+    This function checks the integrity of the response.
+    """
+    # TODO: response correctness checking logic
+    return True
 
 
 class Validator(BaseValidatorNeuron):
@@ -46,7 +71,42 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("load_state()")
         self.load_state()
 
-        # TODO(developer): Anything specific to your use case you can do here
+        load_dotenv()
+
+        # TODO: ElasticSearch?
+        opensearch_endpoint = os.environ["OPENSEARCH_ENDPOINT"]
+        username = os.environ["OPENSEARCH_USERNAME"]
+        password = os.environ["OPENSEARCH_PASSWORD"]
+        self.search_client = OpenSearch(
+            [opensearch_endpoint],
+            http_auth=(username, password),
+            use_ssl=False,
+            verify_certs=False,
+        )
+
+    def get_rewards(self, query, responses):
+        scores = torch.zeros(len(responses))
+
+        zero_score_mask = torch.ones(len(responses))
+
+        rank_scores = torch.zeros(len(responses))
+
+        avg_ages = torch.zeros(len(responses))
+        avg_age_scores = torch.zeros(len(responses))
+        now = datetime.now()
+        max_avg_age = 0
+        for i, response in enumerate(responses):
+            if not check_integrity(response):
+                zero_score_mask[i] = 0
+                continue
+            for doc in response:
+                avg_ages[i] += (now - doc.created_at).total_seconds()
+            avg_ages[i] /= len(response)
+            max_avg_age = max(max_avg_age, avg_ages[i])
+        avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+        scores = avg_age_scores * 0.5
+
+        return torch.bitwise_and(scores, zero_score_mask)
 
     async def forward(self):
         """
@@ -57,8 +117,33 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
-        # TODO(developer): Rewrite this function based on your protocol definition.
-        return await forward(self)
+
+        miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
+
+        query_string = random_line()
+        search_query = SearchQuery(
+            query_string=query_string, sort=SortType.RELEVANCY, length=10
+        )
+
+        bt.logging.info(f"Sending search: {responses}")
+
+        # The dendrite client queries the network.
+        responses = self.dendrite.query(
+            # Send the query to selected miner axons in the network.
+            axons=[self.metagraph.axons[uid] for uid in miner_uids],
+            synapse=search_query,
+            deserialize=True,
+            timeout=60,
+        )
+
+        # Log the results for monitoring purposes.
+        bt.logging.info(f"Received responses: {responses}")
+
+        rewards = self.get_rewards(query=search_query, responses=responses)
+
+        bt.logging.info(f"Scored responses: {rewards}")
+        # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
+        self.update_scores(rewards, miner_uids)
 
 
 # The main function parses the configuration and runs the validator.

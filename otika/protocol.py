@@ -40,12 +40,12 @@ import bittensor as bt
 #   dummy_output = dendrite.query( Dummy( dummy_input = 1 ) )
 #   assert dummy_output == 2
 
-from enum import StrEnum
+from enum import Enum
 from typing import Optional, List
 from datetime import datetime
 
 
-class SortType(StrEnum):
+class SortType(str, Enum):
     RELEVANCY = "RELEVANCY"
     RECENCY = "RECENCY"
 
@@ -54,6 +54,7 @@ class SortType(StrEnum):
 class SearchQuery:
     query_string: str
     sort: SortType
+    length: int
 
 
 @dataclass
@@ -62,7 +63,7 @@ class Document:
     title: Optional[str]
     author: Optional[str]
     created_at: datetime
-    attributes: dict = {}
+    attributes: dict = None
 
 
 class Search(bt.Synapse):
