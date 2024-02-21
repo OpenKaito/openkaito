@@ -95,6 +95,9 @@ class Validator(BaseValidatorNeuron):
         now = datetime.now()
         max_avg_age = 0
         for i, response in enumerate(responses):
+            if response is None or not response:
+                zero_score_mask[i] = 0
+                continue
             if not check_integrity(response):
                 zero_score_mask[i] = 0
                 continue
@@ -105,7 +108,7 @@ class Validator(BaseValidatorNeuron):
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
         scores = avg_age_scores * 0.5
 
-        return torch.bitwise_and(scores, zero_score_mask)
+        return scores * zero_score_mask
 
     async def forward(self):
         """
@@ -143,6 +146,41 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info(f"Scored responses: {rewards}")
         # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
         self.update_scores(rewards, miner_uids)
+
+    def run(self):
+        # Check that validator is registered on the network.
+        self.sync()
+
+        bt.logging.info(f"Validator starting at block: {self.block}")
+
+        # This loop maintains the validator's operations until intentionally stopped.
+        try:
+            while True:
+                bt.logging.info(f"step({self.step}) block({self.block})")
+
+                # Run multiple forwards concurrently.
+                self.loop.run_until_complete(self.concurrent_forward())
+
+                # Check if we should exit.
+                if self.should_exit:
+                    break
+
+                # Sync metagraph and potentially set weights.
+                self.sync()
+
+                self.step += 1
+                time.sleep(5)
+
+        # If someone intentionally stops the validator, it'll safely terminate operations.
+        except KeyboardInterrupt:
+            self.axon.stop()
+            bt.logging.success("Validator killed by keyboard interrupt.")
+            exit()
+
+        # In case of unforeseen errors, the validator will log the error and continue operations.
+        except Exception as err:
+            bt.logging.error("Error during validation", str(err))
+            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
 
 
 # The main function parses the configuration and runs the validator.
