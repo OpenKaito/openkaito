@@ -41,7 +41,7 @@ import bittensor as bt
 #   assert dummy_output == 2
 
 from enum import Enum
-from typing import Optional, List
+from typing import Dict, Optional, List
 from datetime import datetime
 
 
@@ -50,14 +50,13 @@ class SortType(str, Enum):
     RECENCY = "RECENCY"
 
 
-
 @dataclass
 class Document:
     text: str
-    title: Optional[str]
-    author: Optional[str]
     created_at: datetime
-    attributes: dict = None
+    title: Optional[str] = None
+    author: Optional[str] = None
+    attributes: Optional[dict] = None
 
 
 class SearchSynapse(bt.Synapse):
@@ -68,14 +67,15 @@ class SearchSynapse(bt.Synapse):
     Attributes:
     - query_string: A string value representing the search request sent by the validator.
     - length: the length of results to return.
-    - results: A list of `Document` which, when filled, represents the response from the miner.
+    - results: A list of `Document` dict which, when filled, represents the response from the miner.
     """
 
     query_string: str
     length: int
-    results: Optional[List[Document]] = None
 
-    def deserialize(self) -> List[Document]:
+    results: Optional[List[Dict]] = None
+
+    def deserialize(self) -> List[Dict]:
         return self.results
 
 

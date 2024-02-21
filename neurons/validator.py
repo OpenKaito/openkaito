@@ -19,10 +19,10 @@
 
 
 import time
+from traceback import print_exception
 
 # Bittensor
 import bittensor as bt
-from opensearchpy import OpenSearch
 
 # Bittensor Validator Template:
 import otika
@@ -72,17 +72,6 @@ class Validator(BaseValidatorNeuron):
 
         load_dotenv()
 
-        # TODO: ElasticSearch?
-        opensearch_endpoint = os.environ["OPENSEARCH_ENDPOINT"]
-        username = os.environ["OPENSEARCH_USERNAME"]
-        password = os.environ["OPENSEARCH_PASSWORD"]
-        self.search_client = OpenSearch(
-            [opensearch_endpoint],
-            http_auth=(username, password),
-            use_ssl=False,
-            verify_certs=False,
-        )
-
     def get_rewards(self, query, responses):
         scores = torch.zeros(len(responses))
 
@@ -95,16 +84,22 @@ class Validator(BaseValidatorNeuron):
         now = datetime.now()
         max_avg_age = 0
         for i, response in enumerate(responses):
-            if response is None or not response:
+            try:
+                if response is None or not response:
+                    zero_score_mask[i] = 0
+                    continue
+                if not check_integrity(response):
+                    zero_score_mask[i] = 0
+                    continue
+                for doc in response:
+                    avg_ages[i] += (
+                        now - datetime.fromisoformat(doc["created_at"].rstrip("Z"))
+                    ).total_seconds()
+                avg_ages[i] /= len(response)
+                max_avg_age = max(max_avg_age, avg_ages[i])
+            except Exception as e:
+                bt.logging.error(f"Error while processing {i}-th response: {e}")
                 zero_score_mask[i] = 0
-                continue
-            if not check_integrity(response):
-                zero_score_mask[i] = 0
-                continue
-            for doc in response:
-                avg_ages[i] += (now - doc.created_at).total_seconds()
-            avg_ages[i] /= len(response)
-            max_avg_age = max(max_avg_age, avg_ages[i])
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
         scores = avg_age_scores * 0.5
 
@@ -169,7 +164,7 @@ class Validator(BaseValidatorNeuron):
                 self.sync()
 
                 self.step += 1
-                time.sleep(5)
+                time.sleep(int(os.getenv("VALIDATOR_LOOP_SLEEP", 10)))
 
         # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:

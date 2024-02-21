@@ -27,6 +27,13 @@ import otika
 # import base miner class which takes care of most of the boilerplate
 from otika.base.miner import BaseMinerNeuron
 
+import os
+from dotenv import load_dotenv
+from datetime import datetime
+from opensearchpy import OpenSearch
+
+from otika.protocol import Document
+
 
 class Miner(BaseMinerNeuron):
     """
@@ -40,7 +47,17 @@ class Miner(BaseMinerNeuron):
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
 
-        # TODO(developer): Anything specific to your use case you can do here
+        load_dotenv()
+        # TODO: ElasticSearch?
+        opensearch_endpoint = os.environ["OPENSEARCH_ENDPOINT"]
+        username = os.environ["OPENSEARCH_USERNAME"]
+        password = os.environ["OPENSEARCH_PASSWORD"]
+        self.search_client = OpenSearch(
+            [opensearch_endpoint],
+            http_auth=(username, password),
+            use_ssl=True,
+            verify_certs=False,
+        )
 
     async def forward(
         self, query: otika.protocol.SearchSynapse
@@ -55,7 +72,39 @@ class Miner(BaseMinerNeuron):
             otika.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         bt.logging.info("received request...", query)
-        query.results = [otika.protocol.Document(), otika.protocol.Document()]
+        try:
+            response = self.search_client.search(
+                index="twitter",
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "query_string": {
+                                        "query": query.query_string,
+                                        "default_field": "text",
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                    "size": query.length,
+                },
+            )
+            documents = response["hits"]["hits"]
+            results = []
+            for document in documents[: query.length]:
+                doc = document["_source"]
+                results.append(
+                    {
+                        "text": doc["text"],
+                        "created_at": doc["created_at"],
+                    }
+                )
+            bt.logging.info("search results...", results)
+            query.results = results
+        except Exception as e:
+            bt.logging.error("search error...", e)
         return query
 
     async def blacklist(
