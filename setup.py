@@ -63,9 +63,9 @@ with codecs.open(
     version_string = version_match.group(1)
 
 setup(
-    name="bittensor_subnet_template",  # TODO(developer): Change this value to your module subnet name.
+    name="otika",
     version=version_string,
-    description="bittensor_subnet_template",  # TODO(developer): Change this value to your module subnet description.
+    description="decentralized search engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/opentensor/bittensor-subnet-template",  # TODO(developer): Change this url to your module subnet github url.

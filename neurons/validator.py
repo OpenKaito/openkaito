@@ -26,9 +26,8 @@ from opensearchpy import OpenSearch
 
 # Bittensor Validator Template:
 import otika
-from otika.protocol import SearchQuery, SortType
+from otika.protocol import SearchSynapse
 from otika.utils.uids import get_random_uids
-from otika.validator import forward
 
 # import base validator class which takes care of most of the boilerplate
 from otika.base.validator import BaseValidatorNeuron
@@ -121,14 +120,14 @@ class Validator(BaseValidatorNeuron):
         miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
         query_string = random_line()
-        search_query = SearchQuery(
-            query_string=query_string, sort=SortType.RELEVANCY, length=10
+        search_query = SearchSynapse(query_string=query_string, length=5)
+
+        bt.logging.info(
+            f"Sending search: {search_query} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
         )
 
-        bt.logging.info(f"Sending search: {responses}")
-
         # The dendrite client queries the network.
-        responses = self.dendrite.query(
+        responses = await self.dendrite(
             # Send the query to selected miner axons in the network.
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=search_query,

@@ -50,12 +50,6 @@ class SortType(str, Enum):
     RECENCY = "RECENCY"
 
 
-@dataclass
-class SearchQuery:
-    query_string: str
-    sort: SortType
-    length: int
-
 
 @dataclass
 class Document:
@@ -66,18 +60,20 @@ class Document:
     attributes: dict = None
 
 
-class Search(bt.Synapse):
+class SearchSynapse(bt.Synapse):
     """
     Search protocol representation for handling request and response communication between
     the miner and the validator.
 
     Attributes:
-    - query: A `SearchQuery` value representing the input request sent by the validator.
+    - query_string: A string value representing the search request sent by the validator.
+    - length: the length of results to return.
     - results: A list of `Document` which, when filled, represents the response from the miner.
     """
 
-    query: SearchQuery
-    results: List[Document] = []
+    query_string: str
+    length: int
+    results: Optional[List[Document]] = None
 
     def deserialize(self) -> List[Document]:
         return self.results
