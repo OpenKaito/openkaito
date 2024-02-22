@@ -2,3 +2,5 @@ bittensor
 torch
 opensearch-py
 openai
+loguru
+apify-client
