@@ -1,7 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2024 Project Otika
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -34,6 +32,7 @@ from otika.base.validator import BaseValidatorNeuron
 import os
 import random
 import torch
+import math
 import openai
 from dotenv import load_dotenv
 from datetime import datetime
@@ -61,12 +60,22 @@ def parse_result(result):
     This function parses the result from the LLM.
     """
     choice_mapping = {
+        "outdated": 0,
         "off topic": 0,
-        "outdated": 1,
-        "somewhat relevant": 2,
-        "relevant": 3,
+        "somewhat relevant": 0.5,
+        "relevant": 1,
     }
     return [choice_mapping[doc["choice"]] for doc in result["results"]]
+
+
+def ndcg_score(ranking):
+    """
+    This function calculates the NDCG score for the documents.
+    """
+    ideal_ranking = sorted(ranking, reverse=True)
+    dcg = sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ranking)])
+    idcg = sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ideal_ranking)])
+    return dcg / idcg
 
 
 class Validator(BaseValidatorNeuron):
@@ -178,9 +187,9 @@ class Validator(BaseValidatorNeuron):
                 raise ValueError(
                     f"Length of ranking {len(ranking)} does not match query length {query.length}"
                 )
-            # TODO
-            return 1
-            # return bt.metrics.ndcg_score([ranking])
+            ranking_ndcg_score = ndcg_score(ranking)
+            bt.logging.info(f"LLM NDCG score: {ranking_ndcg_score}")
+            return ranking_ndcg_score
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
@@ -217,12 +226,12 @@ class Validator(BaseValidatorNeuron):
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
 
-                ndcg_score = self.llm_ndcg(query, response)
+                rank_scores[i] = self.llm_ndcg(query, response)
             except Exception as e:
                 bt.logging.error(f"Error while processing {i}-th response: {e}")
                 zero_score_mask[i] = 0
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
-        scores = avg_age_scores * 0.5
+        scores = avg_age_scores * 0.2 + rank_scores * 0.8
 
         return scores * zero_score_mask
 
