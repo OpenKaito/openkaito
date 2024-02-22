@@ -18,35 +18,36 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import json
 import time
 from traceback import print_exception
 
 # Bittensor
 import bittensor as bt
 
-# Bittensor Validator Template:
 import otika
 from otika.protocol import SearchSynapse
 from otika.utils.uids import get_random_uids
 
-# import base validator class which takes care of most of the boilerplate
 from otika.base.validator import BaseValidatorNeuron
 
 import os
 import random
 import torch
+import openai
 from dotenv import load_dotenv
 from datetime import datetime
 
 
-def random_line(a_file="queries.txt"):
-    if not os.path.exists(a_file):
-        bt.logging.error(f"Keyword file not found at location: {a_file}")
+def random_line(input_file="queries.txt"):
+    if not os.path.exists(input_file):
+        bt.logging.error(f"Keyword file not found at location: {input_file}")
         exit(1)
-    lines = open(a_file).read().splitlines()
+    lines = open(input_file).read().splitlines()
     return random.choice(lines)
 
 
+# anti exploitation
 def check_integrity(response):
     """
     This function checks the integrity of the response.
@@ -55,22 +56,140 @@ def check_integrity(response):
     return True
 
 
+def parse_result(result):
+    """
+    This function parses the result from the LLM.
+    """
+    choice_mapping = {
+        "off topic": 0,
+        "outdated": 1,
+        "somewhat relevant": 2,
+        "relevant": 3,
+    }
+    return [choice_mapping[doc["choice"]] for doc in result["results"]]
+
+
 class Validator(BaseValidatorNeuron):
-    """
-    Your validator neuron class. You should use this class to define your validator's behavior. In particular, you should replace the forward function with your own logic.
-
-    This class inherits from the BaseValidatorNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
-
-    This class provides reasonable default behavior for a validator such as keeping a moving average of the scores of the miners and using them to set weights at the end of each epoch. Additionally, the scores are reset for new hotkeys at the end of each epoch.
-    """
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
-
-        bt.logging.info("load_state()")
         self.load_state()
-
         load_dotenv()
+
+        self.llm_client = openai.OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            organization=os.getenv("OPENAI_ORGANIZATION"),
+            max_retries=3,
+        )
+
+    def llm_ndcg(self, query, docs, retries=3):
+        """
+        This function calculates the NDCG score for the documents.
+        """
+        query_string = query.query_string
+        try:
+            newline = "\n"
+            prompt_docs = "\n\n".join(
+                [
+                    f"ItemId: {i}\nTime: {doc['created_at'].split('T')[0]}\nText: {doc['text'][:1000].replace(newline, '  ')}"
+                    for i, doc in enumerate(docs)
+                ]
+            )
+            bt.logging.info(
+                f"Querying LLM of {query_string} with docs:\n" + prompt_docs
+            )
+            output = self.llm_client.chat.completions.create(
+                model="gpt-4-0125-preview",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """Below are the metrics and definations: 
+    Outdated: Time-sensitive information that is no longer current or relevant.
+    Off topic: Superficial content lacking depth and comprehensive insights.
+    Somewhat Relevant: Offers partial insight but lacks depth and comprehensive coverage.
+    Relevant: Comprehensive, insightful content suitable for informed decision-making.""",
+                    },
+                    {
+                        "role": "system",
+                        "content": f"Current Time: {datetime.now().isoformat().split('T')[0]}",
+                    },
+                    {
+                        "role": "system",
+                        "content": """
+    Example 1:
+    ItemId: 0
+    Time: "2023-11-25" 
+    Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+    As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+    @PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+    BLUR prices rose 12%% in the past 24 hours following the release of Blast
+
+    Query: Blast
+
+    Output:
+    item_id: 0
+    choice: relevant
+    reason: It is relevant as it deep dives into the Blast project.
+
+    Example 2:
+    ItemId: 1
+    Time: "2023-11-15"
+    Text: To celebrate, we've teamed up with artist @debbietea8 to release a commemorative piece of art on @arbitrum! 😍
+    Now available for free, exclusively in app! 🥳
+
+    Query: Arbitrum
+
+    Output:
+    item_id: 1
+    choice: off topic
+    reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
+    """,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"You will be given a list of documents with id and you have to rate them based on the relevance to the query. The documents are as follows:\n"
+                        + prompt_docs,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Use the metric choices [outdated, off topic, somewhat relevant, relevant] to evaluate the text toward '{query_string}'?",
+                    },
+                    {
+                        "role": "user",
+                        "content": "Must answer in JSON format of a list of choice with id: {'results': [{'item_id': the item id of choice, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }]} ",
+                    },
+                ],
+            )
+            bt.logging.info(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.info(
+                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+            )
+        except Exception as e:
+            bt.logging.error(f"Error while querying LLM: {e}")
+            return 0
+
+        try:
+            result = json.loads(output.choices[0].message.content)
+            bt.logging.info(f"LLM result: {result}")
+            ranking = parse_result(result)
+            bt.logging.info(f"LLM ranking: {ranking}")
+            if len(ranking) != query.length:
+                raise ValueError(
+                    f"Length of ranking {len(ranking)} does not match query length {query.length}"
+                )
+            # TODO
+            return 1
+            # return bt.metrics.ndcg_score([ranking])
+        except Exception as e:
+            bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
+            if retries > 0:
+                return self.llm_ndcg(query, docs, retries - 1)
+            else:
+                bt.logging.error(
+                    f"Failed to parse LLM result after retrying. Returning 0."
+                )
+            return 0
 
     def get_rewards(self, query, responses):
         scores = torch.zeros(len(responses))
@@ -97,6 +216,8 @@ class Validator(BaseValidatorNeuron):
                     ).total_seconds()
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
+
+                ndcg_score = self.llm_ndcg(query, response)
             except Exception as e:
                 bt.logging.error(f"Error while processing {i}-th response: {e}")
                 zero_score_mask[i] = 0
@@ -164,6 +285,8 @@ class Validator(BaseValidatorNeuron):
                 self.sync()
 
                 self.step += 1
+
+                # Sleep interval before the next iteration.
                 time.sleep(int(os.getenv("VALIDATOR_LOOP_SLEEP", 10)))
 
         # If someone intentionally stops the validator, it'll safely terminate operations.
@@ -183,4 +306,4 @@ if __name__ == "__main__":
     with Validator() as validator:
         while True:
             bt.logging.info("Validator running...", time.time())
-            time.sleep(5)
+            time.sleep(20)
