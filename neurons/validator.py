@@ -72,13 +72,15 @@ def ndcg_score(ranking):
     """
     This function calculates the NDCG score for the documents.
     """
-    ideal_ranking = sorted(ranking, reverse=True)
+    # ideal_ranking = sorted(ranking, reverse=True)
+
+    # use all 1s as ideal ranking to take both RELEVANCE and RANKING into consideration
+    ideal_ranking = [1] * len(ranking)
     dcg = sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ranking)])
     idcg = sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ideal_ranking)])
     return dcg / idcg
 
 
-# use dcg to consider both quality and ranking
 def dcg_score(ranking):
     """
     This function calculates the DCG score for the documents.
@@ -174,7 +176,8 @@ class Validator(BaseValidatorNeuron):
                     },
                     {
                         "role": "user",
-                        "content": "Must answer in JSON format of a list of choice with id: {'results': [{'item_id': the item id of choice, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }]} ",
+                        "content": "Must answer in JSON format of a list of choices with item ids for all the given items: "
+                        + "{'results': [{'item_id': the item id of choice, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
                     },
                 ],
             )
@@ -195,8 +198,8 @@ class Validator(BaseValidatorNeuron):
                 raise ValueError(
                     f"Length of ranking {len(ranking)} does not match query length {query.length}"
                 )
-            # ranking_score = ndcg_score(ranking)
-            ranking_score = dcg_score(ranking)
+            ranking_score = ndcg_score(ranking)
+            # ranking_score = dcg_score(ranking)
             bt.logging.info(f"LLM Ranking score: {ranking_score}")
             return ranking_score
         except Exception as e:
@@ -257,7 +260,10 @@ class Validator(BaseValidatorNeuron):
         miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
         query_string = random_query()
-        search_query = SearchSynapse(query_string=query_string, length=5)
+        search_query = SearchSynapse(
+            query_string=query_string,
+            length=os.getenv("VALIDATOR_SEARCH_QUERY_LENGTH", 5),
+        )
 
         bt.logging.info(
             f"Sending search: {search_query} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
