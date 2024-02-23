@@ -94,5 +94,5 @@ VALIDATOR_SEARCH_QUERY_LENGTH=5  # The length of the search results required by 
 You can start the validator by running the following command:
 
 ```bash
-python neurons/validator.py --netuid <netuid> --subtensor.network finney --wallet.name validator --wallet.hotkey default --logging.debug --neuron.sample_size 10
+python neurons/validator.py --netuid <netuid> --subtensor.network finney --wallet.name validator --wallet.hotkey default --logging.debug --neuron.sample_size 10 --neuron.axon_off
 ```
