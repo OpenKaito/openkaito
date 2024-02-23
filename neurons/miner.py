@@ -18,6 +18,7 @@
 import time
 import typing
 import bittensor as bt
+from elasticsearch import Elasticsearch
 
 # Bittensor Miner Template:
 import otika
@@ -28,10 +29,6 @@ from otika.base.miner import BaseMinerNeuron
 import os
 from dotenv import load_dotenv
 from datetime import datetime
-from opensearchpy import OpenSearch
-
-from otika.protocol import Document
-
 
 class Miner(BaseMinerNeuron):
     """
@@ -46,16 +43,43 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
 
         load_dotenv()
-        # TODO: ElasticSearch?
-        opensearch_endpoint = os.environ["OPENSEARCH_ENDPOINT"]
-        username = os.environ["OPENSEARCH_USERNAME"]
-        password = os.environ["OPENSEARCH_PASSWORD"]
-        self.search_client = OpenSearch(
-            [opensearch_endpoint],
-            http_auth=(username, password),
-            use_ssl=True,
+
+        self.search_client = Elasticsearch(
+            os.environ["ELASTICSEARCH_HOST"],
+            basic_auth=(
+                os.environ["ELASTICSEARCH_USERNAME"],
+                os.environ["ELASTICSEARCH_PASSWORD"],
+            ),
             verify_certs=False,
+            ssl_show_warn=False,
         )
+        self.init_indices()
+
+    def init_indices(self):
+        """
+        Initializes the indices in the elasticsearch database.
+        """
+        index_name = "twitter"
+        if not self.search_client.indices.exists(index=index_name):
+            bt.logging.info("creating index...", index_name)
+            self.search_client.indices.create(
+                index=index_name,
+                body={
+                    "mappings": {
+                        "properties": {
+                            "id": {"type": "long"},
+                            "text": {"type": "text"},
+                            "created_at": {"type": "date"},
+                            "username": {"type": "keyword"},
+                            "url": {"type": "text"},
+                            "quote_count": {"type": "long"},
+                            "reply_count": {"type": "long"},
+                            "retweet_count": {"type": "long"},
+                            "favorite_count": {"type": "long"},
+                        }
+                    }
+                },
+            )
 
     async def forward(
         self, query: otika.protocol.SearchSynapse
@@ -95,8 +119,15 @@ class Miner(BaseMinerNeuron):
                 doc = document["_source"]
                 results.append(
                     {
+                        "id": doc["id"],
                         "text": doc["text"],
                         "created_at": doc["created_at"],
+                        "username": doc["username"],
+                        "url": doc["url"],
+                        "quote_count": doc["quote_count"],
+                        "reply_count": doc["reply_count"],
+                        "retweet_count": doc["retweet_count"],
+                        "favorite_count": doc["favorite_count"],
                     }
                 )
             bt.logging.info("search results...", results)
@@ -137,7 +168,6 @@ class Miner(BaseMinerNeuron):
 
         Otherwise, allow the request to be processed further.
         """
-        # TODO(developer): Define how miners should blacklist requests.
         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         if (
             not self.config.blacklist.allow_non_registered
@@ -182,7 +212,6 @@ class Miner(BaseMinerNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        # TODO(developer): Define how miners should prioritize requests.
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
