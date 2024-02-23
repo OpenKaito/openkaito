@@ -35,7 +35,7 @@ import torch
 import math
 import openai
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def random_query(input_file="queries.txt"):
@@ -218,7 +218,7 @@ class Validator(BaseValidatorNeuron):
 
         avg_ages = torch.zeros(len(responses))
         avg_age_scores = torch.zeros(len(responses))
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         max_avg_age = 0
         for i, response in enumerate(responses):
             try:
@@ -269,7 +269,8 @@ class Validator(BaseValidatorNeuron):
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=search_query,
             deserialize=True,
-            timeout=60,
+            # Set the timeout for the query to be 120 seconds.
+            timeout=120,
         )
 
         # Log the results for monitoring purposes.

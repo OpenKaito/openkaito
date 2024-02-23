@@ -23,12 +23,15 @@ from elasticsearch import Elasticsearch
 # Bittensor Miner Template:
 import otika
 
-# import base miner class which takes care of most of the boilerplate
 from otika.base.miner import BaseMinerNeuron
+
+from otika.utils import str2bool
+from otika.crawlers.twitter.apify import ApifyTwitterCrawler
 
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+
 
 class Miner(BaseMinerNeuron):
     """
@@ -54,6 +57,8 @@ class Miner(BaseMinerNeuron):
             ssl_show_warn=False,
         )
         self.init_indices()
+
+        self.twitter_crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
 
     def init_indices(self):
         """
@@ -94,6 +99,46 @@ class Miner(BaseMinerNeuron):
             otika.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         bt.logging.info("received request...", query)
+
+        if str2bool(os.environ.get("MINER_SEARCH_WITH_CRAWLING", "")):
+            try:
+                bt.logging.debug(
+                    f"crawling '{query.query_string}' for {query.length*2}"
+                )
+                docs = self.twitter_crawler.search(query.query_string, query.length * 2)
+                processed_docs = self.twitter_crawler.process(docs)
+            except Exception as e:
+                bt.logging.error("crawling error...", e)
+                processed_docs = []
+
+            if len(processed_docs) > 0:
+                try:
+                    bt.logging.info(f"bulk indexing {len(processed_docs)} docs")
+                    bulk_body = []
+                    for doc in processed_docs:
+                        bulk_body.append(
+                            {
+                                "update": {
+                                    "_index": "twitter",
+                                    "_id": doc["id"],
+                                }
+                            }
+                        )
+                        bulk_body.append(
+                            {
+                                "doc": doc,
+                                "doc_as_upsert": True,
+                            }
+                        )
+
+                    r = self.search_client.bulk(
+                        body=bulk_body,
+                        refresh=True,
+                    )
+                    bt.logging.info("bulk update response...", r)
+                except Exception as e:
+                    bt.logging.error("bulk update error...", e)
+
         try:
             response = self.search_client.search(
                 index="twitter",
@@ -130,7 +175,7 @@ class Miner(BaseMinerNeuron):
                         "favorite_count": doc["favorite_count"],
                     }
                 )
-            bt.logging.info("search results...", results)
+            bt.logging.info("searched results:", results)
             query.results = results
         except Exception as e:
             bt.logging.error("search error...", e)

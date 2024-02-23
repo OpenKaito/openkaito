@@ -1,11 +1,11 @@
-from loguru import logger
 from datetime import datetime
 from apify_client import ApifyClient
 
+import bittensor as bt
+
 
 class ApifyTwitterCrawler:
-    def __init__(self, api_key, timeout_secs=40):
-        self.logger = logger
+    def __init__(self, api_key, timeout_secs=60):
         self.client = ApifyClient(api_key)
 
         self.timeout_secs = timeout_secs
@@ -25,7 +25,7 @@ class ApifyTwitterCrawler:
         Returns:
             list: The list of results.
         """
-        self.logger.info(f"Searching for query: '{query}' with length {max_length}")
+        bt.logging.debug(f"Crawling for query: '{query}' with length {max_length}")
         params = {
             "maxRequestRetries": 3,
             "searchMode": "live",
@@ -37,13 +37,13 @@ class ApifyTwitterCrawler:
         run = self.client.actor(self.actor_id).call(
             run_input=params, timeout_secs=self.timeout_secs
         )
-        self.logger.info(f"Apify Actor Run: {run}")
+        bt.logging.debug(f"Apify Actor Run: {run}")
 
         results = [
             item
             for item in self.client.dataset(run["defaultDatasetId"]).iterate_items()
         ]
-        self.logger.info(f"Apify Results: {results}")
+        bt.logging.trace(f"Apify Results: {results}")
 
         return results
 
@@ -65,7 +65,7 @@ class ApifyTwitterCrawler:
                 "url": result["url"],
                 "username": result["user"]["screen_name"],
                 "text": result.get("full_text"),
-                "created_at": datetime.strptime(result.get("created_at"), time_format),
+                "created_at": datetime.strptime(result.get("created_at"), time_format).isoformat(),
                 "quote_count": result.get("quote_count"),
                 "reply_count": result.get("reply_count"),
                 "retweet_count": result.get("retweet_count"),
@@ -73,7 +73,7 @@ class ApifyTwitterCrawler:
             }
             for result in results
         ]
-        self.logger.info(f"Processing results: {results}")
+        bt.logging.debug(f"Processed results: {results}")
         return results
 
 
