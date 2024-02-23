@@ -38,9 +38,9 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 
-def random_line(input_file="queries.txt"):
+def random_query(input_file="queries.txt"):
     if not os.path.exists(input_file):
-        bt.logging.error(f"Keyword file not found at location: {input_file}")
+        bt.logging.error(f"Queries file not found at location: {input_file}")
         exit(1)
     lines = open(input_file).read().splitlines()
     return random.choice(lines)
@@ -78,6 +78,14 @@ def ndcg_score(ranking):
     return dcg / idcg
 
 
+# use dcg to consider both quality and ranking
+def dcg_score(ranking):
+    """
+    This function calculates the DCG score for the documents.
+    """
+    return sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ranking)])
+
+
 class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
@@ -91,9 +99,9 @@ class Validator(BaseValidatorNeuron):
             max_retries=3,
         )
 
-    def llm_ndcg(self, query, docs, retries=3):
+    def llm_ranking_evaluation(self, query, docs, retries=3):
         """
-        This function calculates the NDCG score for the documents.
+        This function evaluates the ranking of the documents using the LLM.
         """
         query_string = query.query_string
         try:
@@ -170,8 +178,8 @@ class Validator(BaseValidatorNeuron):
                     },
                 ],
             )
-            bt.logging.info(f"LLM response: {output.choices[0].message.content}")
-            bt.logging.info(
+            bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.debug(
                 f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
             )
         except Exception as e:
@@ -187,13 +195,14 @@ class Validator(BaseValidatorNeuron):
                 raise ValueError(
                     f"Length of ranking {len(ranking)} does not match query length {query.length}"
                 )
-            ranking_ndcg_score = ndcg_score(ranking)
-            bt.logging.info(f"LLM NDCG score: {ranking_ndcg_score}")
-            return ranking_ndcg_score
+            # ranking_score = ndcg_score(ranking)
+            ranking_score = dcg_score(ranking)
+            bt.logging.info(f"LLM Ranking score: {ranking_score}")
+            return ranking_score
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
-                return self.llm_ndcg(query, docs, retries - 1)
+                return self.llm_ranking_evaluation(query, docs, retries - 1)
             else:
                 bt.logging.error(
                     f"Failed to parse LLM result after retrying. Returning 0."
@@ -226,7 +235,7 @@ class Validator(BaseValidatorNeuron):
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
 
-                rank_scores[i] = self.llm_ndcg(query, response)
+                rank_scores[i] = self.llm_ranking_evaluation(query, response)
             except Exception as e:
                 bt.logging.error(f"Error while processing {i}-th response: {e}")
                 zero_score_mask[i] = 0
@@ -247,7 +256,7 @@ class Validator(BaseValidatorNeuron):
 
         miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
-        query_string = random_line()
+        query_string = random_query()
         search_query = SearchSynapse(query_string=query_string, length=5)
 
         bt.logging.info(
