@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
-import typing
 import bittensor as bt
 
 from enum import Enum
