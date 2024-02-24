@@ -24,6 +24,7 @@ from traceback import print_exception
 import bittensor as bt
 
 import otika
+from otika.crawlers.twitter.apify import ApifyTwitterCrawler
 from otika.protocol import SearchSynapse
 from otika.utils.uids import get_random_uids
 
@@ -44,15 +45,6 @@ def random_query(input_file="queries.txt"):
         exit(1)
     lines = open(input_file).read().splitlines()
     return random.choice(lines)
-
-
-# anti exploitation
-def check_integrity(response):
-    """
-    This function checks the integrity of the response.
-    """
-    # TODO: response correctness checking logic
-    return True
 
 
 def parse_result(result):
@@ -95,11 +87,46 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
         load_dotenv()
 
+        # for ranking results evaluation
         self.llm_client = openai.OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
             organization=os.getenv("OPENAI_ORGANIZATION"),
             max_retries=3,
         )
+
+        # for integrity check
+        self.twitter_crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
+
+    # anti exploitation
+    def check_integrity(self, response):
+        """
+        This function checks the integrity of the response.
+        """
+        try:
+            for doc in response:
+                doc_id = doc["id"]
+                url_id = doc["url"].split("?")[0].split("/")[-1]
+                if doc_id != url_id:
+                    bt.logging.error(
+                        f"Document id {doc_id} does not match url id {url_id}"
+                    )
+                    return False
+            spot_check = random.choice(response)
+            r = self.twitter_crawler.get_tweets_by_urls([spot_check["url"]])
+            if not r or not r[0]:
+                bt.logging.error(f"Failed to get tweet from url {spot_check['url']}")
+                return False
+            ground_truth_doc = self.twitter_crawler.process(r)[0]
+            if spot_check["text"] != ground_truth_doc["text"]:
+                bt.logging.error(
+                    f"Document text {spot_check['text']} does not match ground truth text {ground_truth_doc['text']}"
+                )
+                return False
+            bt.logging.debug(f"Integrity check passed for response: {response}")
+            return True
+        except Exception as e:
+            bt.logging.error(f"Error while checking integrity of response: {e}")
+            return False
 
     def llm_ranking_evaluation(self, query, docs, retries=3):
         """
@@ -225,10 +252,10 @@ class Validator(BaseValidatorNeuron):
         max_avg_age = 0
         for i, response in enumerate(responses):
             try:
-                if response is None or not response:
+                if response is None or not response or len(response) > query.length:
                     zero_score_mask[i] = 0
                     continue
-                if not check_integrity(response):
+                if not self.check_integrity(response):
                     zero_score_mask[i] = 0
                     continue
                 for doc in response:
@@ -275,7 +302,6 @@ class Validator(BaseValidatorNeuron):
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=search_query,
             deserialize=True,
-            # Set the timeout for the query to be 120 seconds.
             timeout=120,
         )
 
