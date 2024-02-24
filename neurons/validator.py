@@ -302,7 +302,8 @@ class Validator(BaseValidatorNeuron):
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=search_query,
             deserialize=True,
-            timeout=120,
+            # set the miner query timeout to be 180 seconds to allow more operations in miner
+            timeout=180,
         )
 
         # Log the results for monitoring purposes.
