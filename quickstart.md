@@ -68,6 +68,12 @@ If you forget the password, you can reset it by running the following command:
 sudo docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
 ```
 
+If the Elasticsearch instance exited unexpectedly, you can start it by running the following command:
+```bash
+sudo docker start elasticsearch
+```
+
+
 ### Start the Miner
 
 After setting up the Elasticsearch and obtaining the API key, you can start the miner by running the following command:

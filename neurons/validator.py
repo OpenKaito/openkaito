@@ -111,15 +111,26 @@ class Validator(BaseValidatorNeuron):
                         f"Document id {doc_id} does not match url id {url_id}"
                     )
                     return False
+
+            # spot check with one document
             spot_check = random.choice(response)
             r = self.twitter_crawler.get_tweets_by_urls([spot_check["url"]])
             if not r or not r[0]:
                 bt.logging.error(f"Failed to get tweet from url {spot_check['url']}")
                 return False
             ground_truth_doc = self.twitter_crawler.process(r)[0]
-            if spot_check["text"] != ground_truth_doc["text"]:
+            check_fields = ["text", "username"]
+            for field in check_fields:
+                if spot_check[field] != ground_truth_doc[field]:
+                    bt.logging.error(
+                        f"Document {field} {spot_check[field]} does not match ground truth {ground_truth_doc[field]}"
+                    )
+                    return False
+            if datetime.fromisoformat(
+                spot_check["created_at"].rstrip("Z")
+            ) != datetime.fromisoformat(ground_truth_doc["created_at"].rstrip("Z")):
                 bt.logging.error(
-                    f"Document text {spot_check['text']} does not match ground truth text {ground_truth_doc['text']}"
+                    f"Document created_at {spot_check['created_at']} does not match ground truth {ground_truth_doc['created_at']}"
                 )
                 return False
             bt.logging.debug(f"Integrity check passed for response: {response}")
