@@ -13,14 +13,29 @@ If you are new to bittensor subnet, you are recommended to start by following
     - [running on testnet](./docs/running_on_testnet.md).
 
 
-## Miner Setup
-
 
 ### Install Otika
+
 In the root folder of this repository, run the following command to install Otika:
 ```bash
 pip install -e .
 ```
+
+### Obtain Apify API Key
+
+To use the provided crawler, you need to obtain an API key from [Apify](https://console.apify.com/). After obtaining the API key, you can write it down in the `.env` file.
+
+```
+APIFY_API_KEY='apify_api_xxxxxx'
+```
+
+The key is for both the miner and the validator. For miner, it is used to search and crawl the data needed. For validator, it is used to get the ground truth data for evaluation.
+
+> **_NOTE:_** You can also create your own crawler to crawl the data you need. But you need to be aware that the data you crawl should be able to pass the integrity check of the validator.
+
+
+## Miner Setup
+
 
 Then you can prepare your dotenv file by:
 ```bash
@@ -53,12 +68,9 @@ If you forget the password, you can reset it by running the following command:
 sudo docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
 ```
 
-### Obtain Crawler API Key
-
-To use the provided crawler, you need to obtain an API key from [Apify](https://console.apify.com/). After obtaining the API key, you can write it down in the `.env` file.
-
-```
-APIFY_API_KEY='apify_api_xxxxxx'
+If the Elasticsearch instance exited unexpectedly, you can start it by running the following command:
+```bash
+sudo docker start elasticsearch
 ```
 
 
@@ -68,6 +80,19 @@ After setting up the Elasticsearch and obtaining the API key, you can start the 
 ```bash
 python neurons/miner.py --netuid <netuid> --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit
 ```
+
+
+### Notes
+
+To obtain better miner performance, you can consider the following options:
+
+- adjust the crawler running parameters in the `otika/crawlers/twitter/apify.py` file
+- adjust the size of on search crawling to be larger
+- implement a continuous crawler, instead of or in addition to the on search crawling, to crawl data and ingest into the Elasticsearch instance
+- build better query or customize the ranking metrics to Elasticsearch to obtain the data you need
+- build better index for the data you crawled and ingested into Elasticsearch, e.g., Knowledge Graph
+- implement a better ranking model to rank the data you queried from Elasticsearch, e.g., using LLM
+- ...
 
 
 ## Validator Setup
