@@ -50,24 +50,24 @@ class ApifyTwitterCrawler:
 
         return results
 
-    def search(self, query: str, max_length: int):
+    def search(self, query: str, max_size: int):
         """
         Searches for the given query on the crawled data.
 
         Args:
             query (str): The query to search for.
-            length (int): The number of results to return.
+            max_size (int): The max number of results to return.
 
         Returns:
             list: The list of results.
         """
-        bt.logging.debug(f"Crawling for query: '{query}' with length {max_length}")
+        bt.logging.debug(f"Crawling for query: '{query}' with size {max_size}")
         params = {
             "maxRequestRetries": 3,
             "searchMode": "live",
             "scrapeTweetReplies": True,
             "searchTerms": [query],
-            "maxTweets": max_length,
+            "maxTweets": max_size,
         }
 
         run = self.client.actor(self.actor_id).call(

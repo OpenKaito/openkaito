@@ -18,7 +18,7 @@ class Evaluator:
         # for integrity check
         self.twitter_crawler = twitter_crawler
 
-    def evaluate(self, query_string: str, length: int, responses: list):
+    def evaluate(self, query_string: str, size: int, responses: list):
 
         scores = torch.zeros(len(responses))
 
@@ -32,7 +32,7 @@ class Evaluator:
         max_avg_age = 0
         for i, response in enumerate(responses):
             try:
-                if response is None or not response or len(response) > length:
+                if response is None or not response or len(response) > size:
                     zero_score_mask[i] = 0
                     continue
                 if not self.check_integrity(response):

@@ -81,7 +81,7 @@ class Validator(BaseValidatorNeuron):
         query_string = random_query()
         search_query = SearchSynapse(
             query_string=query_string,
-            length=os.getenv("VALIDATOR_SEARCH_QUERY_LENGTH", 5),
+            size=os.getenv("VALIDATOR_SEARCH_QUERY_SIZE", 5),
         )
 
         bt.logging.info(
@@ -102,7 +102,7 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info(f"Received responses: {responses}")
 
         rewards = self.evaluator.evaluate(
-            search_query.query_string, search_query.length, responses
+            search_query.query_string, search_query.size, responses
         )
 
         bt.logging.info(f"Scored responses: {rewards}")

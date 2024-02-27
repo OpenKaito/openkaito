@@ -111,7 +111,7 @@ You can configure the validator by setting the following environment variables i
 
 ```
 VALIDATOR_LOOP_SLEEP=30    # The sleep interval between sending requests to the miner
-VALIDATOR_SEARCH_QUERY_LENGTH=5  # The length of the search results required by the validator
+VALIDATOR_SEARCH_QUERY_SIZE=5  # The size of the search results required by the validator
 ```
 
 ### Start the Validator
