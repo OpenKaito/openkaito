@@ -8,6 +8,12 @@
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
 
+## Installation
+
+### Validator Installation
+### Miner Installation
+
+---
 ## Introduction
 
 - Kaito AI is committed to democratizing access to Web3 information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
@@ -16,7 +22,7 @@
 
 ## Backgound Knowledge
 <p align="center">
-  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/68a4c45d-72bc-4444-a5f6-2cc4d917871b" width="70%" height="auto">
+  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/68a4c45d-72bc-4444-a5f6-2cc4d917871b" width="60%" height="auto">
 </p>
 
 ### Inverted Index
@@ -72,7 +78,15 @@ Rewards are based on the following criteria:
 
 **Diversity:** Rewards consider diversity at both the source level (e.g., one source versus multiple sources) and the content level (e.g., various opinions, different authors), which can be assessed using content clustering methods.
 
-## The Otika App (Coming Soon)
+## Coiming Soon
+
+### Reward Model Adjustment and More Sources
+Currently Twitter is the only source that we onboarded and the evaluation is based on relevance and recency so that we can better calibrate the reward model. The team is actively working on onboarding more sources (e.g. News, Governance, Audio) and more diversed ranking & evaluation signals. Stay tuned!
+
+### Low-cost Evaluation
+Currently our search evaluator is based on GPT and requires an OpenAI key. The team is actively working on a distilled version of evaluator so that more results can be evaluated at lower cost.
+
+### The Otika App
 
 To provide a fast and seamless user experience, we have designed a centralized client layer on top of validator nodes, leading to an end-to-end search and analytics product for Web3. This design stems from several key insights from the Kaito AI team's product research:
 
@@ -82,7 +96,8 @@ To provide a fast and seamless user experience, we have designed a centralized c
 
 The Otika App aims to offer a free version of Kaito AI’s key product features (AI-curated search, feeds, and analytics) through a fetch, aggregate, and cache strategy.
 
----
-## Installation
-
+<p align="center">
+  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/bd3353c9-7c95-43a5-b7ad-d3e2f55b4a84" width="40%" height="auto">
+  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/93787c0e-5e5e-4d0a-8e66-84eb70f2b90a" width="40%" height="auto">
+</p>
 ```
