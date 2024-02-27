@@ -1,133 +1,88 @@
 <div align="center">
 
-# **Bittensor Subnet Template** <!-- omit in toc -->
+# **Project Otika - Decentralized Kaito AI** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
-
 ---
-
-## The Incentivized Internet <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
 
----
-- [Quickstarter template](#quickstarter-template)
-- [Introduction](#introduction)
-  - [Example](#example)
-- [Installation](#installation)
-  - [Before you proceed](#before-you-proceed)
-  - [Install](#install)
-- [Writing your own incentive mechanism](#writing-your-own-incentive-mechanism)
-- [Subnet Links](#subnet-links)
-- [License](#license)
-
----
-## Quickstarter template
-
-This template contains all the required installation instructions, scripts, and files and functions for:
-- Building Bittensor subnets.
-- Creating custom incentive mechanisms and running these mechanisms on the subnets. 
-
-In order to simplify the building of subnets, this template abstracts away the complexity of the underlying blockchain and other boilerplate code. While the default behavior of the template is sufficient for a simple subnet, you should customize the template in order to meet your specific requirements.
----
-
 ## Introduction
 
-**IMPORTANT**: If you are new to Bittensor subnets, read this section before proceeding to [Installation](#installation) section. 
+- Kaito AI is committed to democratizing access to Web3 information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
+- Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet Otika serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define Web3 search as a miner-validator problem, where search relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
+- Our goal is to decentralize Kaito AI's smart search and analytics platform, ensuring that it is built by the public and serves the public.
 
-The Bittensor blockchain hosts multiple self-contained incentive mechanisms called **subnets**. Subnets are playing fields in which:
-- Subnet miners who produce value, and
-- Subnet validators who produce consensus
+## Backgound Knowledge
+<p align="center">
+  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/68a4c45d-72bc-4444-a5f6-2cc4d917871b" width="70%" height="auto">
+</p>
 
-determine together the proper distribution of TAO for the purpose of incentivizing the creation of value, i.e., generating digital commodities, such as intelligence or data. 
+### Inverted Index
+An inverted index serves as the foundation of a search engine. The high level idea is to construct a reverse lookup table from a keyword to documents containing the keyword. A sophisticated search engine usually leverages NLP techniques (e.g. tokenization, stemming) and content understanding models (e.g. classification, tagging, categorization) to optimize keyword extractions. 
 
-Each subnet consists of:
-- Subnet miners and subnet validators.
-- A protocol using which the subnet miners and subnet validators interact with one another. This protocol is part of the incentive mechanism.
-- The Bittensor API using which the subnet miners and subnet validators interact with Bittensor's onchain consensus engine [Yuma Consensus](https://bittensor.com/documentation/validating/yuma-consensus). The Yuma Consensus is designed to drive these actors: subnet validators and subnet miners, into agreement on who is creating value and what that value is worth. 
+A search query typically expresses logical constraint on keywords and can be fulfilled by operations on the inverted index. An inverted index is distributed by nature - keyword partition and document partition are the two common partition schemes.
 
-This starter template is split into three primary files. To write your own incentive mechanism, you should edit these files. These files are:
-1. `template/protocol.py`: Contains the definition of the protocol used by subnet miners and subnet validators.
-2. `neurons/miner.py`: Script that defines the subnet miner's behavior, i.e., how the subnet miner responds to requests from subnet validators.
-3. `neurons/validator.py`: This script defines the subnet validator's behavior, i.e., how the subnet validator requests information from the subnet miners and determines the scores.
+### Search Ranking
+**Retrieval ranking** ranks documents satisfying the retrieval condition based on a ranking criteria. It focuses on simple, indexable signals such as term frequency (TF) and inverse document frequency (IDF), along with a linear combination of more static signals that enhance the speed and relevance of search results. 
 
-### Example
+**Re-ranking** ranks a smaller set of candidates selected by retrieval ranking with more expensive techniques. Modern re-ranking employs deep learning algorithms to analyze complex signals like user interaction data. In a decentralized environment, this presents opportunities for optimization through collective intelligence, where network participants contribute to the validation and improvement of the re-ranking process.
 
-The Bittensor Subnet 1 for Text Prompting is built using this template. See [Bittensor Text-Prompting](https://github.com/opentensor/text-prompting) for how to configure the files and how to add monitoring and telemetry and support multiple miner types. Also see this Subnet 1 in action on [Taostats](https://taostats.io/subnets/netuid-1/) explorer.
+### Knowledge Graph
+A Knowledge Graph in the context of search engines is a structured representation of real-world entities and their interrelations. It serves as a foundation for enhancing search queries and document understanding by understanding the context and the relationships between different pieces of information. In web3, contexts like the relationship between projects, influencers, etc. are critical to effective search & analytics, and its evolving nature makes it a great fit to be solved with collective intelligence.
+
+## Towards a Decentralized Web3 Search
+
+Instead of building a decentralized version of every component of a search engine, we focus on posing search relevance as a validation-miner problem to encourage miners to come up with innovative solutions to data acquisition, indexing, ranking, and knowledge graph. To goal is that based on a fair and effective criterion, miners are incentivized to optimize components with the highest ROI, similar to how a search engineering team runs on A/B testing and failure analysis.
+
+<p align="center">
+  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/7fa302f8-585b-47db-8881-cf1a2133a814" width="60%" height="auto">
+</p>
+
+### Validator
+
+**Search Queries:** Validators are responsible for issuing search queries to the network and expect a list of ranked results from miners. Search queries will follow a simple format that supports basic functionalities, including keywords, AND/OR semantics, sorting by date, sorting by relevance, date filtering, etc., as outlined in Appendix A.
+
+**AI-based nDCG:** nDCG is a standard metric for evaluating search engines, taking into account both result relevance and their relative positions. The downside of nDCG is that it requires a human-annotated ideal result set, which can be expensive and slow. However, model-based nDCG has gained traction recently, thanks to advancements in large language models (LLMs). In our validator-miner scheme, we implement a cost-effective ML-based nDCG rater that leverages a distilled LLM-based nDCG evaluator.
+
+**Evolution of nDCG Evaluator:** To ensure that our evaluation scheme accurately reflects true result relevance, the evaluator model will be continuously fine-tuned with real user engagement data from The Search App (outlined in the subsequent section) and regularly updated on HuggingFace according to a set schedule. Both the model parameters and the training mechanism will be open-sourced, with the potential for full decentralization using BitTensor's model training capabilities.
+
+**Result Correctness:** To prevent fabricated results, validators will selectively verify the URLs of search results to ensure their consistency with the original sources.
+
+### Miner
+
+Miners fulfill search requests issued by validators by providing a ranked list of results and are encouraged to find innovative ways to enhance the quality of their results. While there is no prescribed method for implementing the search, we suggest the following basic framework as a starting point.
+
+**Search Index:** We provide local ElasticSearch instances with a basic schema for a set of supported sources, such as Twitter and governance forums. By default, a search request is translated into an ElasticSearch query.
+
+**Crawler:** A basic crawler, which periodically updates the search index, is provided based on Apify. However, for more cost-effective crawling, node owners are encouraged to develop their own crawler stack.
+
+**Ranking Algorithm:** The default ranking algorithm is BM25, natively supported by ElasticSearch. It's important to note that BM25 relies on the term frequency (TF) and inverse document frequency (IDF) within the search index, so rankings may vary based on the content in a node’s search index.
+
+### Reward Model
+
+Rewards are based on the following criteria:
+
+**Truthfulness:** Miners receive rewards only for providing authentic results from a specified set of sources and will incur penalties for serving fabricated data.
+
+**Relevance:** Miners are rewarded for the content and contextual relevance of the results, as reflected by nDCG, where the ordering of results contributes to relevance.
+
+**Recency:** Miners are rewarded for the timeliness of results—the more recent the content, the higher the reward.
+
+**Diversity:** Rewards consider diversity at both the source level (e.g., one source versus multiple sources) and the content level (e.g., various opinions, different authors), which can be assessed using content clustering methods.
+
+## The Otika App (Coming Soon)
+
+To provide a fast and seamless user experience, we have designed a centralized client layer on top of validator nodes, leading to an end-to-end search and analytics product for Web3. This design stems from several key insights from the Kaito AI team's product research:
+
+1. **Head-heavy Query Distribution:** Search queries to Kaito AI’s institutional product are predominantly head-heavy—the top queries, typically project names and tickers, account for the majority of traffic. This indicates that proactive fetching and aggregation of search results into local storage can enable a low-latency experience for most queries.
+2. **Ticker-centered Feeds & Analytics:** A central aspect of Kaito AI's product offering is its feeds and analytics focused on tickers, which are powered by its search stack and curated by AI. This focus on tickers is well-suited for pre-fetching, aggregation, and caching.
+3. **Tail Queries:** To ensure a smooth experience for less common queries, whose results cannot be pre-fetched, the search backend will store and index any aggregated results locally. The search client can build up this content index by indexing results from frequent queries, as well as by continuously issuing crypto-related queries to the Subnet (e.g., Crypto topics and narratives as currently indexed by Kaito AI).
+
+The Otika App aims to offer a free version of Kaito AI’s key product features (AI-curated search, feeds, and analytics) through a fetch, aggregate, and cache strategy.
 
 ---
-
 ## Installation
 
-### Before you proceed
-Before you proceed with the installation of the subnet, note the following: 
-
-- Use these instructions to run your subnet locally for your development and testing, or on Bittensor testnet or on Bittensor mainnet. 
-- **IMPORTANT**: We **strongly recommend** that you first run your subnet locally and complete your development and testing before running the subnet on Bittensor testnet. Furthermore, make sure that you next run your subnet on Bittensor testnet before running it on the Bittensor mainnet.
-- You can run your subnet either as a subnet owner, or as a subnet validator or as a subnet miner. 
-- **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
-- Note that installation instructions differ based on your situation: For example, installing for local development and testing will require a few additional steps compared to installing for testnet. Similarly, installation instructions differ for a subnet owner vs a validator or a miner. 
-
-### Install
-
-- **Running locally**: Follow the step-by-step instructions described in this section: [Running Subnet Locally](./docs/running_on_staging.md).
-- **Running on Bittensor testnet**: Follow the step-by-step instructions described in this section: [Running on the Test Network](./docs/running_on_testnet.md).
-- **Running on Bittensor mainnet**: Follow the step-by-step instructions described in this section: [Running on the Main Network](./docs/running_on_mainnet.md).
-
----
-
-## Writing your own incentive mechanism
-
-As described in [Quickstarter template](#quickstarter-template) section above, when you are ready to write your own incentive mechanism, update this template repository by editing the following files. The code in these files contains detailed documentation on how to update the template. Read the documentation in each of the files to understand how to update the template. There are multiple **TODO**s in each of the files identifying sections you should update. These files are:
-- `template/protocol.py`: Contains the definition of the wire-protocol used by miners and validators.
-- `neurons/miner.py`: Script that defines the miner's behavior, i.e., how the miner responds to requests from validators.
-- `neurons/validator.py`: This script defines the validator's behavior, i.e., how the validator requests information from the miners and determines the scores.
-- `template/forward.py`: Contains the definition of the validator's forward pass.
-- `template/reward.py`: Contains the definition of how validators reward miner responses.
-
-In addition to the above files, you should also update the following files:
-- `README.md`: This file contains the documentation for your project. Update this file to reflect your project's documentation.
-- `CONTRIBUTING.md`: This file contains the instructions for contributing to your project. Update this file to reflect your project's contribution guidelines.
-- `template/__init__.py`: This file contains the version of your project.
-- `setup.py`: This file contains the metadata about your project. Update this file to reflect your project's metadata.
-- `docs/`: This directory contains the documentation for your project. Update this directory to reflect your project's documentation.
-
-__Note__
-The `template` directory should also be renamed to your project name.
----
-
-# Subnet Links
-In order to see real-world examples of subnets in-action, see the `subnet_links.json` document or access them from inside the `template` package by:
-```python
-import template
-template.SUBNET_LINKS
-[{'name': 'sn0', 'url': ''},
- {'name': 'sn1', 'url': 'https://github.com/opentensor/text-prompting/'},
- {'name': 'sn2', 'url': 'https://github.com/bittranslateio/bittranslate/'},
- {'name': 'sn3', 'url': 'https://github.com/gitphantomman/scraping_subnet/'},
- {'name': 'sn4', 'url': 'https://github.com/manifold-inc/targon/'},
-...
-]
-```
-
-## License
-This repository is licensed under the MIT License.
-```text
-# The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
 ```
