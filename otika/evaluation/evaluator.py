@@ -75,13 +75,13 @@ class Evaluator:
                 )
             else:
                 spot_check = random.choice(response)
-                r = self.twitter_crawler.get_tweets_by_urls([spot_check["url"]])
-                if not r or not r[0]:
+                r = self.twitter_crawler.get_tweet_by_url(spot_check["url"], 20)
+                if not r:
                     bt.logging.error(
                         f"Failed to get tweet from url {spot_check['url']}"
                     )
                     return False
-                ground_truth_doc = self.twitter_crawler.process(r)[0]
+                ground_truth_doc = self.twitter_crawler.process_item(r)
                 check_fields = ["text", "username"]
                 for field in check_fields:
                     if spot_check[field] != ground_truth_doc[field]:
