@@ -32,8 +32,8 @@ class ApifyTwitterCrawler:
             "searchMode": "live",
             "scrapeTweetReplies": True,
             "urls": urls,
-            # because if url is a reply, the head tweet will also be included in the result
-            "maxTweets": len(urls) * 2,
+            # because if url is a reply, all tweets in the thread will also be included in the result
+            "maxTweets": len(urls) * 20,
         }
 
         ids = [tweet_url_to_id(url) for url in urls]
