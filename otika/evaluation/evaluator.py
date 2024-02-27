@@ -180,6 +180,7 @@ class Evaluator:
                         + "{'results': [{'item_id': the item id of choice, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
                     },
                 ],
+                temperature=0,
             )
             bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
             bt.logging.debug(
