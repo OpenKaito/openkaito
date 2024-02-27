@@ -3,6 +3,8 @@ from apify_client import ApifyClient
 
 import bittensor as bt
 
+from otika.evaluation.utils import tweet_url_to_id
+
 
 class ApifyTwitterCrawler:
     def __init__(self, api_key, timeout_secs=60):
@@ -28,17 +30,22 @@ class ApifyTwitterCrawler:
         params = {
             "maxRequestRetries": 3,
             "searchMode": "live",
-            "scrapeTweetReplies": False,
+            "scrapeTweetReplies": True,
             "urls": urls,
-            "maxTweets": len(urls),
+            # because if url is a reply, the head tweet will also be included in the result
+            "maxTweets": len(urls) * 2,
         }
+
+        ids = [tweet_url_to_id(url) for url in urls]
 
         run = self.client.actor(self.actor_id).call(
             run_input=params, timeout_secs=self.timeout_secs
         )
+        # filter out the original head tweet if requested url is reply
         results = [
             item
             for item in self.client.dataset(run["defaultDatasetId"]).iterate_items()
+            if item["id_str"] in ids
         ]
 
         return results
@@ -120,8 +127,9 @@ if __name__ == "__main__":
 
     r = crawler.get_tweets_by_urls(
         [
-            "https://twitter.com/VitalikButerin/status/1759369749887332577",
-            "https://twitter.com/elonmusk/status/1760504129485705598",
+            "https://twitter.com/elonmusk/status/1762389336858022132"
+            # "https://twitter.com/VitalikButerin/status/1759369749887332577",
+            # "https://twitter.com/elonmusk/status/1760504129485705598",
         ]
     )
     print(crawler.process(r))

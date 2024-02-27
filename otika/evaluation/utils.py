@@ -19,6 +19,12 @@ def dcg_score(ranking):
     """
     return sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ranking)])
 
+def tweet_url_to_id(url):
+    """
+    This function converts a tweet URL to a tweet ID.
+    """
+    return url.split("?")[0].split("/")[-1]
+
 
 def parse_llm_result(result):
     """

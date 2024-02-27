@@ -7,7 +7,7 @@ import bittensor as bt
 import openai
 import torch
 
-from .utils import ndcg_score, parse_llm_result
+from .utils import ndcg_score, parse_llm_result, tweet_url_to_id
 
 
 class Evaluator:
@@ -61,7 +61,7 @@ class Evaluator:
         try:
             for doc in response:
                 doc_id = doc["id"]
-                url_id = doc["url"].split("?")[0].split("/")[-1]
+                url_id = tweet_url_to_id(doc["url"])
                 if doc_id != url_id:
                     bt.logging.error(
                         f"Document id {doc_id} does not match url id {url_id}"
