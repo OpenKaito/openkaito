@@ -11,11 +11,10 @@
 ## Installation
 
 ### Validator Installation
-Please follow see the validator setup section in quickstart guide
+Please see [Validator Setup](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md#validator-setup) in the [quick start guide](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md).
 
 ### Miner Installation
-Please follow see the miner setup section in quickstart guide
-https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md#miner-setup
+Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md#miner-setup) in the [quick start guide](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md).
 
 ---
 ## Introduction
