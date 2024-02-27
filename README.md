@@ -11,7 +11,11 @@
 ## Installation
 
 ### Validator Installation
+Please follow see the validator setup section in quickstart guide
+
 ### Miner Installation
+Please follow see the miner setup section in quickstart guide
+https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md#miner-setup
 
 ---
 ## Introduction
@@ -100,4 +104,3 @@ The Otika App aims to offer a free version of Kaito AI’s key product features 
   <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/bd3353c9-7c95-43a5-b7ad-d3e2f55b4a84" width="40%" height="auto">
   <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/93787c0e-5e5e-4d0a-8e66-84eb70f2b90a" width="40%" height="auto">
 </p>
-```
