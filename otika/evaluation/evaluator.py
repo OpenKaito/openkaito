@@ -70,7 +70,7 @@ class Evaluator:
 
             # spot check with one document
             if self.twitter_crawler is None:
-                bt.logging.warn(
+                bt.logging.warning(
                     "Twitter crawler is not initialized. spot content check is skipped."
                 )
             else:
