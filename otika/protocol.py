@@ -16,12 +16,20 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional
+
 import bittensor as bt
 
-from enum import Enum
-from typing import Dict, Optional, List
-from datetime import datetime
 
+import pydantic
+
+
+class Version(pydantic.BaseModel):
+    major: int
+    minor: int
+    patch: int
 
 class SearchSynapse(bt.Synapse):
     """
@@ -31,11 +39,13 @@ class SearchSynapse(bt.Synapse):
     Attributes:
     - query_string: A string value representing the search request sent by the validator.
     - size: the count size of results to return.
+    - version: A `Version` object representing the version of the protocol.
     - results: A list of `Document` dict which, when filled, represents the response from the miner.
     """
 
     query_string: str
     size: int
+    version: Optional[Version] = None
 
     results: Optional[List[Dict]] = None
 

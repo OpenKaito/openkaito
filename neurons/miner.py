@@ -15,24 +15,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
 import typing
+
 import bittensor as bt
+from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
-# Bittensor Miner Template:
 import otika
-
 from otika.base.miner import BaseMinerNeuron
 from otika.crawlers.twitter.apify import ApifyTwitterCrawler
 from otika.search.engine import SearchEngine
 from otika.search.ranking import HeuristicRankingModel
-
 from otika.utils import str2bool
-
-import os
-from dotenv import load_dotenv
-from datetime import datetime
+from otika.utils.version import compare_version, get_version
 
 
 class Miner(BaseMinerNeuron):
@@ -84,6 +81,13 @@ class Miner(BaseMinerNeuron):
             otika.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         bt.logging.info("received request...", query)
+        if (
+            query.version is not None
+            and compare_version(query.version, get_version()) > 0
+        ):
+            bt.logging.warning(
+                f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
+            )
 
         if str2bool(os.environ.get("MINER_SEARCH_WITH_CRAWLING", "")):
             self.search_engine.crawl_and_index_data(
