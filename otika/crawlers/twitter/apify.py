@@ -29,7 +29,7 @@ class ApifyTwitterCrawler:
         Returns:
             dict: The tweet details.
         """
-        bt.logging.debug(f"Getting tweets from urls: {url}")
+        bt.logging.debug(f"Getting tweet from url: {url}")
         params = {
             "maxRequestRetries": 3,
             "searchMode": "live",
