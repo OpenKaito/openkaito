@@ -200,3 +200,24 @@ You can start the validator by running the following command:
 ```bash
 python neurons/validator.py --netuid <netuid> --subtensor.network finney --wallet.name validator --wallet.hotkey default --logging.debug --neuron.sample_size 10 --neuron.axon_off
 ```
+
+### Notes about validator auto-update
+
+To enable validator auto update with github repo, you can install `pm2` and `jq`, then execute the `run.sh`.
+
+```bash
+# Install pm2 and jq
+sudo apt-get install jq npm
+sudo npm install -g pm2
+
+# Run the run.sh to enable auto update
+# You may need to modify the first few lines of `run.sh` to set the variables properly
+./run.sh
+```
+
+To monitor your validator process, use the following pm2 commands to monitor the status and logs of your process:
+
+```bash
+pm2 status
+pm2 logs <id>
+```
