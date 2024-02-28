@@ -2,11 +2,6 @@ import os
 
 import bittensor as bt
 from dotenv import load_dotenv
-from elasticsearch import Elasticsearch
-
-from otika.crawlers.twitter.apify import ApifyTwitterCrawler
-
-from .ranking import HeuristicRankingModel
 
 
 class SearchEngine:
@@ -121,7 +116,7 @@ class SearchEngine:
             )
         try:
             docs = self.twitter_crawler.search(query_string, max_size)
-            processed_docs = self.twitter_crawler.process(docs)
+            processed_docs = self.twitter_crawler.process_list(docs)
             bt.logging.debug(f"processed {len(processed_docs)} docs: {processed_docs}")
         except Exception as e:
             bt.logging.error("crawling error...", e)
