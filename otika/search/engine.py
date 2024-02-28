@@ -117,7 +117,8 @@ class SearchEngine:
         try:
             docs = self.twitter_crawler.search(query_string, max_size)
             processed_docs = self.twitter_crawler.process_list(docs)
-            bt.logging.debug(f"processed {len(processed_docs)} docs: {processed_docs}")
+            bt.logging.debug(f"crawled {len(processed_docs)} docs")
+            bt.logging.trace(processed_docs)
         except Exception as e:
             bt.logging.error("crawling error...", e)
             processed_docs = []

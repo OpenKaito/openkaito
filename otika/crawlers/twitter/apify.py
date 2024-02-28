@@ -73,7 +73,7 @@ class ApifyTwitterCrawler:
         run = self.client.actor(self.actor_id).call(
             run_input=params, timeout_secs=self.timeout_secs
         )
-        bt.logging.debug(f"Apify Actor Run: {run}")
+        bt.logging.trace(f"Apify Actor Run: {run}")
 
         results = [
             item
