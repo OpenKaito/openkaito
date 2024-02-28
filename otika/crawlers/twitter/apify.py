@@ -73,7 +73,7 @@ class ApifyTwitterCrawler:
         run = self.client.actor(self.actor_id).call(
             run_input=params, timeout_secs=self.timeout_secs
         )
-        bt.logging.debug(f"Apify Actor Run: {run}")
+        bt.logging.trace(f"Apify Actor Run: {run}")
 
         results = [
             item
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
 
     # r = crawler.search("BTC", 5)
-    # print(crawler.process(r))
+    # print(crawler.process_list(r))
 
     r = crawler.get_tweet_by_url(
         "https://twitter.com/pm_me_your_knee/status/1762448211875422690"

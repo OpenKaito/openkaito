@@ -114,7 +114,7 @@ class Evaluator:
                     for i, doc in enumerate(docs)
                 ]
             )
-            bt.logging.info(
+            bt.logging.debug(
                 f"Querying LLM of {query_string} with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
@@ -192,7 +192,7 @@ class Evaluator:
 
         try:
             result = json.loads(output.choices[0].message.content)
-            bt.logging.info(f"LLM result: {result}")
+            bt.logging.debug(f"LLM result: {result}")
             ranking = parse_llm_result(result)
             bt.logging.info(f"LLM ranking: {ranking}")
             if len(ranking) != len(docs):

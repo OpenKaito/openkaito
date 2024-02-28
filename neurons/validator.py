@@ -38,6 +38,8 @@ import openai
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
+from otika.utils.version import get_version
+
 
 def random_query(input_file="queries.txt"):
     if not os.path.exists(input_file):
@@ -82,6 +84,7 @@ class Validator(BaseValidatorNeuron):
         search_query = SearchSynapse(
             query_string=query_string,
             size=os.getenv("VALIDATOR_SEARCH_QUERY_SIZE", 5),
+            version=get_version(),
         )
 
         bt.logging.info(
