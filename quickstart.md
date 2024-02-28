@@ -84,15 +84,27 @@ python neurons/miner.py --netuid <netuid> --subtensor.network finney --wallet.na
 
 ### Notes
 
+We provide `scripts/search_evaluation.py` to quick preview your search engine performance. You can run the following command to evaluate the search engine's performance:
+
+```bash
+python scripts/search_evaluation.py --query 'BTC' --size 5
+```
+
+Note the score may not always be the save even if everything is kept unchanged. But you can always improve your search engine performance systematically to gain a statistically significant improvement.
+
 To obtain better miner performance, you can consider the following options:
 
-- adjust the crawler running parameters in the `otika/crawlers/twitter/apify.py` file
-- adjust the size of on search crawling to be larger
-- implement a continuous crawler, instead of or in addition to the on search crawling, to crawl data and ingest into the Elasticsearch instance
-- build better query or customize the ranking metrics to Elasticsearch to obtain the data you need
-- build better index for the data you crawled and ingested into Elasticsearch, e.g., Knowledge Graph
-- implement a better ranking model to rank the data you queried from Elasticsearch, e.g., using LLM
-- ...
+- crawl and index more data, the more data you have, the better the search engine performance you can achieve
+    - adjust the apify crawler running parameters, e.g., increase the size of on search crawling
+    - implement a continuous crawler, instead of or in addition to the on search crawling, to crawl data and ingest into the Elasticsearch instance
+- build better ranking model
+    - customize the provied ranking model, e.g., tune the parameters for `length_weight` and `age_weight`
+    - implement a better ranking model, e.g., integrating LLM
+- improve the recall stage
+    - tune the parameters for the search query, e.g., adjust the `size` parameter via `MINER_SEARCH_RECALL_SIZE` in `.env`
+    - build better index for the data you crawled and ingested into Elasticsearch, e.g., Knowledge Graph
+- any other advanced improvements you can think of
+
 
 
 ## Validator Setup
@@ -111,7 +123,7 @@ You can configure the validator by setting the following environment variables i
 
 ```
 VALIDATOR_LOOP_SLEEP=30    # The sleep interval between sending requests to the miner
-VALIDATOR_SEARCH_QUERY_LENGTH=5  # The length of the search results required by the validator
+VALIDATOR_SEARCH_QUERY_SIZE=5  # The size of the search results required by the validator
 ```
 
 ### Start the Validator

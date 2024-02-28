@@ -30,12 +30,12 @@ class SearchSynapse(bt.Synapse):
 
     Attributes:
     - query_string: A string value representing the search request sent by the validator.
-    - length: the length of results to return.
+    - size: the count size of results to return.
     - results: A list of `Document` dict which, when filled, represents the response from the miner.
     """
 
     query_string: str
-    length: int
+    size: int
 
     results: Optional[List[Dict]] = None
 

@@ -24,9 +24,11 @@ from elasticsearch import Elasticsearch
 import otika
 
 from otika.base.miner import BaseMinerNeuron
+from otika.crawlers.twitter.apify import ApifyTwitterCrawler
+from otika.search.engine import SearchEngine
+from otika.search.ranking import HeuristicRankingModel
 
 from otika.utils import str2bool
-from otika.crawlers.twitter.apify import ApifyTwitterCrawler
 
 import os
 from dotenv import load_dotenv
@@ -47,7 +49,7 @@ class Miner(BaseMinerNeuron):
 
         load_dotenv()
 
-        self.search_client = Elasticsearch(
+        search_client = Elasticsearch(
             os.environ["ELASTICSEARCH_HOST"],
             basic_auth=(
                 os.environ["ELASTICSEARCH_USERNAME"],
@@ -56,35 +58,18 @@ class Miner(BaseMinerNeuron):
             verify_certs=False,
             ssl_show_warn=False,
         )
-        self.init_indices()
 
-        self.twitter_crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
+        # for ranking recalled results
+        ranking_model = HeuristicRankingModel(length_weight=0.8, age_weight=0.2)
 
-    def init_indices(self):
-        """
-        Initializes the indices in the elasticsearch database.
-        """
-        index_name = "twitter"
-        if not self.search_client.indices.exists(index=index_name):
-            bt.logging.info("creating index...", index_name)
-            self.search_client.indices.create(
-                index=index_name,
-                body={
-                    "mappings": {
-                        "properties": {
-                            "id": {"type": "long"},
-                            "text": {"type": "text"},
-                            "created_at": {"type": "date"},
-                            "username": {"type": "keyword"},
-                            "url": {"type": "text"},
-                            "quote_count": {"type": "long"},
-                            "reply_count": {"type": "long"},
-                            "retweet_count": {"type": "long"},
-                            "favorite_count": {"type": "long"},
-                        }
-                    }
-                },
-            )
+        # optional, for crawling data
+        twitter_crawler = (
+            ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
+            if os.environ.get("APIFY_API_KEY")
+            else None
+        )
+
+        self.search_engine = SearchEngine(search_client, ranking_model, twitter_crawler)
 
     async def forward(
         self, query: otika.protocol.SearchSynapse
@@ -101,84 +86,15 @@ class Miner(BaseMinerNeuron):
         bt.logging.info("received request...", query)
 
         if str2bool(os.environ.get("MINER_SEARCH_WITH_CRAWLING", "")):
-            try:
-                bt.logging.debug(
-                    f"crawling '{query.query_string}' for {query.length*2}"
-                )
-                docs = self.twitter_crawler.search(query.query_string, query.length * 2)
-                processed_docs = self.twitter_crawler.process(docs)
-            except Exception as e:
-                bt.logging.error("crawling error...", e)
-                processed_docs = []
-
-            if len(processed_docs) > 0:
-                try:
-                    bt.logging.info(f"bulk indexing {len(processed_docs)} docs")
-                    bulk_body = []
-                    for doc in processed_docs:
-                        bulk_body.append(
-                            {
-                                "update": {
-                                    "_index": "twitter",
-                                    "_id": doc["id"],
-                                }
-                            }
-                        )
-                        bulk_body.append(
-                            {
-                                "doc": doc,
-                                "doc_as_upsert": True,
-                            }
-                        )
-
-                    r = self.search_client.bulk(
-                        body=bulk_body,
-                        refresh=True,
-                    )
-                    bt.logging.info("bulk update response...", r)
-                except Exception as e:
-                    bt.logging.error("bulk update error...", e)
-
-        try:
-            response = self.search_client.search(
-                index="twitter",
-                body={
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {
-                                    "query_string": {
-                                        "query": query.query_string,
-                                        "default_field": "text",
-                                    }
-                                }
-                            ],
-                        }
-                    },
-                    "size": query.length,
-                },
+            self.search_engine.crawl_and_index_data(
+                query_string=query.query_string,
+                # crawl and index more data than needed to ensure we have enough to rank
+                max_size=2 * query.size,
             )
-            documents = response["hits"]["hits"]
-            results = []
-            for document in documents[: query.length]:
-                doc = document["_source"]
-                results.append(
-                    {
-                        "id": doc["id"],
-                        "text": doc["text"],
-                        "created_at": doc["created_at"],
-                        "username": doc["username"],
-                        "url": doc["url"],
-                        "quote_count": doc["quote_count"],
-                        "reply_count": doc["reply_count"],
-                        "retweet_count": doc["retweet_count"],
-                        "favorite_count": doc["favorite_count"],
-                    }
-                )
-            bt.logging.info("searched results:", results)
-            query.results = results
-        except Exception as e:
-            bt.logging.error("search error...", e)
+
+        ranked_docs = self.search_engine.search(query.query_string, query.size)
+        bt.logging.debug("ranked_docs", ranked_docs)
+        query.results = ranked_docs
         return query
 
     async def blacklist(
