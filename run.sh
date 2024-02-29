@@ -1,18 +1,10 @@
 #!/bin/bash
 
 # Initialize variables
-
-wallet_name="validator"
-hotkey="default"
-network="test" # finney
-netuid="88"
-
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
-proc_name="otika_validator_main_process"
-
-args="--netuid ${netuid} --subtensor.network ${network} --wallet.name ${wallet_name} --wallet.hotkey ${hotkey} --logging.debug"
-
+proc_name="otika_validator_main_process" 
+args=()
 version_location="./otika/__init__.py"
 version="__version__"
 
@@ -202,7 +194,31 @@ if pm2 status | grep -q $proc_name; then
     pm2 delete $proc_name
 fi
 
-pm2 start $script --name $proc_name --interpreter python3 -- $args
+# Run the Python script with the arguments using pm2
+echo "Running $script with the following pm2 config:"
+
+# Join the arguments with commas using printf
+joined_args=$(printf "%s," "${args[@]}")
+
+# Remove the trailing comma
+joined_args=${joined_args%,}
+
+# Create the pm2 config file
+echo "module.exports = {
+  apps : [{
+    name   : '$proc_name',
+    script : '$script',
+    interpreter: 'python3',
+    min_uptime: '5m',
+    max_restarts: '5',
+    args: [$joined_args]
+  }]
+}" > app.config.js
+
+# Print configuration to be used
+cat app.config.js
+
+pm2 start app.config.js
 
 # Check if packages are installed.
 check_package_installed "jq"
@@ -213,7 +229,6 @@ if [ "$?" -eq 1 ]; then
         if [ -d "./.git" ]; then
 
             # check value on github remotely
-            # TODO: public repo visibility
             latest_version=$(check_variable_value_on_github "OpenKaito/subnet-otika" "otika/__init__.py" "__version__ ")
 
             # If the file has been updated
@@ -235,7 +250,8 @@ if [ "$?" -eq 1 ]; then
                         pip install -e .
 
                         # # Run the Python script with the arguments using pm2
-                        pm2 del $proc_name
+                        # TODO (shib): Remove this pm2 del in the next spec version update.
+                        pm2 del otika_validator_autoupdate
                         echo "Restarting PM2 process"
                         pm2 restart $proc_name
 

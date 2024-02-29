@@ -245,7 +245,6 @@ To obtain better miner performance, you can consider the following options:
 - any other advanced improvements you can think of
 
 
-
 ## Validator Setup
 
 ### Obtain OpenAi API Key
@@ -255,6 +254,8 @@ To use the LLM ranking result evaluation, you need to obtain an API key from [Op
 ```
 OPENAI_API_KEY="sk-xxxxxx"
 ```
+
+> Don't forget to also obtain and set the `APIFY_API_KEY` as mentioned in the above **General** section.
 
 ### Install Dependencies
 
@@ -277,22 +278,19 @@ sudo yum install nodejs20
 sudo npm install -g pm2
 ```
 
-
 ### Start the Validator
 
 You can start the validator by running the following command, enabling validator auto update with github repo:
 
 ```bash
 # Run the run.sh to enable auto update
-# You may need to modify the first few lines of `run.sh` to set the variables properly
-./run.sh
+pm2 start new_run.sh --name auto_run_validator -- --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --netuid <otika_netuid> --logging.debug
 ```
+You may pass in more command line arguments to the `validator` command, e.g., `--axon.port <your_axon_port>` etc., if needed.
 
-In the several head lines of `run.sh`, you can set the variables and the script commandline arguments properly.
+This will run two PM2 process: one for the `neurons/validator.py` which is called `otika_validator_main_process`, and one for the `run.sh` script which is called `otika_validator_autoupdate`. The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `otika_validator_main_process` and then restart itself.
 
-The `args` variable specifies the commandline arguments for the `neurons/validator.py`.
-
-The detailed commandline arguments for the `neurons/validator.py` can be obtained by `python neurons/validator.py --help`, and are as follows:
+The detailed commandline arguments for the `validator` can be obtained by `python neurons/validator.py --help`, and are as follows:
 
 ```bash
 usage: validator.py [-h] [--no_prompt] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH]
