@@ -4,10 +4,10 @@ import argparse
 from elasticsearch import Elasticsearch
 import openai
 
-from otika.crawlers.twitter.apify import ApifyTwitterCrawler
-from otika.evaluation.evaluator import Evaluator
-from otika.search.engine import SearchEngine
-from otika.search.ranking.heuristic_ranking import HeuristicRankingModel
+from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
+from openkaito.evaluation.evaluator import Evaluator
+from openkaito.search.engine import SearchEngine
+from openkaito.search.ranking.heuristic_ranking import HeuristicRankingModel
 
 
 def parse_args():

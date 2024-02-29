@@ -22,10 +22,9 @@ import bittensor as bt
 
 from abc import ABC, abstractmethod
 
-# Sync calls set weights and also resyncs the metagraph.
-from otika.utils.config import check_config, add_args, config
-from otika.utils.misc import ttl_get_block
-from otika import __spec_version__ as spec_version
+from openkaito.utils.config import check_config, add_args, config
+from openkaito.utils.misc import ttl_get_block
+from openkaito import __spec_version__ as spec_version
 
 
 class BaseNeuron(ABC):

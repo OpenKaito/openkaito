@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# Copyright © 2024 Project Otika
+# Copyright © 2024 OpenKaito
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -26,7 +26,7 @@ import bittensor as bt
 from typing import List
 from traceback import print_exception
 
-from otika.base.neuron import BaseNeuron
+from openkaito.base.neuron import BaseNeuron
 
 
 class BaseValidatorNeuron(BaseNeuron):

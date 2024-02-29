@@ -3,7 +3,7 @@ from apify_client import ApifyClient
 
 import bittensor as bt
 
-from otika.evaluation.utils import tweet_url_to_id
+from openkaito.evaluation.utils import tweet_url_to_id
 
 
 class ApifyTwitterCrawler:

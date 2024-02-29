@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2024 Project Otika
+# Copyright © 2024 OpenKaito
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -24,12 +24,12 @@ import bittensor as bt
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
-import otika
-from otika.base.miner import BaseMinerNeuron
-from otika.crawlers.twitter.apify import ApifyTwitterCrawler
-from otika.search.engine import SearchEngine
-from otika.search.ranking import HeuristicRankingModel
-from otika.utils.version import compare_version, get_version
+import openkaito
+from openkaito.base.miner import BaseMinerNeuron
+from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
+from openkaito.search.engine import SearchEngine
+from openkaito.search.ranking import HeuristicRankingModel
+from openkaito.utils.version import compare_version, get_version
 
 
 class Miner(BaseMinerNeuron):
@@ -69,16 +69,16 @@ class Miner(BaseMinerNeuron):
         self.search_engine = SearchEngine(search_client, ranking_model, twitter_crawler)
 
     async def forward(
-        self, query: otika.protocol.SearchSynapse
-    ) -> otika.protocol.SearchSynapse:
+        self, query: openkaito.protocol.SearchSynapse
+    ) -> openkaito.protocol.SearchSynapse:
         """
         Processes the incoming Search synapse by performing a search operation on the crawled data.
 
         Args:
-            query (otika.protocol.SearchSynapse): The synapse object containing the query information.
+            query (openkaito.protocol.SearchSynapse): The synapse object containing the query information.
 
         Returns:
-            otika.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
+            openkaito.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         bt.logging.info("received request...", query)
         if (
@@ -105,7 +105,7 @@ class Miner(BaseMinerNeuron):
         return query
 
     async def blacklist(
-        self, synapse: otika.protocol.SearchSynapse
+        self, synapse: openkaito.protocol.SearchSynapse
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -116,7 +116,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (otika.protocol.SearchSynapse): A synapse object constructed from the headers of the incoming request.
+            synapse (openkaito.protocol.SearchSynapse): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -160,7 +160,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: otika.protocol.SearchSynapse) -> float:
+    async def priority(self, synapse: openkaito.protocol.SearchSynapse) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -168,7 +168,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (otika.protocol.SearchSynapse): The synapse object that contains metadata about the incoming request.
+            synapse (openkaito.protocol.SearchSynapse): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.

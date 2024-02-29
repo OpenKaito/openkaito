@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2024 Project Otika
+# Copyright © 2024 OpenKaito
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -29,13 +29,13 @@ import openai
 import torch
 from dotenv import load_dotenv
 
-import otika
-from otika.base.validator import BaseValidatorNeuron
-from otika.crawlers.twitter.apify import ApifyTwitterCrawler
-from otika.evaluation.evaluator import Evaluator
-from otika.protocol import SearchSynapse
-from otika.utils.uids import get_random_uids
-from otika.utils.version import get_version
+import openkaito
+from openkaito.base.validator import BaseValidatorNeuron
+from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
+from openkaito.evaluation.evaluator import Evaluator
+from openkaito.protocol import SearchSynapse
+from openkaito.utils.uids import get_random_uids
+from openkaito.utils.version import get_version
 
 
 def random_query(input_file="queries.txt"):
