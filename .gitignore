@@ -1,6 +1,9 @@
 .env
 tmp*
 
+# pm2 config file
+app.config.js
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
