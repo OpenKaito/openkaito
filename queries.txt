@@ -1,5 +1,23 @@
 BTC
 ETH
-ETH Denver
 bittensor
+TAO
 AI
+PoS
+PoW
+DApps
+smart contract
+Token Generation Event
+Halving
+Decentralized Exchange
+Centralized Exchange
+Cryptography
+Cross-Chain
+Liquidity Pool
+Market Cap
+Stablecoin
+Web3
+Wrapped Tokens
+Yield Farming
+Zero-Knowledge Proofs
+
