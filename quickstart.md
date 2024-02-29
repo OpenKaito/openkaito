@@ -284,7 +284,7 @@ You can start the validator by running the following command, enabling validator
 
 ```bash
 # Run the run.sh to enable auto update
-pm2 start new_run.sh --name auto_run_validator -- --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --netuid <otika_netuid> --logging.debug
+pm2 start run.sh --name otika_validator_autoupdate -- --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --netuid <otika_netuid> --logging.debug
 ```
 You may pass in more command line arguments to the `validator` command, e.g., `--axon.port <your_axon_port>` etc., if needed.
 
