@@ -17,27 +17,24 @@
 
 
 import json
+import os
+import random
 import time
+from datetime import datetime, timezone
 from traceback import print_exception
 
 # Bittensor
 import bittensor as bt
+import openai
+import torch
+from dotenv import load_dotenv
 
 import otika
+from otika.base.validator import BaseValidatorNeuron
 from otika.crawlers.twitter.apify import ApifyTwitterCrawler
 from otika.evaluation.evaluator import Evaluator
 from otika.protocol import SearchSynapse
 from otika.utils.uids import get_random_uids
-
-from otika.base.validator import BaseValidatorNeuron
-
-import os
-import random
-import torch
-import openai
-from dotenv import load_dotenv
-from datetime import datetime, timezone
-
 from otika.utils.version import get_version
 
 
@@ -148,11 +145,31 @@ class Validator(BaseValidatorNeuron):
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+    
+
+    def print_info(self):
+        metagraph = self.metagraph
+        self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+
+        log = (
+            "Validator | "
+            f"Step:{self.step} | "
+            f"UID:{self.uid} | "
+            f"Block:{metagraph.block.item()} | "
+            f"Stake:{metagraph.S[self.uid]} | "
+            f"Rank:{metagraph.R[self.uid]} | "
+            f"Trust:{metagraph.T[self.uid]} | "
+            f"Consensus:{metagraph.C[self.uid] } | "
+            f"Incentive:{metagraph.I[self.uid]} | "
+            f"Emission:{metagraph.E[self.uid]}"
+        )
+        bt.logging.info(log)
+
 
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     with Validator() as validator:
         while True:
-            bt.logging.info("Validator running...", time.time())
+            validator.print_info()
             time.sleep(30)
