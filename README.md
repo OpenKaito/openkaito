@@ -1,6 +1,6 @@
 <div align="center">
 
-# **Project Otika - Decentralized Kaito AI** <!-- omit in toc -->
+# **OpenKaito - Decentralized Kaito AI** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 ---
@@ -20,7 +20,7 @@ Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/b
 ## Introduction
 
 - Kaito AI is committed to democratizing access to Web3 information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
-- Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet Otika serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define Web3 search as a miner-validator problem, where search relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
+- Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet OpenKaito serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define Web3 search as a miner-validator problem, where search relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
 - Our goal is to decentralize Kaito AI's smart search and analytics platform, ensuring that it is built by the public and serves the public.
 
 ## Backgound Knowledge
@@ -89,7 +89,7 @@ Currently Twitter is the only source that we onboarded and the evaluation is bas
 ### Low-cost Evaluation
 Currently our search evaluator is based on GPT and requires an OpenAI key. The team is actively working on a distilled version of evaluator so that more results can be evaluated at lower cost.
 
-### The Otika App
+### The OpenKaito App
 
 To provide a fast and seamless user experience, we have designed a centralized client layer on top of validator nodes, leading to an end-to-end search and analytics product for Web3. This design stems from several key insights from the Kaito AI team's product research:
 
@@ -97,7 +97,7 @@ To provide a fast and seamless user experience, we have designed a centralized c
 2. **Ticker-centered Feeds & Analytics:** A central aspect of Kaito AI's product offering is its feeds and analytics focused on tickers, which are powered by its search stack and curated by AI. This focus on tickers is well-suited for pre-fetching, aggregation, and caching.
 3. **Tail Queries:** To ensure a smooth experience for less common queries, whose results cannot be pre-fetched, the search backend will store and index any aggregated results locally. The search client can build up this content index by indexing results from frequent queries, as well as by continuously issuing crypto-related queries to the Subnet (e.g., Crypto topics and narratives as currently indexed by Kaito AI).
 
-The Otika App aims to offer a free version of Kaito AI’s key product features (AI-curated search, feeds, and analytics) through a fetch, aggregate, and cache strategy.
+The OpenKaito App aims to offer a free version of Kaito AI’s key product features (AI-curated search, feeds, and analytics) through a fetch, aggregate, and cache strategy.
 
 <p align="center">
   <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/bd3353c9-7c95-43a5-b7ad-d3e2f55b4a84" width="40%" height="auto">
