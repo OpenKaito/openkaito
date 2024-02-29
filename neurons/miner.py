@@ -18,6 +18,7 @@
 import os
 import time
 import typing
+from datetime import datetime
 
 import bittensor as bt
 from dotenv import load_dotenv
@@ -196,10 +197,28 @@ class Miner(BaseMinerNeuron):
     def load_state(self):
         pass
 
+    def print_info(self):
+        metagraph = self.metagraph
+        self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+
+        log = (
+            "Miner | "
+            f"Step:{self.step} | "
+            f"UID:{self.uid} | "
+            f"Block:{metagraph.block.item()} | "
+            f"Stake:{metagraph.S[self.uid]} | "
+            f"Rank:{metagraph.R[self.uid]} | "
+            f"Trust:{metagraph.T[self.uid]} | "
+            f"Consensus:{metagraph.C[self.uid] } | "
+            f"Incentive:{metagraph.I[self.uid]} | "
+            f"Emission:{metagraph.E[self.uid]}"
+        )
+        bt.logging.info(log)
+
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
     with Miner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            miner.print_info()
             time.sleep(30)
