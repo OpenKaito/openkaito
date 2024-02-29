@@ -11,7 +11,7 @@ script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
 proc_name="otika_validator_main_process"
 
-args="--netuid ${netuid} --subtensor.network ${network} --wallet.name ${wallet_name} --wallet.hotkey ${hotkey} --logging.debug --neuron.sample_size 10 --neuron.axon_off"
+args="--netuid ${netuid} --subtensor.network ${network} --wallet.name ${wallet_name} --wallet.hotkey ${hotkey} --logging.debug"
 
 version_location="./otika/__init__.py"
 version="__version__"

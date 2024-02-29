@@ -13,7 +13,6 @@ If you are new to bittensor subnet, you are recommended to start by following
 - [running on testnet](./docs/running_on_testnet.md).
 
 
-
 ### Install Otika
 
 In the root folder of this repository, run the following command to install Otika:
@@ -129,12 +128,14 @@ ELASTICSEARCH_PASSWORD="your_password"
 ```
 
 #### Useful Commands
+
 If you forget the password, you can reset it by running the following command:
 ```bash
 sudo docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
 ```
 
 If the Elasticsearch instance exited unexpectedly, you can start it by running the following command:
+
 ```bash
 sudo docker start elasticsearch
 ```
@@ -143,8 +144,80 @@ sudo docker start elasticsearch
 ### Start the Miner
 
 After setting up the Elasticsearch and obtaining the API key, you can start the miner by running the following command:
+
 ```bash
 python neurons/miner.py --netuid <netuid> --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit
+```
+
+The detailed commandline arguments for the `neurons/miner.py` can be obtained by `python neurons/miner.py --help`, and are as follows:
+
+```bash
+usage: miner.py [-h] [--no_prompt] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH]
+                [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock SUBTENSOR._MOCK]
+                [--logging.debug] [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--axon.port AXON.PORT]
+                [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                [--axon.max_workers AXON.MAX_WORKERS] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.device NEURON.DEVICE]
+                [--neuron.epoch_length NEURON.EPOCH_LENGTH] [--neuron.events_retention_size NEURON.EVENTS_RETENTION_SIZE] [--neuron.dont_save_events]
+                [--neuron.disable_crawling] [--neuron.crawl_size NEURON.CRAWL_SIZE] [--neuron.search_recall_size NEURON.SEARCH_RECALL_SIZE]
+                [--blacklist.force_validator_permit] [--blacklist.allow_non_registered] [--config CONFIG] [--strict] [--no_version_checking]
+
+options:
+  -h, --help            show this help message and exit
+  --no_prompt           Set true to avoid prompting the user.
+  --wallet.name WALLET.NAME
+                        The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
+  --wallet.hotkey WALLET.HOTKEY
+                        The name of the wallet's hotkey.
+  --wallet.path WALLET.PATH
+                        The path to your bittensor wallets
+  --subtensor.network SUBTENSOR.NETWORK
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- test (test network) -- archive (archive
+                        network +300 blocks) -- local (local running network) If this option is set it overloads subtensor.chain_endpoint with an
+                        entry point node from that network.
+  --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
+                        The subtensor endpoint flag. If set, overrides the --network flag.
+  --subtensor._mock SUBTENSOR._MOCK
+                        If true, uses a mocked connection to the chain.
+  --logging.debug       Turn on bittensor debugging information
+  --logging.trace       Turn on bittensor trace level information
+  --logging.record_log  Turns on logging to file.
+  --logging.logging_dir LOGGING.LOGGING_DIR
+                        Logging default root directory.
+  --axon.port AXON.PORT
+                        The local port this axon endpoint is bound to. i.e. 8091
+  --axon.ip AXON.IP     The local ip this axon binds to. ie. [::]
+  --axon.external_port AXON.EXTERNAL_PORT
+                        The public port this axon broadcasts to the network. i.e. 8091
+  --axon.external_ip AXON.EXTERNAL_IP
+                        The external ip this axon broadcasts to the network to. ie. [::]
+  --axon.max_workers AXON.MAX_WORKERS
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker
+                        threads to service requests up to this number.
+  --netuid NETUID       Subnet netuid
+  --neuron.name NEURON.NAME
+                        Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name.
+  --neuron.device NEURON.DEVICE
+                        Device to run on.
+  --neuron.epoch_length NEURON.EPOCH_LENGTH
+                        The default epoch length (how often we set weights, measured in 12 second blocks).
+  --neuron.events_retention_size NEURON.EVENTS_RETENTION_SIZE
+                        Events retention size.
+  --neuron.dont_save_events
+                        If set, we dont save events to a log file.
+  --neuron.disable_crawling
+                        If set, we disable crawling when receiving a search request.
+  --neuron.crawl_size NEURON.CRAWL_SIZE
+                        The number of documents to crawl when receiving each query.
+  --neuron.search_recall_size NEURON.SEARCH_RECALL_SIZE
+                        The number of search results to retrieve for ranking.
+  --blacklist.force_validator_permit
+                        If set, we will force incoming requests to have a permit.
+  --blacklist.allow_non_registered
+                        If set, miners will accept queries from non registered entities. (Dangerous!)
+  --config CONFIG       If set, defaults are overridden by passed file.
+  --strict              If flagged, config will check that only exact arguments have been set.
+  --no_version_checking
+                        Set ``true`` to stop cli version checking.
 ```
 
 
@@ -183,15 +256,6 @@ To use the LLM ranking result evaluation, you need to obtain an API key from [Op
 OPENAI_API_KEY="sk-xxxxxx"
 ```
 
-### Configuration via .env
-
-You can configure the validator by setting the following environment variables in the `.env` file:
-
-```
-VALIDATOR_LOOP_SLEEP=30    # The sleep interval between sending requests to the miner
-VALIDATOR_SEARCH_QUERY_SIZE=5  # The size of the search results required by the validator
-```
-
 ### Install Dependencies
 
 To enable validator auto update with github repo, you can install `pm2` and `jq`.
@@ -226,7 +290,90 @@ You can start the validator by running the following command, enabling validator
 
 In the several head lines of `run.sh`, you can set the variables and the script commandline arguments properly.
 
-The `args` variable is the commandline arguments for the `neurons/validator.py`.
+The `args` variable specifies the commandline arguments for the `neurons/validator.py`.
+
+The detailed commandline arguments for the `neurons/validator.py` can be obtained by `python neurons/validator.py --help`, and are as follows:
+
+```bash
+usage: validator.py [-h] [--no_prompt] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH]
+                    [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock SUBTENSOR._MOCK]
+                    [--logging.debug] [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--axon.port AXON.PORT]
+                    [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                    [--axon.max_workers AXON.MAX_WORKERS] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.device NEURON.DEVICE]
+                    [--neuron.epoch_length NEURON.EPOCH_LENGTH] [--neuron.events_retention_size NEURON.EVENTS_RETENTION_SIZE]
+                    [--neuron.dont_save_events] [--neuron.num_concurrent_forwards NEURON.NUM_CONCURRENT_FORWARDS]
+                    [--neuron.sample_size NEURON.SAMPLE_SIZE] [--neuron.search_request_interval NEURON.SEARCH_REQUEST_INTERVAL]
+                    [--neuron.search_result_size NEURON.SEARCH_RESULT_SIZE] [--neuron.disable_set_weights]
+                    [--neuron.moving_average_alpha NEURON.MOVING_AVERAGE_ALPHA] [--neuron.axon_off]
+                    [--neuron.vpermit_tao_limit NEURON.VPERMIT_TAO_LIMIT] [--config CONFIG] [--strict] [--no_version_checking]
+
+options:
+  -h, --help            show this help message and exit
+  --no_prompt           Set true to avoid prompting the user.
+  --wallet.name WALLET.NAME
+                        The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
+  --wallet.hotkey WALLET.HOTKEY
+                        The name of the wallet's hotkey.
+  --wallet.path WALLET.PATH
+                        The path to your bittensor wallets
+  --subtensor.network SUBTENSOR.NETWORK
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- test (test network) -- archive (archive
+                        network +300 blocks) -- local (local running network) If this option is set it overloads subtensor.chain_endpoint with an
+                        entry point node from that network.
+  --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
+                        The subtensor endpoint flag. If set, overrides the --network flag.
+  --subtensor._mock SUBTENSOR._MOCK
+                        If true, uses a mocked connection to the chain.
+  --logging.debug       Turn on bittensor debugging information
+  --logging.trace       Turn on bittensor trace level information
+  --logging.record_log  Turns on logging to file.
+  --logging.logging_dir LOGGING.LOGGING_DIR
+                        Logging default root directory.
+  --axon.port AXON.PORT
+                        The local port this axon endpoint is bound to. i.e. 8091
+  --axon.ip AXON.IP     The local ip this axon binds to. ie. [::]
+  --axon.external_port AXON.EXTERNAL_PORT
+                        The public port this axon broadcasts to the network. i.e. 8091
+  --axon.external_ip AXON.EXTERNAL_IP
+                        The external ip this axon broadcasts to the network to. ie. [::]
+  --axon.max_workers AXON.MAX_WORKERS
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker
+                        threads to service requests up to this number.
+  --netuid NETUID       Subnet netuid
+  --neuron.name NEURON.NAME
+                        Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name.
+  --neuron.device NEURON.DEVICE
+                        Device to run on.
+  --neuron.epoch_length NEURON.EPOCH_LENGTH
+                        The default epoch length (how often we set weights, measured in 12 second blocks).
+  --neuron.events_retention_size NEURON.EVENTS_RETENTION_SIZE
+                        Events retention size.
+  --neuron.dont_save_events
+                        If set, we dont save events to a log file.
+  --neuron.num_concurrent_forwards NEURON.NUM_CONCURRENT_FORWARDS
+                        The number of concurrent forwards running at any time.
+  --neuron.sample_size NEURON.SAMPLE_SIZE
+                        The number of miners to query in a single step.
+  --neuron.search_request_interval NEURON.SEARCH_REQUEST_INTERVAL
+                        The interval seconds between search requests.
+  --neuron.search_result_size NEURON.SEARCH_RESULT_SIZE
+                        The number of search results required for each miner to return.
+  --neuron.disable_set_weights
+                        Disables setting weights.
+  --neuron.moving_average_alpha NEURON.MOVING_AVERAGE_ALPHA
+                        Moving average alpha parameter, how much to add of the new observation.
+  --neuron.axon_off, --axon_off
+                        Set this flag to not attempt to serve an Axon.
+  --neuron.vpermit_tao_limit NEURON.VPERMIT_TAO_LIMIT
+                        The maximum number of TAO allowed to query a validator with a vpermit.
+  --config CONFIG       If set, defaults are overridden by passed file.
+  --strict              If flagged, config will check that only exact arguments have been set.
+  --no_version_checking
+                        Set ``true`` to stop cli version checking.
+```
+
+
+### Monitor the Validator
 
 To monitor your validator process, use the following pm2 commands to monitor the status and logs of your process:
 

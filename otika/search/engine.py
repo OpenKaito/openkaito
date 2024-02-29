@@ -43,21 +43,14 @@ class SearchEngine:
                 },
             )
 
-    def search(self, query_string, size):
+    def search(self, query_string, recall_size, result_size):
         """
         Search interface for this search engine
         """
-        recall_size = size * 2
-        if os.getenv("MINER_SEARCH_RECALL_SIZE"):
-            recall_size = (
-                int(os.getenv("MINER_SEARCH_RECALL_SIZE"))
-                if int(os.getenv("MINER_SEARCH_RECALL_SIZE")) > recall_size
-                else recall_size
-            )
 
         recalled_items = self.recall(query_string, recall_size)
         results = self.ranking_model.rank(query_string, recalled_items)
-        return results[:size]
+        return results[:result_size]
 
     def recall(self, query_string, recall_size):
         """

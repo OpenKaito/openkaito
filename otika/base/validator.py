@@ -35,7 +35,7 @@ class BaseValidatorNeuron(BaseNeuron):
     """
 
     def __init__(self, config=None):
-        super().__init__(config=config)
+        super().__init__(config=self.config().merge(config))
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
