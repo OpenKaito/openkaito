@@ -4,7 +4,7 @@
 
 wallet_name="validator"
 hotkey="default"
-network="test"
+network="test" # finney
 netuid="88"
 
 script="neurons/validator.py"
@@ -213,7 +213,7 @@ if [ "$?" -eq 1 ]; then
 
             # check value on github remotely
             # TODO: public repo visibility
-            latest_version=$(check_variable_value_on_github "MetaSearch-IO/decentralized-search" "otika/__init__.py" "__version__ ")
+            latest_version=$(check_variable_value_on_github "OpenKaito/subnet-otika" "otika/__init__.py" "__version__ ")
 
             # If the file has been updated
             if version_less_than $current_version $latest_version; then
