@@ -261,14 +261,15 @@ OPENAI_API_KEY="sk-xxxxxx"
 
 To enable validator auto update with github repo, you can install `pm2` and `jq`.
 
-** Ubuntu **
+**Ubuntu**
+
 ```bash
 # Install pm2 and jq
 sudo apt-get install jq npm
 sudo npm install -g pm2
 ```
 
-** CentOS **
+**CentOS**
 ```bash
 # Install jq
 sudo yum install jq
