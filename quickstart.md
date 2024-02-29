@@ -99,9 +99,8 @@ sudo yum remove docker \
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
-
 # Install Docker
-sudo yum install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo yum install docker
 
 # Start Docker
 sudo systemctl start docker
@@ -193,27 +192,41 @@ VALIDATOR_LOOP_SLEEP=30    # The sleep interval between sending requests to the 
 VALIDATOR_SEARCH_QUERY_SIZE=5  # The size of the search results required by the validator
 ```
 
-### Start the Validator
+### Install Dependencies
 
-You can start the validator by running the following command:
+To enable validator auto update with github repo, you can install `pm2` and `jq`.
 
-```bash
-python neurons/validator.py --netuid <netuid> --subtensor.network finney --wallet.name validator --wallet.hotkey default --logging.debug --neuron.sample_size 10 --neuron.axon_off
-```
-
-### Notes about validator auto-update
-
-To enable validator auto update with github repo, you can install `pm2` and `jq`, then execute the `run.sh`.
-
+** Ubuntu **
 ```bash
 # Install pm2 and jq
 sudo apt-get install jq npm
 sudo npm install -g pm2
+```
 
+** CentOS **
+```bash
+# Install jq
+sudo yum install jq
+
+# Install npm and pm2
+sudo yum install nodejs20
+sudo npm install -g pm2
+```
+
+
+### Start the Validator
+
+You can start the validator by running the following command, enabling validator auto update with github repo:
+
+```bash
 # Run the run.sh to enable auto update
 # You may need to modify the first few lines of `run.sh` to set the variables properly
 ./run.sh
 ```
+
+In the several head lines of `run.sh`, you can set the variables and the script commandline arguments properly.
+
+The `args` variable is the commandline arguments for the `neurons/validator.py`.
 
 To monitor your validator process, use the following pm2 commands to monitor the status and logs of your process:
 
