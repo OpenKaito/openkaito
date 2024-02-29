@@ -51,8 +51,8 @@ def random_query(input_file="queries.txt"):
 
 class Validator(BaseValidatorNeuron):
 
-    def __init__(self, config=None):
-        super(Validator, self).__init__(config=config)
+    def __init__(self):
+        super(Validator, self).__init__()
         self.load_state()
         load_dotenv()
 

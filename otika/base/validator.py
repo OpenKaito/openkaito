@@ -34,8 +34,8 @@ class BaseValidatorNeuron(BaseNeuron):
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
 
-    def __init__(self, config=None):
-        super().__init__(config=self.config().merge(config))
+    def __init__(self):
+        super().__init__(config=self.config())
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)

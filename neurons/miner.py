@@ -40,8 +40,8 @@ class Miner(BaseMinerNeuron):
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
     """
 
-    def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)
+    def __init__(self):
+        super(Miner, self).__init__()
 
         load_dotenv()
 
