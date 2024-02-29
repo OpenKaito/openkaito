@@ -3,9 +3,9 @@
 # Initialize variables
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
-proc_name="otika_validator_main_process" 
+proc_name="openkaito_validator_main_process" 
 args=()
-version_location="./otika/__init__.py"
+version_location="./openkaito/__init__.py"
 version="__version__"
 
 old_args=$@
@@ -229,7 +229,7 @@ if [ "$?" -eq 1 ]; then
         if [ -d "./.git" ]; then
 
             # check value on github remotely
-            latest_version=$(check_variable_value_on_github "OpenKaito/subnet-otika" "otika/__init__.py" "__version__ ")
+            latest_version=$(check_variable_value_on_github "OpenKaito/openkaito" "openkaito/__init__.py" "__version__ ")
 
             # If the file has been updated
             if version_less_than $current_version $latest_version; then

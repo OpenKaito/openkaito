@@ -1,8 +1,8 @@
-# Project Otika Quickstart
+# Quickstart
 
 ## General
 
-On bittensor testnet, the netuid of subnet Project Otika is `88`.
+On bittensor testnet, the netuid of subnet openkaito is `88`.
 
 ### Prepare Wallet
 
@@ -13,9 +13,9 @@ If you are new to bittensor subnet, you are recommended to start by following
 - [running on testnet](./docs/running_on_testnet.md).
 
 
-### Install Otika
+### Install openkaito
 
-In the root folder of this repository, run the following command to install Otika:
+In the root folder of this repository, run the following command to install openkaito:
 ```bash
 pip install -e .
 ```
@@ -45,7 +45,7 @@ cp .env.example .env
 ### Setup Elasticsearch
 
 
-To use Otika, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes intalling [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
+To be a miner of openkaito, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes intalling [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
 
 #### Install Docker
 
@@ -285,11 +285,11 @@ You can start the validator by running the following command, enabling validator
 
 ```bash
 # Run the run.sh to enable auto update
-pm2 start run.sh --name otika_validator_autoupdate -- --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --netuid <otika_netuid> --logging.debug
+pm2 start run.sh --name openkaito_validator_autoupdate -- --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --netuid <openkaito_netuid> --logging.debug
 ```
 You may pass in more command line arguments to the `validator` command, e.g., `--axon.port <your_axon_port>` etc., if needed.
 
-This will run two PM2 process: one for the `neurons/validator.py` which is called `otika_validator_main_process`, and one for the `run.sh` script which is called `otika_validator_autoupdate`. The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `otika_validator_main_process` and then restart itself.
+This will run two PM2 process: one for the `neurons/validator.py` which is called `openkaito_validator_main_process`, and one for the `run.sh` script which is called `openkaito_validator_autoupdate`. The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `openkaito_validator_main_process` and then restart itself.
 
 The detailed commandline arguments for the `validator` can be obtained by `python neurons/validator.py --help`, and are as follows:
 

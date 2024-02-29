@@ -23,8 +23,8 @@ import traceback
 
 import bittensor as bt
 
-from otika.base.neuron import BaseNeuron
-from otika.utils.config import config
+from openkaito.base.neuron import BaseNeuron
+from openkaito.utils.config import config
 
 
 class BaseMinerNeuron(BaseNeuron):
