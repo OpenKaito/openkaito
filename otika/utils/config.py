@@ -63,9 +63,7 @@ def add_args(cls, parser):
     # Netuid Arg: The netuid of the subnet to connect to.
     parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
 
-    neuron_type = (
-        "validator" if "miner" not in cls.__name__.lower() else "miner"
-    )
+    neuron_type = "validator" if "miner" not in cls.__name__.lower() else "miner"
 
     parser.add_argument(
         "--neuron.name",
@@ -118,6 +116,20 @@ def add_args(cls, parser):
         )
 
         parser.add_argument(
+            "--neuron.search_request_interval",
+            type=int,
+            help="The interval seconds between search requests.",
+            default=300,
+        )
+
+        parser.add_argument(
+            "--neuron.search_result_size",
+            type=int,
+            help="The number of search results required for each miner to return.",
+            default=5,
+        )
+
+        parser.add_argument(
             "--neuron.disable_set_weights",
             action="store_true",
             help="Disables setting weights.",
@@ -148,7 +160,29 @@ def add_args(cls, parser):
             default=4096,
         )
 
+    # Miner
     else:
+        parser.add_argument(
+            "--neuron.disable_crawling",
+            action="store_true",
+            default=False,
+            help="If set, we disable crawling when receiving a search request.",
+        )
+
+        parser.add_argument(
+            "--neuron.crawl_size",
+            type=int,
+            help="The number of documents to crawl when receiving each query.",
+            default=10,
+        )
+
+        parser.add_argument(
+            "--neuron.search_recall_size",
+            type=int,
+            help="The number of search results to retrieve for ranking.",
+            default=20,
+        )
+
         parser.add_argument(
             "--blacklist.force_validator_permit",
             action="store_true",

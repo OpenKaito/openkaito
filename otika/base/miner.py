@@ -24,6 +24,7 @@ import traceback
 import bittensor as bt
 
 from otika.base.neuron import BaseNeuron
+from otika.utils.config import config
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -32,7 +33,7 @@ class BaseMinerNeuron(BaseNeuron):
     """
 
     def __init__(self, config=None):
-        super().__init__(config=config)
+        super().__init__(config=self.config().merge(config))
 
         # Warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:
@@ -201,9 +202,7 @@ class BaseMinerNeuron(BaseNeuron):
             )
 
         except Exception as e:
-            bt.logging.error(
-                f"Failed to set weights on chain with exception: { e }"
-            )
+            bt.logging.error(f"Failed to set weights on chain with exception: { e }")
 
         bt.logging.info(f"Set weights: {chain_weights}")
 

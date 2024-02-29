@@ -28,7 +28,6 @@ from otika.base.miner import BaseMinerNeuron
 from otika.crawlers.twitter.apify import ApifyTwitterCrawler
 from otika.search.engine import SearchEngine
 from otika.search.ranking import HeuristicRankingModel
-from otika.utils import str2bool
 from otika.utils.version import compare_version, get_version
 
 
@@ -89,14 +88,17 @@ class Miner(BaseMinerNeuron):
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
 
-        if str2bool(os.environ.get("MINER_SEARCH_WITH_CRAWLING", "")):
+        if not self.config.neuron.disable_crawling:
+            crawl_size = max(self.config.neuron.crawl_size, query.size)
             self.search_engine.crawl_and_index_data(
                 query_string=query.query_string,
                 # crawl and index more data than needed to ensure we have enough to rank
-                max_size=2 * query.size,
+                max_size=crawl_size,
             )
 
-        ranked_docs = self.search_engine.search(query.query_string, query.size)
+        ranked_docs = self.search_engine.search(
+            query.query_string, self.config.neuron.search_recall_size, query.size
+        )
         bt.logging.debug("ranked_docs", ranked_docs)
         query.results = ranked_docs
         return query

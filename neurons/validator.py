@@ -83,7 +83,7 @@ class Validator(BaseValidatorNeuron):
         query_string = random_query()
         search_query = SearchSynapse(
             query_string=query_string,
-            size=os.getenv("VALIDATOR_SEARCH_QUERY_SIZE", 5),
+            size=self.config.neuron.search_result_size,
             version=get_version(),
         )
 
@@ -136,7 +136,7 @@ class Validator(BaseValidatorNeuron):
                 self.step += 1
 
                 # Sleep interval before the next iteration.
-                time.sleep(int(os.getenv("VALIDATOR_LOOP_SLEEP", 10)))
+                time.sleep(self.config.neuron.search_request_interval)
 
         # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:
