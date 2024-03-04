@@ -96,10 +96,3 @@ To provide a fast and seamless user experience, we have designed a centralized c
 1. **Head-heavy Query Distribution:** Search queries to Kaito AI’s institutional product are predominantly head-heavy—the top queries, typically project names and tickers, account for the majority of traffic. This indicates that proactive fetching and aggregation of search results into local storage can enable a low-latency experience for most queries.
 2. **Ticker-centered Feeds & Analytics:** A central aspect of Kaito AI's product offering is its feeds and analytics focused on tickers, which are powered by its search stack and curated by AI. This focus on tickers is well-suited for pre-fetching, aggregation, and caching.
 3. **Tail Queries:** To ensure a smooth experience for less common queries, whose results cannot be pre-fetched, the search backend will store and index any aggregated results locally. The search client can build up this content index by indexing results from frequent queries, as well as by continuously issuing crypto-related queries to the Subnet (e.g., Crypto topics and narratives as currently indexed by Kaito AI).
-
-The OpenKaito App aims to offer a free version of Kaito AI’s key product features (AI-curated search, feeds, and analytics) through a fetch, aggregate, and cache strategy.
-
-<p align="center">
-  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/bd3353c9-7c95-43a5-b7ad-d3e2f55b4a84" width="40%" height="auto">
-  <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/93787c0e-5e5e-4d0a-8e66-84eb70f2b90a" width="40%" height="auto">
-</p>
