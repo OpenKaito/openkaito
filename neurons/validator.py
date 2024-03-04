@@ -157,10 +157,8 @@ class Validator(BaseValidatorNeuron):
             f"UID:{self.uid} | "
             f"Block:{metagraph.block.item()} | "
             f"Stake:{metagraph.S[self.uid]} | "
-            f"Rank:{metagraph.R[self.uid]} | "
-            f"Trust:{metagraph.T[self.uid]} | "
-            f"Consensus:{metagraph.C[self.uid] } | "
-            f"Incentive:{metagraph.I[self.uid]} | "
+            f"VTrust:{metagraph.Tv[self.uid]} | "
+            f"Dividend:{metagraph.D[self.uid]} | "
             f"Emission:{metagraph.E[self.uid]}"
         )
         bt.logging.info(log)
