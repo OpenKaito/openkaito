@@ -81,7 +81,7 @@ Rewards are based on the following criteria:
 
 **Diversity:** Rewards consider diversity at both the source level (e.g., one source versus multiple sources) and the content level (e.g., various opinions, different authors), which can be assessed using content clustering methods.
 
-## Coiming Soon
+## Coming Soon
 
 ### Reward Model Adjustment and More Sources
 Currently Twitter is the only source that we onboarded and the evaluation is based on relevance and recency so that we can better calibrate the reward model. The team is actively working on onboarding more sources (e.g. News, Governance, Audio) and more diversed ranking & evaluation signals. Stay tuned!
