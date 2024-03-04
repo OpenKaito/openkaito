@@ -2,7 +2,8 @@
 
 ## General
 
-On bittensor testnet, the netuid of subnet openkaito is `88`.
+The `netuid` for `openkaito` is `5` on mainnet, and `88` on testnet. 
+
 
 ### Prepare Wallet
 
@@ -146,7 +147,7 @@ sudo docker start elasticsearch
 After setting up the Elasticsearch and obtaining the API key, you can start the miner by running the following command:
 
 ```bash
-python neurons/miner.py --netuid <netuid> --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit
+python neurons/miner.py --netuid 5 --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit
 ```
 
 The detailed commandline arguments for the `neurons/miner.py` can be obtained by `python neurons/miner.py --help`, and are as follows:
@@ -247,7 +248,7 @@ To obtain better miner performance, you can consider the following options:
 
 ## Validator Setup
 
-### Obtain OpenAi API Key
+### Obtain OpenAI API Key
 
 To use the LLM ranking result evaluation, you need to obtain an API key from [OpenAI](https://platform.openai.com/). After obtaining the API key, you can write it down in the `.env` file.
 
@@ -285,7 +286,7 @@ You can start the validator by running the following command, enabling validator
 
 ```bash
 # Run the run.sh to enable auto update
-pm2 start run.sh --name openkaito_validator_autoupdate -- --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --netuid <openkaito_netuid> --logging.debug
+pm2 start run.sh --name openkaito_validator_autoupdate -- --netuid 5 --subtensor.network finney --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --logging.debug
 ```
 You may pass in more command line arguments to the `validator` command, e.g., `--axon.port <your_axon_port>` etc., if needed.
 
