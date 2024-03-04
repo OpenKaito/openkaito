@@ -99,13 +99,13 @@ class Validator(BaseValidatorNeuron):
         )
 
         # Log the results for monitoring purposes.
-        bt.logging.info(f"Received responses: {responses} for {miner_uids}")
+        bt.logging.info(f"Received responses: {responses}")
 
         rewards = self.evaluator.evaluate(
             search_query.query_string, search_query.size, responses
         )
 
-        bt.logging.info(f"Scored responses: {rewards}")
+        bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
         # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
         self.update_scores(rewards, miner_uids)
 
