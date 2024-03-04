@@ -248,6 +248,23 @@ To obtain better miner performance, you can consider the following options:
 
 ## Validator Setup
 
+You may need to setup your wallet and hotkey according to [running on mainnet](./docs/running_on_mainnet.md).
+
+**_NOTE:_** Don't forget to run the following commands to get emissons flowing:
+
+Register to the root subnet using the btcli:
+
+```bash
+btcli root register 
+```
+
+Then set your weights for the subnet:
+
+```bash
+btcli root weights
+# you may set the weights of `netuid 5` to 1.0
+```
+
 ### Obtain OpenAI API Key
 
 To use the LLM ranking result evaluation, you need to obtain an API key from [OpenAI](https://platform.openai.com/). After obtaining the API key, you can write it down in the `.env` file.
