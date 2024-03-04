@@ -20,4 +20,3 @@ Web3
 Wrapped Tokens
 Yield Farming
 Zero-Knowledge Proofs
-

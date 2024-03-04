@@ -4,3 +4,4 @@ openai
 loguru
 apify-client
 elasticsearch
+python-dotenv

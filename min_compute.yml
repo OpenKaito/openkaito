@@ -1,0 +1,66 @@
+# Use this document to specify the minimum compute requirements.
+# This document will be used to generate a list of recommended hardware for your subnet.
+
+# This is intended to give a rough estimate of the minimum requirements
+# so that the user can make an informed decision about whether or not
+# they want to run a miner or validator on their machine.
+
+# NOTE: Specification for miners may be different from validators
+
+version: '1.0' # update this version key as needed, ideally should match your release version
+
+compute_spec:
+
+  miner:
+
+    cpu:
+      min_cores: 4            # Minimum number of CPU cores
+      min_speed: 2.5          # Minimum speed per core (GHz)
+      recommended_cores: 8    # Recommended number of CPU cores
+      recommended_speed: 3.5  # Recommended speed per core (GHz)
+      architecture: "any"  # Architecture type (e.g., x86_64, arm64)
+
+    gpu:
+      required: False
+
+    memory:
+      min_ram: 16          # Minimum RAM (GB)
+      min_swap: 0          # Minimum swap space (GB)
+      recommended_swap: 8  # Recommended swap space (GB)
+      ram_type: "DDR4"     # RAM type (e.g., DDR4, DDR3, etc.)
+
+    storage:
+      min_space: 100           # Minimum free storage space (GB)
+      recommended_space: 500  # Recommended free storage space (GB)
+      type: "SSD"             # Preferred storage type (e.g., SSD, HDD)
+
+    os:
+      name: "Ubuntu"  # Name of the preferred operating system(s)
+      version: 20.04  # Version of the preferred operating system(s)
+
+  validator:
+
+    cpu:
+      min_cores: 4            # Minimum number of CPU cores
+      min_speed: 2.5          # Minimum speed per core (GHz)
+      recommended_cores: 8    # Recommended number of CPU cores
+      recommended_speed: 3.5  # Recommended speed per core (GHz)
+      architecture: "any"  # Architecture type (e.g., x86_64, arm64)
+
+    gpu:
+      required: False                       # Does the application require a GPU?
+
+    memory:
+      min_ram: 8          # Minimum RAM (GB)
+      min_swap: 0          # Minimum swap space (GB)
+      recommended_swap: 16  # Recommended swap space (GB)
+      ram_type: "DDR4"     # RAM type (e.g., DDR4, DDR3, etc.)
+
+    storage:
+      min_space: 10           # Minimum free storage space (GB)
+      recommended_space: 100  # Recommended free storage space (GB)
+      type: "SSD"             # Preferred storage type (e.g., SSD, HDD)
+
+    os:
+      name: "Ubuntu"  # Name of the preferred operating system(s)
+      version: 20.04  # Version of the preferred operating system(s)
