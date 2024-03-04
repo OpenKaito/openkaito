@@ -17,14 +17,14 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import copy
-import torch
 import asyncio
+import copy
 import threading
-import bittensor as bt
-
-from typing import List
 from traceback import print_exception
+from typing import List
+
+import bittensor as bt
+import torch
 
 from openkaito.base.neuron import BaseNeuron
 
@@ -33,6 +33,8 @@ class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
+
+    neuron_type: str = "ValidatorNeuron"
 
     def __init__(self):
         super().__init__(config=self.config())
@@ -244,7 +246,7 @@ class BaseValidatorNeuron(BaseNeuron):
             uids=uint_uids,
             weights=uint_weights,
             wait_for_finalization=False,
-            wait_for_inclusion=True,
+            wait_for_inclusion=False,
             version_key=self.spec_version,
         )
         bt.logging.info(f"Set weights: {result}")

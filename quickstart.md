@@ -147,7 +147,7 @@ sudo docker start elasticsearch
 After setting up the Elasticsearch and obtaining the API key, you can start the miner by running the following command:
 
 ```bash
-python neurons/miner.py --netuid 5 --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit
+python neurons/miner.py --netuid 5 --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit --axon.port 8091
 ```
 
 The detailed commandline arguments for the `neurons/miner.py` can be obtained by `python neurons/miner.py --help`, and are as follows:
@@ -249,21 +249,6 @@ To obtain better miner performance, you can consider the following options:
 ## Validator Setup
 
 You may need to setup your wallet and hotkey according to [running on mainnet](./docs/running_on_mainnet.md).
-
-**_NOTE:_** Don't forget to run the following commands to get emissons flowing:
-
-Register to the root subnet using the btcli:
-
-```bash
-btcli root register 
-```
-
-Then set your weights for the subnet:
-
-```bash
-btcli root weights
-# you may set the weights of `netuid 5` to 1.0
-```
 
 ### Obtain OpenAI API Key
 

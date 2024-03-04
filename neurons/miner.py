@@ -203,7 +203,7 @@ class Miner(BaseMinerNeuron):
 
         log = (
             "Miner | "
-            f"Step:{self.step} | "
+            f"Epoch:{self.step} | "
             f"UID:{self.uid} | "
             f"Block:{metagraph.block.item()} | "
             f"Stake:{metagraph.S[self.uid]} | "
