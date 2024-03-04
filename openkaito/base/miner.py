@@ -15,13 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import time
-import torch
 import asyncio
 import threading
+import time
 import traceback
 
 import bittensor as bt
+import torch
 
 from openkaito.base.neuron import BaseNeuron
 from openkaito.utils.config import config
@@ -31,6 +31,8 @@ class BaseMinerNeuron(BaseNeuron):
     """
     Base class for Bittensor miners.
     """
+
+    neuron_type: str = "MinerNeuron"
 
     def __init__(self):
         super().__init__(config=self.config())
@@ -56,6 +58,8 @@ class BaseMinerNeuron(BaseNeuron):
             priority_fn=self.priority,
         )
         bt.logging.info(f"Axon created: {self.axon}")
+
+        self.last_sync_block = self.block - 1000
 
         # Instantiate runners
         self.should_exit: bool = False
@@ -105,8 +109,7 @@ class BaseMinerNeuron(BaseNeuron):
         try:
             while not self.should_exit:
                 while (
-                    self.block - self.metagraph.last_update[self.uid]
-                    < self.config.neuron.epoch_length
+                    self.block - self.last_sync_block < self.config.neuron.epoch_length
                 ):
                     # Wait before checking again.
                     time.sleep(1)
@@ -176,41 +179,20 @@ class BaseMinerNeuron(BaseNeuron):
         """
         self.stop_run_thread()
 
-    def set_weights(self):
-        """
-        Self-assigns a weight of 1 to the current miner (identified by its UID) and
-        a weight of 0 to all other peers in the network. The weights determine the trust level the miner assigns to other nodes on the network.
-
-        Raises:
-            Exception: If there's an error while setting weights, the exception is logged for diagnosis.
-        """
-        try:
-            # --- query the chain for the most current number of peers on the network
-            chain_weights = torch.zeros(
-                self.subtensor.subnetwork_n(netuid=self.metagraph.netuid)
-            )
-            chain_weights[self.uid] = 1
-
-            # --- Set weights.
-            self.subtensor.set_weights(
-                wallet=self.wallet,
-                netuid=self.metagraph.netuid,
-                uids=torch.arange(0, len(chain_weights)),
-                weights=chain_weights.to("cpu"),
-                wait_for_inclusion=False,
-                version_key=self.spec_version,
-            )
-
-        except Exception as e:
-            bt.logging.error(
-                f"Failed to set weights on chain with exception: { e }"
-            )
-
-        bt.logging.info(f"Set weights: {chain_weights}")
-
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
         bt.logging.info("resync_metagraph()")
 
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)
+        self.last_sync_block = self.block
+        bt.logging.info("resync_metagraph() done")
+
+    def should_set_weights(self) -> bool:
+        return False
+
+    def should_sync_metagraph(self):
+        """
+        Check if enough epoch blocks have elapsed since the last checkpoint to sync.
+        """
+        return self.block - self.last_sync_block > self.config.neuron.epoch_length

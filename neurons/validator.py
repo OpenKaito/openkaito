@@ -99,7 +99,7 @@ class Validator(BaseValidatorNeuron):
         )
 
         # Log the results for monitoring purposes.
-        bt.logging.info(f"Received responses: {responses}")
+        bt.logging.info(f"Received responses: {responses} for {miner_uids}")
 
         rewards = self.evaluator.evaluate(
             search_query.query_string, search_query.size, responses
