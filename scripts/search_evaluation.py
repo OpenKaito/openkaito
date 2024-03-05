@@ -14,6 +14,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Miner Search Ranking Evaluation")
     parser.add_argument("--query", type=str, default="BTC", help="query string")
     parser.add_argument(
+        "--search_recall_size", type=int, default=50, help="size of the recalled items"
+    )
+    parser.add_argument(
         "--size", type=int, default=5, help="size of the response items"
     )
     # parser.add_argument('--crawling', type=bool, default=False, action='store_true', help='crawling data before search')
@@ -53,10 +56,12 @@ def main():
         search_client=search_client, ranking_model=ranking_model, twitter_crawler=None
     )
 
-    ranked_docs = search_engine.search(args.query, args.size)
+    ranked_docs = search_engine.search(args.query, args.search_recall_size, args.size)
+    print("======ranked documents======")
     print(ranked_docs)
 
     scores = evaluator.evaluate(args.query, args.size, [ranked_docs])
+    print("======evaluation scores======")
     print(scores)
 
 

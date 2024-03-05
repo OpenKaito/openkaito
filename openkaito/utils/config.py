@@ -180,7 +180,7 @@ def add_args(cls, parser):
             "--neuron.search_recall_size",
             type=int,
             help="The number of search results to retrieve for ranking.",
-            default=20,
+            default=50,
         )
 
         parser.add_argument(

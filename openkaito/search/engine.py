@@ -68,6 +68,7 @@ class SearchEngine:
                                     "query_string": {
                                         "query": query_string,
                                         "default_field": "text",
+                                        "default_operator": "AND",
                                     }
                                 }
                             ],
