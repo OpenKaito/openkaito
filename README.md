@@ -23,7 +23,7 @@ Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/b
 - Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet OpenKaito serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define Web3 search as a miner-validator problem, where search relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
 - Our goal is to decentralize Kaito AI's smart search and analytics platform, ensuring that it is built by the public and serves the public.
 
-## Backgound Knowledge
+## Background Knowledge
 <p align="center">
   <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/68a4c45d-72bc-4444-a5f6-2cc4d917871b" width="60%" height="auto">
 </p>
