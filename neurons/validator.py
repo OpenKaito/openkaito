@@ -73,40 +73,42 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
+        try:
+            miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
-        miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
+            query_string = random_query()
+            search_query = SearchSynapse(
+                query_string=query_string,
+                size=self.config.neuron.search_result_size,
+                version=get_version(),
+            )
 
-        query_string = random_query()
-        search_query = SearchSynapse(
-            query_string=query_string,
-            size=self.config.neuron.search_result_size,
-            version=get_version(),
-        )
+            bt.logging.info(
+                f"Sending search: {search_query} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
+            )
 
-        bt.logging.info(
-            f"Sending search: {search_query} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
-        )
+            # The dendrite client queries the network.
+            responses = await self.dendrite(
+                # Send the query to selected miner axons in the network.
+                axons=[self.metagraph.axons[uid] for uid in miner_uids],
+                synapse=search_query,
+                deserialize=True,
+                # set the miner query timeout to be 120 seconds to allow more operations in miner
+                timeout=120,
+            )
 
-        # The dendrite client queries the network.
-        responses = await self.dendrite(
-            # Send the query to selected miner axons in the network.
-            axons=[self.metagraph.axons[uid] for uid in miner_uids],
-            synapse=search_query,
-            deserialize=True,
-            # set the miner query timeout to be 120 seconds to allow more operations in miner
-            timeout=120,
-        )
+            # Log the results for monitoring purposes.
+            bt.logging.info(f"Received responses: {responses}")
 
-        # Log the results for monitoring purposes.
-        bt.logging.info(f"Received responses: {responses}")
+            rewards = self.evaluator.evaluate(
+                search_query.query_string, search_query.size, responses
+            )
 
-        rewards = self.evaluator.evaluate(
-            search_query.query_string, search_query.size, responses
-        )
-
-        bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
-        # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
-        self.update_scores(rewards, miner_uids)
+            bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
+            # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
+            self.update_scores(rewards, miner_uids)
+        except Exception as e:
+            bt.logging.error(f"Error during forward: {e}")
 
     def run(self):
         # Check that validator is registered on the network.
