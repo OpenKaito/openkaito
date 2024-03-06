@@ -1,23 +1,19 @@
 import math
 
-def ndcg_score(ranking):
+
+def ndcg_score(ranking, size):
     """
     This function calculates the NDCG score for the documents.
     """
     # ideal_ranking = sorted(ranking, reverse=True)
 
     # use all 1s as ideal ranking to take both RELEVANCE and RANKING into consideration
-    ideal_ranking = [1] * len(ranking)
+
+    ideal_ranking = [1] * size
     dcg = sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ranking)])
     idcg = sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ideal_ranking)])
     return dcg / idcg
 
-
-def dcg_score(ranking):
-    """
-    This function calculates the DCG score for the documents.
-    """
-    return sum([r / math.log2(i + 1 + 1) for i, r in enumerate(ranking)])
 
 def tweet_url_to_id(url):
     """

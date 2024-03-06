@@ -45,7 +45,9 @@ class Evaluator:
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
 
-                rank_scores[i] = self.llm_ranking_evaluation(query_string, response)
+                rank_scores[i] = self.llm_ranking_evaluation(
+                    query_string, size, response
+                )
             except Exception as e:
                 bt.logging.error(f"Error while processing {i}-th response: {e}")
                 zero_score_mask[i] = 0
@@ -102,7 +104,7 @@ class Evaluator:
             bt.logging.error(f"Error while checking integrity of response: {e}")
             return False
 
-    def llm_ranking_evaluation(self, query_string, docs, retries=3):
+    def llm_ranking_evaluation(self, query_string, size, docs, retries=3):
         """
         This function evaluates the ranking of the documents using the LLM.
         """
@@ -199,8 +201,7 @@ class Evaluator:
                 raise ValueError(
                     f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
                 )
-            ranking_score = ndcg_score(ranking)
-            # ranking_score = dcg_score(ranking)
+            ranking_score = ndcg_score(ranking, size)
             bt.logging.info(f"LLM Ranking score: {ranking_score}")
             return ranking_score
         except Exception as e:
