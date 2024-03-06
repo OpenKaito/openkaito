@@ -28,10 +28,12 @@ class Evaluator:
 
         avg_ages = torch.zeros(len(responses))
         avg_age_scores = torch.zeros(len(responses))
+        uniqueness_scores = torch.zeros(len(responses))
         now = datetime.now(timezone.utc)
         max_avg_age = 0
         for i, response in enumerate(responses):
             try:
+                id_set = set()
                 if response is None or not response or len(response) > size:
                     zero_score_mask[i] = 0
                     continue
@@ -42,8 +44,10 @@ class Evaluator:
                     avg_ages[i] += (
                         now - datetime.fromisoformat(doc["created_at"].rstrip("Z"))
                     ).total_seconds()
+                    id_set.add(doc["id"])
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
+                uniqueness_scores[i] = len(id_set) / len(response)
 
                 rank_scores[i] = self.llm_ranking_evaluation(
                     query_string, size, response
@@ -53,6 +57,7 @@ class Evaluator:
                 zero_score_mask[i] = 0
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
         scores = avg_age_scores * 0.2 + rank_scores * 0.8
+        scores = scores * uniqueness_scores
 
         return scores * zero_score_mask
 
