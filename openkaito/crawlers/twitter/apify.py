@@ -45,7 +45,7 @@ class ApifyTwitterCrawler:
         )
         # filter out the original head tweet if requested url is reply
         for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
-            if item["id_str"] == tweet_id:
+            if item.get("id_str") == tweet_id:
                 return item
 
         return None

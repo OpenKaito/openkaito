@@ -50,7 +50,6 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self):
         super(Validator, self).__init__()
-        self.load_state()
         load_dotenv()
 
         # for ranking results evaluation
