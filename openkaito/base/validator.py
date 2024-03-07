@@ -19,6 +19,7 @@
 
 import asyncio
 import copy
+import os
 import threading
 from traceback import print_exception
 from typing import List
@@ -327,6 +328,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def load_state(self):
         """Loads the state of the validator from a file."""
+        if not os.path.exists(self.config.neuron.full_path + "/state.pt"):
+            return
+
         bt.logging.info("Loading validator state.")
 
         # Load the state of the validator from file.
@@ -335,4 +339,6 @@ class BaseValidatorNeuron(BaseNeuron):
         self.scores = state["scores"]
         self.hotkeys = state["hotkeys"]
 
-        bt.logging.info(f"Loaded state: Step: {self.step}, Scores: {self.scores}, Hotkeys: {self.hotkeys}")
+        bt.logging.info(
+            f"Loaded state: Step: {self.step}, Scores: {self.scores}, Hotkeys: {self.hotkeys}"
+        )
