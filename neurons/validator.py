@@ -53,7 +53,9 @@ class Validator(BaseValidatorNeuron):
         load_dotenv()
 
         # temperary penalty for a naughty miner
-        self.scores[65] = 0
+        if self.scores.size().numel() > 66:
+            self.scores[65] = 0
+        bt.logging.info(f"Scores: {self.scores}")
 
         # for ranking results evaluation
         llm_client = openai.OpenAI(
