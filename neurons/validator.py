@@ -52,14 +52,9 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__()
         load_dotenv()
 
-        # temperary penalty for a naughty miner
-        if self.scores.size().numel() > 66:
-            self.scores[65] = 0
-        bt.logging.info(f"Scores: {self.scores}")
-
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
             max_retries=3,
         )
@@ -151,7 +146,6 @@ class Validator(BaseValidatorNeuron):
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-    
 
     def print_info(self):
         metagraph = self.metagraph
@@ -168,7 +162,6 @@ class Validator(BaseValidatorNeuron):
             f"Emission:{metagraph.E[self.uid]}"
         )
         bt.logging.info(log)
-
 
 
 # The main function parses the configuration and runs the validator.
