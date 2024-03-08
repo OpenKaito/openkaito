@@ -76,11 +76,11 @@ class Evaluator:
                     )
                     return False
                 if (
-                    datetime.fromisoformat(spot_check["created_at"].rstrip("Z"))
+                    datetime.fromisoformat(doc["created_at"].rstrip("Z"))
                     > utcnow
                 ):
                     bt.logging.error(
-                        f"Document created_at {spot_check['created_at']} is in the future"
+                        f"Document created_at {doc['created_at']} is in the future"
                     )
                     return False
 
