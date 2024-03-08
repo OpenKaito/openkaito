@@ -66,12 +66,21 @@ class Evaluator:
         This function checks the integrity of the response.
         """
         try:
+            utcnow = datetime.now(timezone.utc)
             for doc in response:
                 doc_id = doc["id"]
                 url_id = tweet_url_to_id(doc["url"])
                 if doc_id != url_id:
                     bt.logging.error(
                         f"Document id {doc_id} does not match url id {url_id}"
+                    )
+                    return False
+                if (
+                    datetime.fromisoformat(spot_check["created_at"].rstrip("Z"))
+                    > utcnow
+                ):
+                    bt.logging.error(
+                        f"Document created_at {spot_check['created_at']} is in the future"
                     )
                     return False
 
