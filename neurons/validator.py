@@ -52,14 +52,9 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__()
         load_dotenv()
 
-        # temperary penalty for a naughty miner
-        if self.scores.size().numel() > 66:
-            self.scores[65] = 0
-        bt.logging.info(f"Scores: {self.scores}")
-
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
             max_retries=3,
         )
@@ -110,7 +105,7 @@ class Validator(BaseValidatorNeuron):
             )
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
-            # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
+
             self.update_scores(rewards, miner_uids)
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
@@ -151,7 +146,6 @@ class Validator(BaseValidatorNeuron):
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-    
 
     def print_info(self):
         metagraph = self.metagraph
@@ -161,14 +155,13 @@ class Validator(BaseValidatorNeuron):
             "Validator | "
             f"Step:{self.step} | "
             f"UID:{self.uid} | "
-            f"Block:{metagraph.block.item()} | "
+            f"Block:{self.block} | "
             f"Stake:{metagraph.S[self.uid]} | "
             f"VTrust:{metagraph.Tv[self.uid]} | "
             f"Dividend:{metagraph.D[self.uid]} | "
             f"Emission:{metagraph.E[self.uid]}"
         )
         bt.logging.info(log)
-
 
 
 # The main function parses the configuration and runs the validator.

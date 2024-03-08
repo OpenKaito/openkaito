@@ -94,7 +94,8 @@ class SearchEngine:
                         "favorite_count": doc["favorite_count"],
                     }
                 )
-            bt.logging.info(f"retrieved {len(results)} results:", results)
+            bt.logging.info(f"retrieved {len(results)} results")
+            bt.logging.trace(f"results: ")
             return results
         except Exception as e:
             bt.logging.error("recall error...", e)
@@ -141,6 +142,10 @@ class SearchEngine:
                     body=bulk_body,
                     refresh=True,
                 )
-                bt.logging.info("bulk update response...", r)
+                bt.logging.trace("bulk update response...", r)
+                if not r.get("errors"):
+                    bt.logging.info("bulk update succeeded")
+                else:
+                    bt.logging.error("bulk update failed: ", r)
             except Exception as e:
                 bt.logging.error("bulk update error...", e)
