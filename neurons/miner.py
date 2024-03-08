@@ -80,6 +80,7 @@ class Miner(BaseMinerNeuron):
         Returns:
             openkaito.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
+        start_time = datetime.now()
         bt.logging.info("received request...", query)
         if (
             query.version is not None
@@ -100,8 +101,13 @@ class Miner(BaseMinerNeuron):
         ranked_docs = self.search_engine.search(
             query.query_string, self.config.neuron.search_recall_size, query.size
         )
-        bt.logging.debug("ranked_docs", ranked_docs)
+        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).total_seconds()
+        bt.logging.info(
+            f"processed request in {elapsed_time} seconds",
+        )
         return query
 
     async def blacklist(
