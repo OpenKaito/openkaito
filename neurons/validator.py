@@ -105,7 +105,7 @@ class Validator(BaseValidatorNeuron):
             )
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
-            # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
+
             self.update_scores(rewards, miner_uids)
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
@@ -155,7 +155,7 @@ class Validator(BaseValidatorNeuron):
             "Validator | "
             f"Step:{self.step} | "
             f"UID:{self.uid} | "
-            f"Block:{metagraph.block.item()} | "
+            f"Block:{self.block} | "
             f"Stake:{metagraph.S[self.uid]} | "
             f"VTrust:{metagraph.Tv[self.uid]} | "
             f"Dividend:{metagraph.D[self.uid]} | "
