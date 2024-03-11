@@ -78,7 +78,7 @@ class StructuredSearchSynapse(bt.Synapse):
     sort_type: SortType = SortType.RELEVANCE
 
     created_earlier_than: Optional[datetime] = None
-    created_later_than: Optional[pydantic.PastDatetime] = None
+    created_later_than: Optional[datetime] = None
 
     version: Optional[Version] = None
 

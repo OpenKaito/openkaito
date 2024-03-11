@@ -35,16 +35,9 @@ from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse
+from openkaito.tasks import random_query
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
-
-
-def random_query(input_file="queries.txt"):
-    if not os.path.exists(input_file):
-        bt.logging.error(f"Queries file not found at location: {input_file}")
-        exit(1)
-    lines = open(input_file).read().splitlines()
-    return random.choice(lines)
 
 
 class Validator(BaseValidatorNeuron):
@@ -78,7 +71,7 @@ class Validator(BaseValidatorNeuron):
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
-            query_string = random_query()
+            query_string = random_query(input_file="queries.txt")
             search_query = SearchSynapse(
                 query_string=query_string,
                 size=self.config.neuron.search_result_size,
