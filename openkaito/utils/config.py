@@ -112,14 +112,14 @@ def add_args(cls, parser):
             "--neuron.sample_size",
             type=int,
             help="The number of miners to query in a single step.",
-            default=10,
+            default=15,
         )
 
         parser.add_argument(
             "--neuron.search_request_interval",
             type=int,
             help="The interval seconds between search requests.",
-            default=300,
+            default=120,
         )
 
         parser.add_argument(
