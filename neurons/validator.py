@@ -35,7 +35,7 @@ from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse
-from openkaito.tasks import random_query
+from openkaito.tasks import generate_structured_search_task, random_query
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
 
@@ -70,16 +70,31 @@ class Validator(BaseValidatorNeuron):
         """
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-
             query_string = random_query(input_file="queries.txt")
-            search_query = SearchSynapse(
-                query_string=query_string,
-                size=self.config.neuron.search_result_size,
-                version=get_version(),
-            )
+
+            # mixed tasks, 40% chance to send StructuredSearchSynapse, 60% chance to send SearchSynapse
+            if random.random() < 0.6:
+                search_query = SearchSynapse(
+                    query_string=query_string,
+                    size=self.config.neuron.search_result_size,
+                    version=get_version(),
+                )
+                # set the miner query timeout to be 120 seconds to allow more operations in miner
+                timeout_secs = 120
+            else:
+                search_query = generate_structured_search_task(
+                    query_string=query_string,
+                    size=self.config.neuron.search_result_size,
+                )
+                # efficient structured search is expected, set the miner query timeout to be 30 seconds
+                # does not invloving crawling in miner
+                timeout_secs = 30
 
             bt.logging.info(
-                f"Sending search: {search_query} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
+                f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
+            )
+            bt.logging.trace(
+                f"miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
             )
 
             # The dendrite client queries the network.
@@ -88,15 +103,14 @@ class Validator(BaseValidatorNeuron):
                 axons=[self.metagraph.axons[uid] for uid in miner_uids],
                 synapse=search_query,
                 deserialize=True,
-                # set the miner query timeout to be 120 seconds to allow more operations in miner
-                timeout=120,
+                timeout=timeout_secs,
             )
 
             # Log the results for monitoring purposes.
-            bt.logging.info(f"Received responses: {responses}")
+            bt.logging.debug(f"Received responses: {responses}")
 
             rewards = self.evaluator.evaluate(
-                search_query.query_string, search_query.size, responses
+                search_query, responses
             )
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
@@ -104,6 +118,7 @@ class Validator(BaseValidatorNeuron):
             self.update_scores(rewards, miner_uids)
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
 
     def run(self):
         # Check that validator is registered on the network.

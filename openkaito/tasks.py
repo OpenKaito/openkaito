@@ -45,7 +45,7 @@ def generate_structured_search_task(
     """
     Generates a structured search task for the validator to send to the miner.
     """
-    query_string = random_query()
+    query_string = random_query() if query_string is None else query_string
 
     # Randomly select the sort type if not provided.
     if sort_type is None:
@@ -74,3 +74,4 @@ def generate_structured_search_task(
 if __name__ == "__main__":
     task = generate_structured_search_task("BTC")
     print(task)
+    print(task.name)

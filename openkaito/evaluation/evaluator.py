@@ -2,10 +2,13 @@ import json
 import os
 import random
 from datetime import datetime, timezone
+from traceback import print_exception
 
 import bittensor as bt
 import openai
 import torch
+
+from openkaito.protocol import SortType
 
 from .utils import ndcg_score, parse_llm_result, tweet_url_to_id
 
@@ -18,7 +21,9 @@ class Evaluator:
         # for integrity check
         self.twitter_crawler = twitter_crawler
 
-    def evaluate(self, query_string: str, size: int, responses: list):
+    def evaluate(self, query: bt.Synapse, responses: list):
+        query_string = query.query_string
+        size = query.size
 
         scores = torch.zeros(len(responses))
 
@@ -72,7 +77,36 @@ class Evaluator:
                 bt.logging.trace(f"Processing {i}-th response")
                 if groundtruth_check:
                     # the spot check doc did not get fetched
-                    if spot_check_id_dict[i] not in groundtruth_docs:
+    
+                if query.name == "StructuredSearchSynapse":
+                    if query.sort_type == SortType.RECENCY:
+                        # check if the response is sorted by recency
+                        if not all(
+                            get_datetime(a["created_at"])
+                            > get_datetime(b["created_at"])
+                            for a, b in zip(response, response[1:])
+                        ):
+                            # not sorted by recency
+                            zero_score_mask[i] = 0
+                            continue
+
+                    # check if the response is within the time range filter
+                    if query.created_earlier_than is not None:
+                        if not all(
+                            get_datetime(doc["created_at"]) < query.created_earlier_than
+                            for doc in response
+                        ):
+                            zero_score_mask[i] = 0
+                            continue
+                    if query.created_later_than is not None:
+                        if not all(
+                            get_datetime(doc["created_at"]) > query.created_later_than
+                            for doc in response
+                        ):
+                            zero_score_mask[i] = 0
+                            continue
+
+                if spot_check_id_dict[i] not in groundtruth_docs:
                         bt.logging.error(
                             f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
                         )
@@ -107,12 +141,27 @@ class Evaluator:
                 uniqueness_scores[i] = len(id_set) / len(response)
                 author_uniqueness_scores[i] = len(username_set) / len(response)
 
-                rank_scores[i] = self.llm_ranking_evaluation(
+                llm_ranking_scores = self.llm_ranking_evaluation(
                     query_string, size, response
                 )
+
+                # if the response is sorted by recency, we get the mean of the scores
+                if (
+                    query.name == "StructuredSearchSynapse"
+                    and query.sort_type == SortType.RECENCY
+                ):
+                    rank_scores[i] = llm_ranking_scores.mean()
+                # `SearchSynapse` or `StructuredSearchSynapse` with `SortType.RELEVANCE`, use nDCG score
+                else:
+                    rank_scores[i] = ndcg_score(llm_ranking_scores, size)
+
+                bt.logging.info(f"Ranking score: {rank_scores[i]}")
             except Exception as e:
                 bt.logging.error(f"Error while processing {i}-th response: {e}")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 zero_score_mask[i] = 0
+
+        # age contribution to encourage recency
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
         scores = avg_age_scores * 0.2 + rank_scores * 0.8
         scores = scores * uniqueness_scores * author_uniqueness_scores
@@ -294,9 +343,10 @@ class Evaluator:
                 raise ValueError(
                     f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
                 )
-            ranking_score = ndcg_score(ranking, size)
-            bt.logging.info(f"LLM Ranking score: {ranking_score}")
-            return ranking_score
+            # ranking_score = ndcg_score(ranking, size)
+            # bt.logging.info(f"LLM Ranking score: {ranking_score}")
+            # return ranking_score
+            return ranking
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
@@ -306,3 +356,7 @@ class Evaluator:
                     f"Failed to parse LLM result after retrying. Returning 0."
                 )
             return 0
+
+
+def get_datetime(time_str: str):
+    return datetime.fromisoformat(time_str.rstrip("Z"))
