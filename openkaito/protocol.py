@@ -31,6 +31,7 @@ class Version(pydantic.BaseModel):
     minor: int
     patch: int
 
+
 class SearchSynapse(bt.Synapse):
     """
     Search protocol representation for handling request and response communication between
@@ -45,6 +46,40 @@ class SearchSynapse(bt.Synapse):
 
     query_string: str
     size: int = pydantic.Field(5, ge=1, le=50)
+    version: Optional[Version] = None
+
+    results: Optional[List[Dict]] = None
+
+    def deserialize(self) -> List[Dict]:
+        return self.results
+
+
+class SortType(str, Enum):
+    RELEVANCE = "relevance"
+    RECENCY = "recency"
+
+
+class StructuredSearchSynapse(bt.Synapse):
+    """
+    Structured search protocol representation for handling request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - query_string: A string value representing the search request sent by the validator.
+    - size: the maximal count size of results to return.
+    - sort_type: the type of sorting to use for the search results.
+    - created_earlier_than: A datetime object representing the earliest date to search for.
+    - created_later_than: A datetime object representing the latest date to search for.
+    - version: A `Version` object representing the version of the protocol.
+    """
+
+    query_string: str
+    size: int = pydantic.Field(5, ge=1, le=50)
+    sort_type: SortType = SortType.RELEVANCE
+
+    created_earlier_than: Optional[datetime] = None
+    created_later_than: Optional[pydantic.PastDatetime] = None
+
     version: Optional[Version] = None
 
     results: Optional[List[Dict]] = None
