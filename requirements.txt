@@ -5,3 +5,4 @@ loguru
 apify-client
 elasticsearch
 python-dotenv
+pydantic

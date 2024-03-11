@@ -21,8 +21,6 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 import bittensor as bt
-
-
 import pydantic
 
 
@@ -30,6 +28,7 @@ class Version(pydantic.BaseModel):
     major: int
     minor: int
     patch: int
+
 
 class SearchSynapse(bt.Synapse):
     """
@@ -45,6 +44,41 @@ class SearchSynapse(bt.Synapse):
 
     query_string: str
     size: int = pydantic.Field(5, ge=1, le=50)
+    version: Optional[Version] = None
+
+    results: Optional[List[Dict]] = None
+
+    def deserialize(self) -> List[Dict]:
+        return self.results
+
+
+class SortType(str, Enum):
+    RELEVANCE = "relevance"
+    RECENCY = "recency"
+
+
+class StructuredSearchSynapse(bt.Synapse):
+    """
+    Structured search protocol representation for handling request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - query_string: A string value representing the search request sent by the validator.
+    - size: the maximal count size of results to return.
+    - sort_type: the type of sorting to use for the search results.
+    - earlier_than_timestamp: A timestamp value representing the earliest time to search for.
+    - later_than_timestamp: A timestamp value representing the latest time to search for.
+    - version: A `Version` object representing the version of the protocol.
+    """
+
+    query_string: str
+    size: int = pydantic.Field(5, ge=1, le=50)
+    sort_type: SortType = SortType.RELEVANCE
+
+    # Note: use int instead of datetime to avoid serialization issues in dendrite.
+    earlier_than_timestamp: int = pydantic.Field(None, ge=0)
+    later_than_timestamp: int = pydantic.Field(None, ge=0)
+
     version: Optional[Version] = None
 
     results: Optional[List[Dict]] = None

@@ -24,3 +24,4 @@ __spec_version__ = (
 )
 
 from . import protocol
+from . import tasks

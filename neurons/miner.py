@@ -28,8 +28,10 @@ import openkaito
 from openkaito.base.miner import BaseMinerNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
+from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking import HeuristicRankingModel
+from openkaito.search.structured_search_engine import StructuredSearchEngine
 from openkaito.utils.version import compare_version, get_version
 
 
@@ -68,22 +70,29 @@ class Miner(BaseMinerNeuron):
             else None
         )
 
+        # This is for backward compatibility with the old search engine for the SearchSynapse tasks, if miners already do any optimization on the search engine code
+        # Miners can use the new StructuredSearchEngine for both the StructuredSearchSynapse and SearchSynapse tasks
         self.search_engine = SearchEngine(search_client, ranking_model, twitter_crawler)
 
-    async def forward(
-        self, query: openkaito.protocol.SearchSynapse
-    ) -> openkaito.protocol.SearchSynapse:
+        self.structured_search_engine = StructuredSearchEngine(
+            search_client=search_client,
+            relevance_ranking_model=ranking_model,
+            twitter_crawler=twitter_crawler,
+            recall_size=self.config.neuron.search_recall_size,
+        )
+
+    async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
         """
         Processes the incoming Search synapse by performing a search operation on the crawled data.
 
         Args:
-            query (openkaito.protocol.SearchSynapse): The synapse object containing the query information.
+            query (SearchSynapse): The synapse object containing the query information.
 
         Returns:
-            openkaito.protocol.SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
+            SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         start_time = datetime.now()
-        bt.logging.info("received request...", query)
+        bt.logging.info("received SearchSynapse...", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -103,107 +112,43 @@ class Miner(BaseMinerNeuron):
         ranked_docs = self.search_engine.search(
             query.query_string, self.config.neuron.search_recall_size, query.size
         )
+        # Or you can also use:
+        # ranked_docs = self.structured_search_engine.search(query)
+        
         bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
         end_time = datetime.now()
         elapsed_time = (end_time - start_time).total_seconds()
         bt.logging.info(
-            f"processed request in {elapsed_time} seconds",
+            f"processed SearchSynapse in {elapsed_time} seconds",
         )
         return query
 
-    async def blacklist(
-        self, synapse: openkaito.protocol.SearchSynapse
-    ) -> typing.Tuple[bool, str]:
-        """
-        Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
-        define the logic for blacklisting requests based on your needs and desired security parameters.
+    async def forward_structured_search(
+        self, query: StructuredSearchSynapse
+    ) -> StructuredSearchSynapse:
 
-        Blacklist runs before the synapse data has been deserialized (i.e. before synapse.data is available).
-        The synapse is instead contructed via the headers of the request. It is important to blacklist
-        requests before they are deserialized to avoid wasting resources on requests that will be ignored.
-
-        Args:
-            synapse (openkaito.protocol.SearchSynapse): A synapse object constructed from the headers of the incoming request.
-
-        Returns:
-            Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
-                            and a string providing the reason for the decision.
-
-        This function is a security measure to prevent resource wastage on undesired requests. It should be enhanced
-        to include checks against the metagraph for entity registration, validator status, and sufficient stake
-        before deserialization of synapse data to minimize processing overhead.
-
-        Example blacklist logic:
-        - Reject if the hotkey is not a registered entity within the metagraph.
-        - Consider blacklisting entities that are not validators or have insufficient stake.
-
-        In practice it would be wise to blacklist requests from entities that are not validators, or do not have
-        enough stake. This can be checked via metagraph.S and metagraph.validator_permit. You can always attain
-        the uid of the sender via a metagraph.hotkeys.index( synapse.dendrite.hotkey ) call.
-
-        Otherwise, allow the request to be processed further.
-        """
-        uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+        start_time = datetime.now()
+        bt.logging.info("received StructuredSearchSynapse...", query)
         if (
-            not self.config.blacklist.allow_non_registered
-            and synapse.dendrite.hotkey not in self.metagraph.hotkeys
+            query.version is not None
+            and compare_version(query.version, get_version()) > 0
         ):
-            # Ignore requests from un-registered entities.
-            bt.logging.trace(
-                f"Blacklisting un-registered hotkey {synapse.dendrite.hotkey}"
+            bt.logging.warning(
+                f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
-            return True, "Unrecognized hotkey"
+        bt.logging.debug("sort_type:", query.sort_type)
 
-        if self.config.blacklist.force_validator_permit:
-            # If the config is set to force validator permit, then we should only allow requests from validators.
-            if not self.metagraph.validator_permit[uid]:
-                bt.logging.warning(
-                    f"Blacklisting a request from non-validator hotkey {synapse.dendrite.hotkey}"
-                )
-                return True, "Non-validator hotkey"
-
-        bt.logging.trace(
-            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
+        # disable crawling for structured search by default
+        ranked_docs = self.search_engine.search(query)
+        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
+        query.results = ranked_docs
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).total_seconds()
+        bt.logging.info(
+            f"processed StructuredSearchSynapse in {elapsed_time} seconds",
         )
-        return False, "Hotkey recognized!"
-
-    async def priority(self, synapse: openkaito.protocol.SearchSynapse) -> float:
-        """
-        The priority function determines the order in which requests are handled. More valuable or higher-priority
-        requests are processed before others. You should design your own priority mechanism with care.
-
-        This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
-
-        Args:
-            synapse (openkaito.protocol.SearchSynapse): The synapse object that contains metadata about the incoming request.
-
-        Returns:
-            float: A priority score derived from the stake of the calling entity.
-
-        Miners may recieve messages from multiple entities at once. This function determines which request should be
-        processed first. Higher values indicate that the request should be processed first. Lower values indicate
-        that the request should be processed later.
-
-        Example priority logic:
-        - A higher stake results in a higher priority value.
-        """
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        prirority = float(
-            self.metagraph.S[caller_uid]
-        )  # Return the stake as the priority.
-        bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
-        )
-        return prirority
-
-    def save_state(self):
-        pass
-
-    def load_state(self):
-        pass
+        return query
 
     def print_info(self):
         metagraph = self.metagraph
