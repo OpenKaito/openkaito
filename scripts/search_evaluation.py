@@ -1,9 +1,10 @@
-from dotenv import load_dotenv
-import os
 import argparse
-from elasticsearch import Elasticsearch
-import openai
+import os
+
 import bittensor as bt
+import openai
+from dotenv import load_dotenv
+from elasticsearch import Elasticsearch
 
 from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
