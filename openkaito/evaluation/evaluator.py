@@ -134,7 +134,7 @@ class Evaluator:
                 f"Querying LLM of {query_string} with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-4-0125-preview",
+                model="gpt-3.5-turbo",
                 response_format={"type": "json_object"},
                 messages=[
                     {

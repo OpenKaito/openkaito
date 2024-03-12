@@ -1,8 +1,10 @@
-from dotenv import load_dotenv
-import os
 import argparse
-from elasticsearch import Elasticsearch
+import os
+
+import bittensor as bt
 import openai
+from dotenv import load_dotenv
+from elasticsearch import Elasticsearch
 
 from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
@@ -20,6 +22,9 @@ def parse_args():
         "--size", type=int, default=5, help="size of the response items"
     )
     # parser.add_argument('--crawling', type=bool, default=False, action='store_true', help='crawling data before search')
+
+    # --logging.debug, --logging.trace
+    bt.logging.add_args(parser)
     return parser.parse_args()
 
 
