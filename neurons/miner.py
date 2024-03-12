@@ -28,10 +28,10 @@ import openkaito
 from openkaito.base.miner import BaseMinerNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
+from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.utils.version import compare_version, get_version
-from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
 
 
 class Miner(BaseMinerNeuron):
@@ -71,7 +71,6 @@ class Miner(BaseMinerNeuron):
 
         self.search_engine = SearchEngine(search_client, ranking_model, twitter_crawler)
 
-
     async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
         """
         Processes the incoming Search synapse by performing a search operation on the crawled data.
@@ -83,7 +82,7 @@ class Miner(BaseMinerNeuron):
             SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         start_time = datetime.now()
-        bt.logging.info("received request...", query)
+        bt.logging.info("received SearchSynapse...", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -108,14 +107,35 @@ class Miner(BaseMinerNeuron):
         end_time = datetime.now()
         elapsed_time = (end_time - start_time).total_seconds()
         bt.logging.info(
-            f"processed request in {elapsed_time} seconds",
+            f"processed SearchSynapse in {elapsed_time} seconds",
         )
         return query
 
-    
     async def forward_structured_search(
         self, query: StructuredSearchSynapse
     ) -> StructuredSearchSynapse:
+
+        start_time = datetime.now()
+        bt.logging.info("received StructuredSearchSynapse...", query)
+        if (
+            query.version is not None
+            and compare_version(query.version, get_version()) > 0
+        ):
+            bt.logging.warning(
+                f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
+            )
+
+        # disable crawling for structured search by default
+        ranked_docs = self.search_engine.search(
+            query.query_string, self.config.neuron.search_recall_size, query.size
+        )
+        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
+        query.results = ranked_docs
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).total_seconds()
+        bt.logging.info(
+            f"processed StructuredSearchSynapse in {elapsed_time} seconds",
+        )
         return query
 
     def print_info(self):
