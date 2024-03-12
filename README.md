@@ -86,8 +86,11 @@ Rewards are based on the following criteria:
 ### Reward Model Adjustment and More Sources
 Currently Twitter is the only source that we onboarded and the evaluation is based on relevance and recency so that we can better calibrate the reward model. The team is actively working on onboarding more sources (e.g. News, Governance, Audio) and more diversed ranking & evaluation signals. Stay tuned!
 
-### Low-cost Evaluation
-Currently our search evaluator is based on GPT and requires an OpenAI key. The team is actively working on a distilled version of evaluator so that more results can be evaluated at lower cost.
+### Rich Semantics
+We are working on supporting a varity of search semantics including AND/OR, filter, sort by, etc.
+
+### Vector Retrieval
+We will be supporting vector retrieval for RAG use cases
 
 ### The OpenKaito App
 
