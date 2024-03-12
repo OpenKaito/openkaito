@@ -21,8 +21,6 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 import bittensor as bt
-
-
 import pydantic
 
 

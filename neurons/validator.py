@@ -59,7 +59,7 @@ class Validator(BaseValidatorNeuron):
 
         self.evaluator = Evaluator(llm_client, twitter_crawler)
 
-    async def forward(self):
+    async def forward_search(self):
         """
         Validator forward pass. Consists of:
         - Generating the query

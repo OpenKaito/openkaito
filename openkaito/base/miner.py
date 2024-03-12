@@ -19,11 +19,13 @@ import asyncio
 import threading
 import time
 import traceback
+import typing
 
 import bittensor as bt
 import torch
 
 from openkaito.base.neuron import BaseNeuron
+from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
 from openkaito.utils.config import config
 
 
@@ -53,9 +55,13 @@ class BaseMinerNeuron(BaseNeuron):
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
         self.axon.attach(
-            forward_fn=self.forward,
-            blacklist_fn=self.blacklist,
-            priority_fn=self.priority,
+            forward_fn=self.forward_search,
+            blacklist_fn=self.blacklist_search,
+            priority_fn=self.priority_search,
+        ).attach(
+            forward_fn=self.forward_structured_search,
+            blacklist_fn=self.blacklist_structured_search,
+            priority_fn=self.priority_structured_search,
         )
         bt.logging.info(f"Axon created: {self.axon}")
 
@@ -66,6 +72,18 @@ class BaseMinerNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
+
+    async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
+        bt.logging.warning("wrong execution path: forward()")
+        return synapse
+
+    async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
+        bt.logging.warning("unimplemented: forward_search()")
+
+    async def forward_structured_search(
+        self, query: StructuredSearchSynapse
+    ) -> StructuredSearchSynapse:
+        bt.logging.warning("unimplemented: forward_structured_search()")
 
     def run(self):
         """
@@ -196,3 +214,115 @@ class BaseMinerNeuron(BaseNeuron):
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
         return self.block - self.last_sync_block > self.config.neuron.epoch_length
+
+    async def blacklist(self, synapse: bt.Synapse) -> typing.Tuple[bool, str]:
+        """
+        Determines whether an incoming request should be blacklisted and thus ignored.
+
+        Blacklist runs before the synapse data has been deserialized (i.e. before synapse.data is available).
+        The synapse is instead contructed via the headers of the request. It is important to blacklist
+        requests before they are deserialized to avoid wasting resources on requests that will be ignored.
+
+        Args:
+            synapse (bt.Synapse): A synapse object constructed from the headers of the incoming request.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
+                            and a string providing the reason for the decision.
+
+        This function is a security measure to prevent resource wastage on undesired requests. It should be enhanced
+        to include checks against the metagraph for entity registration, validator status, and sufficient stake
+        before deserialization of synapse data to minimize processing overhead.
+
+        Example blacklist logic:
+        - Reject if the hotkey is not a registered entity within the metagraph.
+        - Consider blacklisting entities that are not validators or have insufficient stake.
+
+        In practice it would be wise to blacklist requests from entities that are not validators, or do not have
+        enough stake. This can be checked via metagraph.S and metagraph.validator_permit. You can always attain
+        the uid of the sender via a metagraph.hotkeys.index( synapse.dendrite.hotkey ) call.
+
+        Otherwise, allow the request to be processed further.
+        """
+        uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+        if (
+            not self.config.blacklist.allow_non_registered
+            and synapse.dendrite.hotkey not in self.metagraph.hotkeys
+        ):
+            # Ignore requests from un-registered entities.
+            bt.logging.trace(
+                f"Blacklisting un-registered hotkey {synapse.dendrite.hotkey}"
+            )
+            return True, "Unrecognized hotkey"
+
+        if self.config.blacklist.force_validator_permit:
+            # If the config is set to force validator permit, then we should only allow requests from validators.
+            if not self.metagraph.validator_permit[uid]:
+                bt.logging.warning(
+                    f"Blacklisting a request from non-validator hotkey {synapse.dendrite.hotkey}"
+                )
+                return True, "Non-validator hotkey"
+
+        bt.logging.trace(
+            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
+        )
+        return False, "Hotkey recognized!"
+
+    async def priority(self, synapse: bt.Synapse) -> float:
+        """
+        The priority function determines the order in which requests are handled. More valuable or higher-priority
+        requests are processed before others.
+
+        This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
+
+        Args:
+            synapse (bt.Synapse): The synapse object that contains metadata about the incoming request.
+
+        Returns:
+            float: A priority score derived from the stake of the calling entity.
+
+        Miners may recieve messages from multiple entities at once. This function determines which request should be
+        processed first. Higher values indicate that the request should be processed first. Lower values indicate
+        that the request should be processed later.
+
+        Example priority logic:
+        - A higher stake results in a higher priority value.
+        """
+        caller_uid = self.metagraph.hotkeys.index(
+            synapse.dendrite.hotkey
+        )  # Get the caller index.
+        prirority = float(
+            self.metagraph.S[caller_uid]
+        )  # Return the stake as the priority.
+        bt.logging.trace(
+            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
+        )
+        return prirority
+
+    async def blacklist_search(self, synapse: SearchSynapse) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+
+    async def priority_search(self, synapse: SearchSynapse) -> float:
+        return await self.priority(synapse)
+
+    async def blacklist_structured_search(
+        self, synapse: StructuredSearchSynapse
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+
+    async def priority_structured_search(
+        self, synapse: StructuredSearchSynapse
+    ) -> float:
+        return await self.priority(synapse)
+
+    def save_state(self):
+        pass
+
+    def load_state(self):
+        pass
+
+    def save_state(self):
+        pass
+
+    def load_state(self):
+        pass
