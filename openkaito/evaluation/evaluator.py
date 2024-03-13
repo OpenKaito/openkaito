@@ -138,8 +138,9 @@ class Evaluator:
                     username_set.add(doc["username"])
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
-                uniqueness_scores[i] = len(id_set) / len(response)
-                author_uniqueness_scores[i] = len(username_set) / len(response)
+                
+                uniqueness_scores[i] = len(id_set) / size
+                author_uniqueness_scores[i] = len(username_set) / size
 
                 llm_ranking_scores = self.llm_ranking_evaluation(
                     query_string, size, response
