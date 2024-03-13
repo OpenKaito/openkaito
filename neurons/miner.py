@@ -99,9 +99,7 @@ class Miner(BaseMinerNeuron):
                 max_size=crawl_size,
             )
 
-        ranked_docs = self.search_engine.search(
-            query.query_string, self.config.neuron.search_recall_size, query.size
-        )
+        ranked_docs = self.search_engine.search(query)
         bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
         end_time = datetime.now()
@@ -126,9 +124,7 @@ class Miner(BaseMinerNeuron):
             )
 
         # disable crawling for structured search by default
-        ranked_docs = self.search_engine.search(
-            query.query_string, self.config.neuron.search_recall_size, query.size
-        )
+        ranked_docs = self.search_engine.search(query)
         bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
         end_time = datetime.now()

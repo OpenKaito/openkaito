@@ -8,6 +8,7 @@ from elasticsearch import Elasticsearch
 
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
+from openkaito.protocol import SearchSynapse, SortType, StructuredSearchSynapse
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking.heuristic_ranking import HeuristicRankingModel
 
@@ -63,10 +64,23 @@ def main():
     ranking_model = HeuristicRankingModel(length_weight=0.8, age_weight=0.2)
 
     search_engine = SearchEngine(
-        search_client=search_client, ranking_model=ranking_model, twitter_crawler=None
+        search_client=search_client,
+        relevance_ranking_model=ranking_model,
+        twitter_crawler=None,
     )
 
-    ranked_docs = search_engine.search(args.query, args.search_recall_size, args.size)
+    search_query = SearchSynapse(
+        query_string=args.query,
+        size=args.size,
+    )
+
+    search_query = StructuredSearchSynapse(
+        query_string=args.query,
+        size=args.size,
+        sort_type=SortType.RECENCY,
+    )
+
+    ranked_docs = search_engine.search(search_query=search_query)
     print("======ranked documents======")
     print(ranked_docs)
 
