@@ -91,16 +91,18 @@ class Evaluator:
                             continue
 
                     # check if the response is within the time range filter
-                    if query.created_earlier_than is not None:
+                    if query.earlier_than_timestamp is not None:
                         if not all(
-                            get_datetime(doc["created_at"]) < query.created_earlier_than
+                            get_datetime(doc["created_at"]).timestamp()
+                            < query.earlier_than_timestamp
                             for doc in response
                         ):
                             zero_score_mask[i] = 0
                             continue
-                    if query.created_later_than is not None:
+                    if query.later_than_timestamp is not None:
                         if not all(
-                            get_datetime(doc["created_at"]) > query.created_later_than
+                            get_datetime(doc["created_at"]).timestamp()
+                            > query.later_than_timestamp
                             for doc in response
                         ):
                             zero_score_mask[i] = 0
@@ -138,20 +140,26 @@ class Evaluator:
                     username_set.add(doc["username"])
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
-                
+
                 uniqueness_scores[i] = len(id_set) / size
                 author_uniqueness_scores[i] = len(username_set) / size
 
-                llm_ranking_scores = self.llm_ranking_evaluation(
-                    query_string, size, response
-                )
+                if query.name == "StructuredSearchSynapse":
+                    llm_ranking_scores = self.llm_structured_search_ranking_evaluation(
+                        query_string, response
+                    )
+                else:
+                    llm_ranking_scores = self.llm_keyword_ranking_evaluation(
+                        query_string, response
+                    )
 
                 # if the response is sorted by recency, we get the mean of the scores
                 if (
                     query.name == "StructuredSearchSynapse"
                     and query.sort_type == SortType.RECENCY
                 ):
-                    rank_scores[i] = llm_ranking_scores.mean()
+                    # mean quality score
+                    rank_scores[i] = sum(llm_ranking_scores) / len(llm_ranking_scores)
                 # `SearchSynapse` or `StructuredSearchSynapse` with `SortType.RELEVANCE`, use nDCG score
                 else:
                     rank_scores[i] = ndcg_score(llm_ranking_scores, size)
@@ -247,7 +255,7 @@ class Evaluator:
             bt.logging.error(f"Error while checking integrity of response: {e}")
             return False
 
-    def llm_ranking_evaluation(self, query_string, size, docs, retries=3):
+    def llm_keyword_ranking_evaluation(self, query_string, docs, retries=3):
         """
         This function evaluates the ranking of the documents using the LLM.
         """
@@ -351,12 +359,149 @@ class Evaluator:
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
-                return self.llm_ranking_evaluation(query_string, docs, retries - 1)
+                return self.llm_keyword_ranking_evaluation(
+                    query_string, docs, retries - 1
+                )
             else:
                 bt.logging.error(
-                    f"Failed to parse LLM result after retrying. Returning 0."
+                    f"Failed to parse LLM result after retrying. Returning [0]."
                 )
+            return [0]
+
+    def llm_structured_search_ranking_evaluation(self, query_string, docs, retries=3):
+        """
+        This function evaluates the structured search ranking of the documents using the LLM.
+        Here, the `query_string` may contains `AND`/`OR` operators in the query.
+        """
+        try:
+            newline = "\n"
+            prompt_docs = "\n\n".join(
+                [
+                    f"ItemId: {i}\nTime: {doc['created_at'].split('T')[0]}\nText: {doc['text'][:1000].replace(newline, '  ')}"
+                    for i, doc in enumerate(docs)
+                ]
+            )
+            bt.logging.debug(
+                f"Querying LLM of {query_string} with docs:\n" + prompt_docs
+            )
+            output = self.llm_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """Below are the metrics and definations: 
+Outdated: Time-sensitive information that is no longer current or relevant.
+Off topic: Superficial content lacking depth and comprehensive insights.
+Somewhat Relevant: Offers partial insight but lacks depth and comprehensive coverage.
+Relevant: Comprehensive, insightful content suitable for informed decision-making.""",
+                    },
+                    {
+                        "role": "system",
+                        "content": """You will be given a list of documents with id and you have to rate them based on the relevance to the structued query. 
+The structured query can contain AND/OR operators. 
+AND operator: The document should contain all the keywords in the query.
+OR operator: The document should contain at least one of the keywords in the query.
+""",
+                    },
+                    {
+                        "role": "system",
+                        "content": f"Current Time: {datetime.now().isoformat().split('T')[0]}",
+                    },
+                    {
+                        "role": "system",
+                        "content": """
+    Example 1:
+    ItemId: 0
+    Time: "2023-11-25" 
+    Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+    As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+    @PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+    BLUR prices rose 12%% in the past 24 hours following the release of Blast
+
+    Structured Query: Blast OR BTC
+
+    Output:
+    item_id: 0
+    choice: relevant
+    reason: It is relevant as it deep dives into the Blast project, not mentioning BTC meets the query criteria.
+
+
+    Example 2:
+    ItemId: 1
+    Time: "2023-11-25" 
+    Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+    As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+    @PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+    BLUR prices rose 12%% in the past 24 hours following the release of Blast
+
+    Structured Query: Blast AND BTC
+
+    Output:
+    item_id: 1
+    choice: off topic
+    reason: Though it deep dives into the Blast project, it does not directly discuss about BTC.
+
+    Example 3:
+    ItemId: 2
+    Time: "2023-11-15"
+    Text: To celebrate, we've teamed up with artist @debbietea8 to release a commemorative piece of art on @arbitrum! 😍
+    Now available for free, exclusively in app! 🥳
+
+    Structured Query: Arbitrum AND NFT
+
+    Output:
+    item_id: 2
+    choice: off topic
+    reason: It is not directly related to Arbitrum as it just uses the arbitrum app, and do not directly discuss about NFT.
+    """,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"You will be given a list of documents with id and you have to rate them based on the relevance to the query. The documents are as follows:\n"
+                        + prompt_docs,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Use the metric choices [outdated, off topic, somewhat relevant, relevant] to evaluate the text toward '{query_string}'?",
+                    },
+                    {
+                        "role": "user",
+                        "content": "Must answer in JSON format of a list of choices with item ids for all the given items: "
+                        + "{'results': [{'item_id': the item id of choice, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
+                    },
+                ],
+                temperature=0,
+            )
+            bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.debug(
+                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+            )
+        except Exception as e:
+            bt.logging.error(f"Error while querying LLM: {e}")
             return 0
+
+        try:
+            result = json.loads(output.choices[0].message.content)
+            # bt.logging.debug(f"LLM result: {result}")
+            ranking = parse_llm_result(result)
+            bt.logging.info(f"LLM ranking: {ranking}")
+            if len(ranking) != len(docs):
+                raise ValueError(
+                    f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
+                )
+            return ranking
+        except Exception as e:
+            bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
+            if retries > 0:
+                return self.llm_keyword_ranking_evaluation(
+                    query_string, docs, retries - 1
+                )
+            else:
+                bt.logging.error(
+                    f"Failed to parse LLM result after retrying. Returning [0]."
+                )
+            return [0]
 
 
 def get_datetime(time_str: str):
