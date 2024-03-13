@@ -112,14 +112,14 @@ def add_args(cls, parser):
             "--neuron.sample_size",
             type=int,
             help="The number of miners to query in a single step.",
-            default=15,
+            default=20,
         )
 
         parser.add_argument(
             "--neuron.search_request_interval",
             type=int,
             help="The interval seconds between search requests.",
-            default=120,
+            default=0,
         )
 
         parser.add_argument(
@@ -140,7 +140,7 @@ def add_args(cls, parser):
             "--neuron.moving_average_alpha",
             type=float,
             help="Moving average alpha parameter, how much to add of the new observation.",
-            default=0.05,
+            default=0.1,
         )
 
         parser.add_argument(
