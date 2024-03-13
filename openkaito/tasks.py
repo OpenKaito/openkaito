@@ -45,7 +45,19 @@ def generate_structured_search_task(
     """
     Generates a structured search task for the validator to send to the miner.
     """
-    query_string = random_query() if query_string is None else query_string
+    random_number = random.random()
+
+    # Randomly generate the query_string if not provided.
+    if query_string is None:
+        # 50% chance to generate a simple random query
+        if random_number < 0.5:
+            query_string = random_query()
+        # 30% chance to generate a random query with OR
+        elif random_number < 0.8:
+            query_string = f"{random_query()} OR {random_query()}"
+        # 20% chance to generate a random query with AND
+        else:
+            query_string = f"{random_query()} AND {random_query()}"
 
     # Randomly select the sort type if not provided.
     if sort_type is None:

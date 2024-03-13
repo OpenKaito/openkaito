@@ -59,7 +59,7 @@ class Validator(BaseValidatorNeuron):
 
         self.evaluator = Evaluator(llm_client, twitter_crawler)
 
-    async def forward_search(self):
+    async def forward(self):
         """
         Validator forward pass. Consists of:
         - Generating the query
@@ -70,10 +70,10 @@ class Validator(BaseValidatorNeuron):
         """
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-            query_string = random_query(input_file="queries.txt")
 
             # mixed tasks, 40% chance to send StructuredSearchSynapse, 60% chance to send SearchSynapse
             if random.random() < 0.6:
+                query_string = random_query(input_file="queries.txt")
                 search_query = SearchSynapse(
                     query_string=query_string,
                     size=self.config.neuron.search_result_size,
@@ -83,12 +83,11 @@ class Validator(BaseValidatorNeuron):
                 timeout_secs = 120
             else:
                 search_query = generate_structured_search_task(
-                    query_string=query_string,
                     size=self.config.neuron.search_result_size,
                 )
-                # efficient structured search is expected, set the miner query timeout to be 30 seconds
+                # efficient structured search is expected, set the miner query timeout to be 20 seconds
                 # does not invloving crawling in miner
-                timeout_secs = 30
+                timeout_secs = 20
 
             bt.logging.info(
                 f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
@@ -109,9 +108,7 @@ class Validator(BaseValidatorNeuron):
             # Log the results for monitoring purposes.
             bt.logging.debug(f"Received responses: {responses}")
 
-            rewards = self.evaluator.evaluate(
-                search_query, responses
-            )
+            rewards = self.evaluator.evaluate(search_query, responses)
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
