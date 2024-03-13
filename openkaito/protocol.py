@@ -66,8 +66,8 @@ class StructuredSearchSynapse(bt.Synapse):
     - query_string: A string value representing the search request sent by the validator.
     - size: the maximal count size of results to return.
     - sort_type: the type of sorting to use for the search results.
-    - created_earlier_than: A datetime object representing the earliest date to search for.
-    - created_later_than: A datetime object representing the latest date to search for.
+    - earlier_than_timestamp: A timestamp value representing the earliest time to search for.
+    - later_than_timestamp: A timestamp value representing the latest time to search for.
     - version: A `Version` object representing the version of the protocol.
     """
 
@@ -75,8 +75,9 @@ class StructuredSearchSynapse(bt.Synapse):
     size: int = pydantic.Field(5, ge=1, le=50)
     sort_type: SortType = SortType.RELEVANCE
 
-    created_earlier_than: Optional[datetime] = None
-    created_later_than: Optional[datetime] = None
+    # Note: use int instead of datetime to avoid serialization issues in dendrite.
+    earlier_than_timestamp: int = pydantic.Field(None, ge=0)
+    later_than_timestamp: int = pydantic.Field(None, ge=0)
 
     version: Optional[Version] = None
 

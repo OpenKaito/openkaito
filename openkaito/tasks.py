@@ -39,8 +39,8 @@ def generate_structured_search_task(
     query_string: str = None,
     size: int = 5,
     sort_type: SortType = None,
-    created_earlier_than: datetime = None,
-    created_later_than: datetime = None,
+    earlier_than: datetime = None,
+    later_than: datetime = None,
 ) -> StructuredSearchSynapse:
     """
     Generates a structured search task for the validator to send to the miner.
@@ -51,22 +51,22 @@ def generate_structured_search_task(
     if sort_type is None:
         sort_type = SortType.RELEVANCE if random.random() < 0.5 else SortType.RECENCY
 
-    # Randomly select the created_earlier_than and created_later_than if not provided.
-    if created_later_than is None:
-        # 0.5 ratio to set the created_later_than or not
+    # Randomly select the earlier_than and later_than if not provided.
+    if later_than is None:
+        # 0.5 ratio to set the later_than or not
         if random.random() < 0.5:
-            created_later_than = random_past_datetime()
+            later_than = random_past_datetime()
         else:
-            created_later_than = None
+            later_than = None
 
-    # do not set the created_earlier_than by default if it is not provided.
+    # Note: do not set the earlier_than by default if it is not provided.
 
     return StructuredSearchSynapse(
         query_string=query_string,
         size=size,
         sort_type=sort_type,
-        created_earlier_than=created_earlier_than,
-        created_later_than=created_later_than,
+        earlier_than_timestamp=(earlier_than.timestamp() if earlier_than else None),
+        later_than_timestamp=(later_than.timestamp() if later_than else None),
         version=get_version(),
     )
 
