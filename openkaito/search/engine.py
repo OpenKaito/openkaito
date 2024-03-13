@@ -74,7 +74,7 @@ class SearchEngine:
 
         recalled_items = self.recall(
             search_query=search_query,
-            # TODO: configure this
+            # 3 is the default recall size multiplication factor
             recall_size=result_size * 3,
         )
 

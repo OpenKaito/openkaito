@@ -177,13 +177,6 @@ def add_args(cls, parser):
         )
 
         parser.add_argument(
-            "--neuron.search_recall_size",
-            type=int,
-            help="The number of search results to retrieve for ranking.",
-            default=50,
-        )
-
-        parser.add_argument(
             "--blacklist.force_validator_permit",
             action="store_true",
             help="If set, we will force incoming requests to have a permit.",

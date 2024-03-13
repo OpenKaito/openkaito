@@ -209,8 +209,6 @@ options:
                         If set, we disable crawling when receiving a search request.
   --neuron.crawl_size NEURON.CRAWL_SIZE
                         The number of documents to crawl when receiving each query.
-  --neuron.search_recall_size NEURON.SEARCH_RECALL_SIZE
-                        The number of search results to retrieve for ranking.
   --blacklist.force_validator_permit
                         If set, we will force incoming requests to have a permit.
   --blacklist.allow_non_registered
