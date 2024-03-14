@@ -26,6 +26,7 @@ from elasticsearch import Elasticsearch
 
 import openkaito
 from openkaito.base.miner import BaseMinerNeuron
+from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking import HeuristicRankingModel
@@ -61,7 +62,8 @@ class Miner(BaseMinerNeuron):
 
         # optional, for crawling data
         twitter_crawler = (
-            MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
+            # MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
+            ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
             if os.environ.get("APIFY_API_KEY")
             else None
         )

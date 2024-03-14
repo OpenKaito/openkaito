@@ -80,11 +80,13 @@ class ApiDojoTwitterCrawler:
         """
         bt.logging.debug(f"Crawling for query: '{query}' with size {max_size}")
         params = {
-            "maxRequestRetries": 3,
-            "searchMode": "live",
-            "scrapeTweetReplies": True,
+            "maxItems": max_size,
+            "onlyImage": False,
+            "onlyQuote": False,
+            "onlyTwitterBlue": False,
+            "onlyVerifiedUsers": False,
+            "onlyVideo": False,
             "searchTerms": [query],
-            "maxTweets": max_size,
         }
 
         run = self.client.actor(self.actor_id).call(
@@ -92,13 +94,11 @@ class ApiDojoTwitterCrawler:
         )
         bt.logging.trace(f"Apify Actor Run: {run}")
 
-        results = [
-            item
-            for item in self.client.dataset(run["defaultDatasetId"]).iterate_items()
-        ]
-        bt.logging.trace(f"Apify Results: {results}")
-
-        return results
+        result = self.process_list(
+            self.client.dataset(run["defaultDatasetId"]).iterate_items()
+        )
+        bt.logging.trace(f"Apify Actor Result: {result}")
+        return result
 
     def process_item(self, item):
         """
@@ -145,25 +145,17 @@ if __name__ == "__main__":
     load_dotenv()
     crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
 
-    # r = crawler.search("BTC", 5)
-    # print(crawler.process_list(r))
+    r = crawler.search("BTC", 5)
 
-    # r = crawler.get_tweets_by_urls_with_retry(
+    # r = crawler.get_tweets_by_ids_with_retries(
     #     [
-    #         "https://twitter.com/pm_me_your_knee/status/1762448211875422690",
-    #         "https://twitter.com/elonmusk/status/1762389336858022132",
-    #         "https://twitter.com/VitalikButerin/status/1759369749887332577",
-    #         "https://twitter.com/elonmusk/status/1760504129485705598",
+    #         "1762448211875422690",
+    #         "1762389336858022132",
+    #         "1759369749887332577",
+    #         "1760504129485705598",
     #     ],
-    #     retries=1,
+    #     retries=2,
     # )
-    r = crawler.get_tweets_by_ids_with_retries(
-        [
-            "1762448211875422690",
-            "1762389336858022132",
-            "1759369749887332577",
-            "1760504129485705598",
-        ],
-        retries=2,
-    )
+
+
     print(r)

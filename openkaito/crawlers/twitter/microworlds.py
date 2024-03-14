@@ -75,13 +75,11 @@ class MicroworldsTwitterCrawler:
         )
         bt.logging.trace(f"Apify Actor Run: {run}")
 
-        results = [
-            item
-            for item in self.client.dataset(run["defaultDatasetId"]).iterate_items()
-        ]
-        bt.logging.trace(f"Apify Results: {results}")
-
-        return results
+        result = self.process_list(
+            self.client.dataset(run["defaultDatasetId"]).iterate_items()
+        )
+        bt.logging.trace(f"Apify Actor Result: {result}")
+        return result
 
     def process_item(self, item):
         """
@@ -128,13 +126,13 @@ if __name__ == "__main__":
     load_dotenv()
     crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
 
-    # r = crawler.search("BTC", 5)
-    # print(crawler.process_list(r))
+    r = crawler.search("BTC", 5)
+    print(r)
 
-    r = crawler.get_tweet_by_url(
-        "https://twitter.com/pm_me_your_knee/status/1762448211875422690"
-        # "https://twitter.com/elonmusk/status/1762389336858022132"
-        # "https://twitter.com/VitalikButerin/status/1759369749887332577",
-        # "https://twitter.com/elonmusk/status/1760504129485705598",
-    )
-    print(crawler.process_item(r))
+    # r = crawler.get_tweet_by_url(
+    #     "https://twitter.com/pm_me_your_knee/status/1762448211875422690"
+    #     # "https://twitter.com/elonmusk/status/1762389336858022132"
+    #     # "https://twitter.com/VitalikButerin/status/1759369749887332577",
+    #     # "https://twitter.com/elonmusk/status/1760504129485705598",
+    # )
+    # print(crawler.process_item(r))
