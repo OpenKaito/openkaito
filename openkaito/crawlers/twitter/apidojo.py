@@ -43,7 +43,7 @@ class ApiDojoTwitterCrawler:
             self.client.dataset(run["defaultDatasetId"]).iterate_items()
         )
 
-    def get_tweets_by_ids_with_retry(self, ids: list, retries=2):
+    def get_tweets_by_ids_with_retries(self, ids: list, retries=2):
         """
         Get tweets by tweet ids with retries.
 
@@ -57,7 +57,7 @@ class ApiDojoTwitterCrawler:
         result = {}
         remaining_ids = set(ids) - set(result.keys())
         while retries > 0 and len(remaining_ids) > 0:
-            print(f"Trying use remaining ids: {remaining_ids}")
+            bt.logging.debug(f"Trying fetching ids: {remaining_ids}")
             urls = [f"https://x.com/x/status/{id}" for id in remaining_ids]
             tweets = self.get_tweets_by_urls(list(urls))
             for tweet in tweets:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     #     ],
     #     retries=1,
     # )
-    r = crawler.get_tweets_by_ids_with_retry(
+    r = crawler.get_tweets_by_ids_with_retries(
         [
             "1762448211875422690",
             "1762389336858022132",

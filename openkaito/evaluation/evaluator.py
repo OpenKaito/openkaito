@@ -32,16 +32,60 @@ class Evaluator:
         author_uniqueness_scores = torch.zeros(len(responses))
         now = datetime.now(timezone.utc)
         max_avg_age = 0
+
+        spot_check_id_dict = dict()
+        # quick integrity check and get spot_check_id_dict
+        utcnow = datetime.now(timezone.utc)
+        for i, response in enumerate(responses):
+            if response is None or not response or len(response) > size:
+                zero_score_mask[i] = 0
+                continue
+            for doc in response:
+                doc_id = doc["id"]
+                url_id = tweet_url_to_id(doc["url"])
+                if doc_id != url_id:
+                    bt.logging.error(f"Document id {doc_id} not match url id {url_id}")
+                    zero_score_mask[i] = 0
+                    break
+                if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
+                    bt.logging.error(f"created_at {doc['created_at']} is in the future")
+                    zero_score_mask[i] = 0
+                    break
+            spot_check_id_dict[i] = random.choice(response)["id"]
+        bt.logging.debug(f"spot_check_id_dict: {spot_check_id_dict}")
+
+        groundtruth_docs = self.twitter_crawler.get_tweets_by_ids_with_retries(
+            list(set(spot_check_id_dict.values())), retries=2
+        )
+        bt.logging.debug(f"groundtruth_docs: {groundtruth_docs}")
+
         for i, response in enumerate(responses):
             try:
+                if zero_score_mask[i] == 0:
+                    continue
+                
+                bt.logging.trace(f"Processing {i}-th response")
+                # the spot check doc did not get fetched
+                if spot_check_id_dict[i] not in groundtruth_docs:
+                    bt.logging.error(
+                        f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
+                    )
+                    zero_score_mask[i] = 0
+                    continue
+
+                # check all docs against groundtruth, if fetched
+                for doc in response:
+                    if doc["id"] in groundtruth_docs:
+                        bt.logging.trace(f"Checking doc {doc['id']}")
+                        if not self.check_document(doc, groundtruth_docs[doc["id"]]):
+                            zero_score_mask[i] = 0
+                            break
+                
+                bt.logging.debug(f"Integrity check passed for {i}-th response: ", response)
+
+                # age and uniqueness score
                 id_set = set()
                 username_set = set()
-                if response is None or not response or len(response) > size:
-                    zero_score_mask[i] = 0
-                    continue
-                if not self.check_integrity(response):
-                    zero_score_mask[i] = 0
-                    continue
                 for doc in response:
                     avg_ages[i] += (
                         now - datetime.fromisoformat(doc["created_at"].rstrip("Z"))
@@ -65,6 +109,30 @@ class Evaluator:
 
         return scores * zero_score_mask
 
+    def check_document(self, doc, groundtruth_doc):
+        """
+        This function checks the integrity of the document.
+        """
+        try:
+            check_fields = ["text", "username"]
+            for field in check_fields:
+                if doc[field] != groundtruth_doc[field]:
+                    bt.logging.error(
+                        f"Document {field} {doc[field]} does not match ground truth {groundtruth_doc[field]}"
+                    )
+                    return False
+            if datetime.fromisoformat(
+                doc["created_at"].rstrip("Z")
+            ) != datetime.fromisoformat(groundtruth_doc["created_at"].rstrip("Z")):
+                bt.logging.error(
+                    f"Document created_at {doc['created_at']} does not match ground truth {groundtruth_doc['created_at']}"
+                )
+                return False
+            return True
+        except Exception as e:
+            bt.logging.error(f"Error while checking integrity of document: {e}")
+            return False
+
     def check_integrity(self, response):
         """
         This function checks the integrity of the response.
@@ -79,10 +147,7 @@ class Evaluator:
                         f"Document id {doc_id} does not match url id {url_id}"
                     )
                     return False
-                if (
-                    datetime.fromisoformat(doc["created_at"].rstrip("Z"))
-                    > utcnow
-                ):
+                if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
                     bt.logging.error(
                         f"Document created_at {doc['created_at']} is in the future"
                     )
