@@ -135,7 +135,7 @@ class ApiDojoTwitterCrawler:
         Returns:
             list: The list of processed results.
         """
-        return [self.process_item(result) for result in results]
+        return [self.process_item(result) for result in results if result.get("id")]
 
 
 if __name__ == "__main__":
@@ -145,17 +145,17 @@ if __name__ == "__main__":
     load_dotenv()
     crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
 
-    r = crawler.search("BTC", 5)
+    # r = crawler.search("BTC", 5)
 
-    # r = crawler.get_tweets_by_ids_with_retries(
-    #     [
-    #         "1762448211875422690",
-    #         "1762389336858022132",
-    #         "1759369749887332577",
-    #         "1760504129485705598",
-    #     ],
-    #     retries=2,
-    # )
-
+    r = crawler.get_tweets_by_ids_with_retries(
+        [
+            "1762448211875422690",
+            "1762389336858022132",
+            "1759369749887332577",
+            "1760504129485705598",
+            "xxxx",
+        ],
+        retries=2,
+    )
 
     print(r)
