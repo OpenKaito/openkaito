@@ -6,7 +6,7 @@ import openai
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
-from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
+from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking.heuristic_ranking import HeuristicRankingModel
