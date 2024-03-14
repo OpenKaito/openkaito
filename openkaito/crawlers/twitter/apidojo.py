@@ -43,25 +43,26 @@ class ApiDojoTwitterCrawler:
             self.client.dataset(run["defaultDatasetId"]).iterate_items()
         )
 
-    def get_tweets_by_urls_with_retry(self, urls: list, retries=2):
+    def get_tweets_by_ids_with_retry(self, ids: list, retries=2):
         """
-        Get tweets by urls with retries.
+        Get tweets by tweet ids with retries.
 
         Args:
-            urls (list): The urls to get tweets from.
+            ids (list): The tweet ids to get tweets from.
             retries (int): The number of retries to make.
 
         Returns:
-            dict: The dict of tweet url to tweet details.
+            dict: The dict of tweet id to tweet details.
         """
         result = {}
-        remaining_urls = set(urls) - set(result.keys())
-        while retries > 0 and len(remaining_urls) > 0:
-            # print(f"Trying to get tweets from urls: {remaining_urls}")
-            tweets = self.get_tweets_by_urls(list(remaining_urls))
+        remaining_ids = set(ids) - set(result.keys())
+        while retries > 0 and len(remaining_ids) > 0:
+            print(f"Trying use remaining ids: {remaining_ids}")
+            urls = [f"https://x.com/x/status/{id}" for id in remaining_ids]
+            tweets = self.get_tweets_by_urls(list(urls))
             for tweet in tweets:
-                result[tweet["url"]] = tweet
-            remaining_urls = set(remaining_urls) - set(result.keys())
+                result[tweet["id"]] = tweet
+            remaining_ids = set(remaining_ids) - set(result.keys())
             retries -= 1
 
         return result
@@ -147,13 +148,22 @@ if __name__ == "__main__":
     # r = crawler.search("BTC", 5)
     # print(crawler.process_list(r))
 
-    r = crawler.get_tweets_by_urls_with_retry(
+    # r = crawler.get_tweets_by_urls_with_retry(
+    #     [
+    #         "https://twitter.com/pm_me_your_knee/status/1762448211875422690",
+    #         "https://twitter.com/elonmusk/status/1762389336858022132",
+    #         "https://twitter.com/VitalikButerin/status/1759369749887332577",
+    #         "https://twitter.com/elonmusk/status/1760504129485705598",
+    #     ],
+    #     retries=1,
+    # )
+    r = crawler.get_tweets_by_ids_with_retry(
         [
-            "https://twitter.com/pm_me_your_knee/status/1762448211875422690",
-            "https://twitter.com/elonmusk/status/1762389336858022132",
-            "https://twitter.com/VitalikButerin/status/1759369749887332577",
-            "https://twitter.com/elonmusk/status/1760504129485705598",
+            "1762448211875422690",
+            "1762389336858022132",
+            "1759369749887332577",
+            "1760504129485705598",
         ],
-        retries=1,
+        retries=2,
     )
     print(r)
