@@ -31,7 +31,7 @@ from dotenv import load_dotenv
 
 import openkaito
 from openkaito.base.validator import BaseValidatorNeuron
-from openkaito.crawlers.twitter.apify import ApifyTwitterCrawler
+from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse
 from openkaito.utils.uids import get_random_uids
@@ -60,7 +60,7 @@ class Validator(BaseValidatorNeuron):
         )
 
         # for integrity check
-        twitter_crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
+        twitter_crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
 
         self.evaluator = Evaluator(llm_client, twitter_crawler)
 

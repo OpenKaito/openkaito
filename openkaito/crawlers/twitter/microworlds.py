@@ -6,7 +6,7 @@ import bittensor as bt
 from openkaito.evaluation.utils import tweet_url_to_id
 
 
-class ApifyTwitterCrawler:
+class MicroworldsTwitterCrawler:
     def __init__(self, api_key, timeout_secs=60):
         self.client = ApifyClient(api_key)
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     import os
 
     load_dotenv()
-    crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
+    crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
 
     # r = crawler.search("BTC", 5)
     # print(crawler.process_list(r))
