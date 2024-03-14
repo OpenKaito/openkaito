@@ -119,7 +119,7 @@ def add_args(cls, parser):
             "--neuron.search_request_interval",
             type=int,
             help="The interval seconds between search requests.",
-            default=0,
+            default=60,
         )
 
         parser.add_argument(
