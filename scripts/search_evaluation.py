@@ -32,6 +32,11 @@ def main():
     args = parse_args()
     print(args)
     load_dotenv()
+    bt.logging.set_debug(True)
+
+    bt.logging(
+        debug=vars(args).get("logging.debug"), trace=vars(args).get("logging.trace")
+    )
 
     # for ranking results evaluation
     llm_client = openai.OpenAI(
@@ -65,9 +70,10 @@ def main():
     print("======ranked documents======")
     print(ranked_docs)
 
-    scores = evaluator.evaluate(args.query, args.size, [ranked_docs])
-    print("======evaluation scores======")
-    print(scores)
+    # note this is the llm score, skipped integrity check and batch age score
+    score = evaluator.llm_ranking_evaluation(args.query, args.size, ranked_docs)
+    print("======LLM Score======")
+    print(score)
 
 
 if __name__ == "__main__":
