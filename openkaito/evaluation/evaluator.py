@@ -400,8 +400,8 @@ Relevant: Comprehensive, insightful content suitable for informed decision-makin
                         "role": "system",
                         "content": """You will be given a list of documents with id and you have to rate them based on the relevance to the structued query. 
 The structured query can contain AND/OR operators. 
-AND operator: The document should contain all the keywords in the query.
-OR operator: The document should contain at least one of the keywords in the query.
+AND operator: The document should contain meaningful discussion of both the keywords in the query.
+OR operator: The document should contain meaningful discussion of at least one keywords in the query.
 """,
                     },
                     {
