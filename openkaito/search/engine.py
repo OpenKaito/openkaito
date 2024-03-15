@@ -3,38 +3,19 @@ import os
 import bittensor as bt
 from dotenv import load_dotenv
 
-from ..protocol import SortType
-
-from .ranking.recency_ranking import RecencyRankingModel
-
 
 class SearchEngine:
-    def __init__(self, search_client, relevance_ranking_model, twitter_crawler=None):
+    def __init__(self, search_client, ranking_model, twitter_crawler=None):
         load_dotenv()
 
         self.search_client = search_client
         self.init_indices()
 
-        # for relevance ranking recalled results
-        self.relevance_ranking_model = relevance_ranking_model
-
-        self.recency_ranking_model = RecencyRankingModel()
+        # for ranking recalled results
+        self.ranking_model = ranking_model
 
         # optional, for crawling data
         self.twitter_crawler = twitter_crawler
-
-    def twitter_doc_mapper(cls, doc):
-        return {
-            "id": doc["id"],
-            "text": doc["text"],
-            "created_at": doc["created_at"],
-            "username": doc["username"],
-            "url": doc["url"],
-            "quote_count": doc["quote_count"],
-            "reply_count": doc["reply_count"],
-            "retweet_count": doc["retweet_count"],
-            "favorite_count": doc["favorite_count"],
-        }
 
     def init_indices(self):
         """
@@ -62,85 +43,57 @@ class SearchEngine:
                 },
             )
 
-    def search(self, search_query):
+    def search(self, query_string, recall_size, result_size):
         """
-        Structured search interface for this search engine
-
-        Args:
-        - search_query: A `StructuredSearchSynapse` or `SearchSynapse` object representing the search request sent by the validator.
+        Search interface for this search engine
         """
 
-        result_size = search_query.size
-
-        recalled_items = self.recall(
-            search_query=search_query,
-            # 3 is the default recall size multiplication factor
-            recall_size=result_size * 3,
-        )
-
-        # default ranking model
-        ranking_model = self.relevance_ranking_model
-
-        # use recency ranking model if the search query is for recency
-        if (
-            search_query.name == "StructuredSearchSynapse"
-            and search_query.sort_type == SortType.RECENCY
-        ):
-            ranking_model = self.recency_ranking_model
-
-        results = ranking_model.rank(search_query.query_string, recalled_items)
-
+        recalled_items = self.recall(query_string, recall_size)
+        results = self.ranking_model.rank(query_string, recalled_items)
         return results[:result_size]
 
-    def recall(self, search_query, recall_size):
+    def recall(self, query_string, recall_size):
         """
-        Structured recall interface for this search engine
+        Retrieve the results from the elasticsearch database.
         """
-        query_string = search_query.query_string
-
-        es_query = {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "query_string": {
-                                "query": query_string,
-                                "default_field": "text",
-                                "default_operator": "AND",
-                            }
-                        }
-                    ],
-                }
-            },
-            "size": recall_size,
-        }
-
-        if search_query.name == "StructuredSearchSynapse":
-            time_filter = {}
-            if search_query.earlier_than_timestamp:
-                time_filter["lte"] = search_query.earlier_than_timestamp
-            if search_query.later_than_timestamp:
-                time_filter["gte"] = search_query.later_than_timestamp
-            if time_filter:
-                es_query["query"]["bool"]["must"].append(
-                    {"range": {"created_at": time_filter}}
-                )
-
-            if search_query.sort_type == SortType.RECENCY:
-                es_query["sort"] = [{"created_at": "desc"}]
-
-        bt.logging.debug(f"es_query: {es_query}")
 
         try:
             response = self.search_client.search(
                 index="twitter",
-                body=es_query,
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "query_string": {
+                                        "query": query_string,
+                                        "default_field": "text",
+                                        "default_operator": "AND",
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                    "size": recall_size,
+                },
             )
             documents = response["hits"]["hits"]
             results = []
             for document in documents if documents else []:
                 doc = document["_source"]
-                results.append(self.twitter_doc_mapper(doc))
+                results.append(
+                    {
+                        "id": doc["id"],
+                        "text": doc["text"],
+                        "created_at": doc["created_at"],
+                        "username": doc["username"],
+                        "url": doc["url"],
+                        "quote_count": doc["quote_count"],
+                        "reply_count": doc["reply_count"],
+                        "retweet_count": doc["retweet_count"],
+                        "favorite_count": doc["favorite_count"],
+                    }
+                )
             bt.logging.info(f"retrieved {len(results)} results")
             bt.logging.trace(f"results: ")
             return results
