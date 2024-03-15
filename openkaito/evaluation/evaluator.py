@@ -89,9 +89,9 @@ class Evaluator:
                                 zero_score_mask[i] = 0
                                 break
 
-                bt.logging.debug(
-                    f"Integrity check passed for {i}-th response: ", response
-                )
+                    bt.logging.debug(
+                        f"Integrity check passed for {i}-th response: ", response
+                    )
 
                 # age and uniqueness score
                 id_set = set()
