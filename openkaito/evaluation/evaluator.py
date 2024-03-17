@@ -58,30 +58,40 @@ class Evaluator:
             list(set(spot_check_id_dict.values())), retries=2
         )
         bt.logging.debug(f"groundtruth_docs: {groundtruth_docs}")
+        groundtruth_check = len(groundtruth_docs) > 0
+        if not groundtruth_check:
+            bt.logging.warning(
+                "groundtruth_docs is empty, apify scraper is down, skipping check"
+            )
 
         for i, response in enumerate(responses):
             try:
                 if zero_score_mask[i] == 0:
                     continue
-                
-                bt.logging.trace(f"Processing {i}-th response")
-                # the spot check doc did not get fetched
-                if spot_check_id_dict[i] not in groundtruth_docs:
-                    bt.logging.error(
-                        f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
-                    )
-                    zero_score_mask[i] = 0
-                    continue
 
-                # check all docs against groundtruth, if fetched
-                for doc in response:
-                    if doc["id"] in groundtruth_docs:
-                        bt.logging.trace(f"Checking doc {doc['id']}")
-                        if not self.check_document(doc, groundtruth_docs[doc["id"]]):
-                            zero_score_mask[i] = 0
-                            break
-                
-                bt.logging.debug(f"Integrity check passed for {i}-th response: ", response)
+                bt.logging.trace(f"Processing {i}-th response")
+                if groundtruth_check:
+                    # the spot check doc did not get fetched
+                    if spot_check_id_dict[i] not in groundtruth_docs:
+                        bt.logging.error(
+                            f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
+                    # check all docs against groundtruth, if fetched
+                    for doc in response:
+                        if doc["id"] in groundtruth_docs:
+                            bt.logging.trace(f"Checking doc {doc['id']}")
+                            if not self.check_document(
+                                doc, groundtruth_docs[doc["id"]]
+                            ):
+                                zero_score_mask[i] = 0
+                                break
+
+                    bt.logging.debug(
+                        f"Integrity check passed for {i}-th response: ", response
+                    )
 
                 # age and uniqueness score
                 id_set = set()
