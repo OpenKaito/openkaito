@@ -10,7 +10,12 @@ import torch
 
 from openkaito.protocol import SortType
 
-from .utils import ndcg_score, parse_llm_result, tweet_url_to_id
+from .utils import (
+    ndcg_score,
+    parse_llm_result,
+    parse_llm_result_for_author_index,
+    tweet_url_to_id,
+)
 
 
 class Evaluator:
@@ -83,8 +88,18 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
-    
+
                 if query.name == "StructuredSearchSynapse":
+                    # for author index task
+                    # check if the response is from the request author list
+                    if query.author_usernames is not None:
+                        if not all(
+                            doc["username"] in query.author_usernames
+                            for doc in response
+                        ):
+                            zero_score_mask[i] = 0
+                            continue
+
                     if query.sort_type == SortType.RECENCY:
                         # check if the response is sorted by recency
                         if not all(
@@ -113,7 +128,6 @@ class Evaluator:
                         ):
                             zero_score_mask[i] = 0
                             continue
-
 
                     # check all docs against groundtruth, if fetched
                     for doc in response:
@@ -145,9 +159,16 @@ class Evaluator:
                 author_uniqueness_scores[i] = len(username_set) / size
 
                 if query.name == "StructuredSearchSynapse":
-                    llm_ranking_scores = self.llm_structured_search_ranking_evaluation(
-                        query_string, response
-                    )
+                    if query.author_usernames is not None:
+                        llm_ranking_scores = self.llm_author_index_data_evaluation(
+                            response
+                        )
+                    else:
+                        llm_ranking_scores = (
+                            self.llm_structured_search_ranking_evaluation(
+                                query_string, response
+                            )
+                        )
                 else:
                     llm_ranking_scores = self.llm_keyword_ranking_evaluation(
                         query_string, response
@@ -277,10 +298,10 @@ class Evaluator:
                     {
                         "role": "system",
                         "content": """Below are the metrics and definations: 
-    Outdated: Time-sensitive information that is no longer current or relevant.
-    Off topic: Superficial content lacking depth and comprehensive insights.
-    Somewhat Relevant: Offers partial insight but lacks depth and comprehensive coverage.
-    Relevant: Comprehensive, insightful content suitable for informed decision-making.""",
+outdated: Time-sensitive information that is no longer current or relevant.
+off topic: Superficial content lacking depth and comprehensive insights.
+somewhat relevant: Offers partial insight but lacks depth and comprehensive coverage.
+relevant: Comprehensive, insightful content suitable for informed decision-making.""",
                     },
                     {
                         "role": "system",
@@ -289,34 +310,34 @@ class Evaluator:
                     {
                         "role": "system",
                         "content": """
-    Example 1:
-    ItemId: 0
-    Time: "2023-11-25" 
-    Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
-    As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
-    @PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
-    BLUR prices rose 12%% in the past 24 hours following the release of Blast
+Example 1:
+ItemId: 0
+Time: "2023-11-25" 
+Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+@PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+BLUR prices rose 12%% in the past 24 hours following the release of Blast
 
-    Query: Blast
+Query: Blast
 
-    Output:
-    item_id: 0
-    choice: relevant
-    reason: It is relevant as it deep dives into the Blast project.
+Output:
+item_id: 0
+choice: relevant
+reason: It is relevant as it deep dives into the Blast project.
 
-    Example 2:
-    ItemId: 1
-    Time: "2023-11-15"
-    Text: To celebrate, we've teamed up with artist @debbietea8 to release a commemorative piece of art on @arbitrum! 😍
-    Now available for free, exclusively in app! 🥳
+Example 2:
+ItemId: 1
+Time: "2023-11-15"
+Text: To celebrate, we've teamed up with artist @debbietea8 to release a commemorative piece of art on @arbitrum! 😍
+Now available for free, exclusively in app! 🥳
 
-    Query: Arbitrum
+Query: Arbitrum
 
-    Output:
-    item_id: 1
-    choice: off topic
-    reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
-    """,
+Output:
+item_id: 1
+choice: off topic
+reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
+""",
                     },
                     {
                         "role": "user",
@@ -391,10 +412,10 @@ class Evaluator:
                     {
                         "role": "system",
                         "content": """Below are the metrics and definations: 
-Outdated: Time-sensitive information that is no longer current or relevant.
-Off topic: Superficial content lacking depth and comprehensive insights.
-Somewhat Relevant: Offers partial insight but lacks depth and comprehensive coverage.
-Relevant: Comprehensive, insightful content suitable for informed decision-making.""",
+outdated: Time-sensitive information that is no longer current or relevant.
+off topic: Superficial content lacking depth and comprehensive insights.
+somewhat relevant: Offers partial insight but lacks depth and comprehensive coverage.
+relevant: Comprehensive, insightful content suitable for informed decision-making.""",
                     },
                     {
                         "role": "system",
@@ -411,50 +432,48 @@ OR operator: The document should contain meaningful discussion of at least one k
                     {
                         "role": "system",
                         "content": """
-    Example 1:
-    ItemId: 0
-    Time: "2023-11-25" 
-    Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
-    As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
-    @PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
-    BLUR prices rose 12%% in the past 24 hours following the release of Blast
+Example 1:
+ItemId: 0
+Time: "2023-11-25" 
+Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+@PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+BLUR prices rose 12%% in the past 24 hours following the release of Blast
 
-    Structured Query: Blast OR BTC
-
-    Output:
-    item_id: 0
-    choice: relevant
-    reason: It is relevant as it deep dives into the Blast project, not mentioning BTC meets the query criteria.
+Output:
+item_id: 0
+choice: relevant
+reason: It is relevant as it deep dives into the Blast project, not mentioning BTC meets the query criteria.
 
 
-    Example 2:
-    ItemId: 1
-    Time: "2023-11-25" 
-    Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
-    As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
-    @PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
-    BLUR prices rose 12%% in the past 24 hours following the release of Blast
+Example 2:
+ItemId: 1
+Time: "2023-11-25" 
+Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+@PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+BLUR prices rose 12%% in the past 24 hours following the release of Blast
 
-    Structured Query: Blast AND BTC
+Structured Query: Blast AND BTC
 
-    Output:
-    item_id: 1
-    choice: off topic
-    reason: Though it deep dives into the Blast project, it does not directly discuss about BTC.
+Output:
+item_id: 1
+choice: off topic
+reason: Though it deep dives into the Blast project, it does not directly discuss about BTC.
 
-    Example 3:
-    ItemId: 2
-    Time: "2023-11-15"
-    Text: To celebrate, we've teamed up with artist @debbietea8 to release a commemorative piece of art on @arbitrum! 😍
-    Now available for free, exclusively in app! 🥳
+Example 3:
+ItemId: 2
+Time: "2023-11-15"
+Text: To celebrate, we've teamed up with artist @debbietea8 to release a commemorative piece of art on @arbitrum! 😍
+Now available for free, exclusively in app! 🥳
 
-    Structured Query: Arbitrum AND NFT
+Structured Query: Arbitrum AND NFT
 
-    Output:
-    item_id: 2
-    choice: off topic
-    reason: It is not directly related to Arbitrum as it just uses the arbitrum app, and do not directly discuss about NFT.
-    """,
+Output:
+item_id: 2
+choice: off topic
+reason: It is not directly related to Arbitrum as it just uses the arbitrum app, and do not directly discuss about NFT.
+""",
                     },
                     {
                         "role": "user",
@@ -494,9 +513,108 @@ OR operator: The document should contain meaningful discussion of at least one k
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
-                return self.llm_keyword_ranking_evaluation(
+                return self.llm_structured_search_ranking_evaluation(
                     query_string, docs, retries - 1
                 )
+            else:
+                bt.logging.error(
+                    f"Failed to parse LLM result after retrying. Returning [0]."
+                )
+            return [0]
+
+    def llm_author_index_data_evaluation(self, docs, retries=3):
+        try:
+            newline = "\n"
+            prompt_docs = "\n\n".join(
+                [
+                    f"ItemId: {i}\nTime: {doc['created_at'].split('T')[0]}\nText: {doc['text'][:1000].replace(newline, '  ')}"
+                    for i, doc in enumerate(docs)
+                ]
+            )
+            output = self.llm_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """Below are the metrics and definations: 
+outdated: Time-sensitive information that is no longer current or relevant.
+insightless: Superficial content lacking depth and comprehensive insights.
+somewhat insightful: Offers partial insight but lacks depth and comprehensive coverage.
+Insightful: Comprehensive, insightful content suitable for informed decision-making.""",
+                    },
+                    {
+                        "role": "system",
+                        "content": f"Current Time: {datetime.now().isoformat().split('T')[0]}",
+                    },
+                    {
+                        "role": "system",
+                        "content": """
+Example 1:
+ItemId: 0
+Time: "2023-11-25" 
+Text: Also driving the charm is Blast's unique design: Depositors start earning yields on the transferred ether alongside BLAST points. "Blast natively participates in ETH staking, and the staking yield is passed back to the L2's users and dapps," the team said in a post Tuesday. 'We've redesigned the L2 from the ground up so that if you have 1 ETH in your wallet on Blast, over time, it grows to 1.04, 1.08, 1.12 ETH automatically."
+As such, Blast is invite-only as of Tuesday, requiring a code from invited users to gain access. Besides, the BLAST points can be redeemed starting in May.Blast raised over $20 million in a round led by Paradigm and Standard Crypto and is headed by pseudonymous figurehead @PacmanBlur, one of the co-founders of NFT marketplace Blur.
+@PacmanBlur said in a separate post that Blast was an extension of the Blur ecosystem, letting Blur users earn yields on idle assets while improving the technical aspects required to offer sophisticated NFT products to users.
+BLUR prices rose 12%% in the past 24 hours following the release of Blast
+
+
+Output:
+item_id: 0
+choice: insightful
+reason: It is contains insightful information about the Blast project.
+
+Example 2:
+ItemId: 1
+Time: "2024-03-19"
+Text: $SLERF to the moon!
+$BOME $SOL $MUMU $BONK $BOPE $WIF $NAP 🥳
+
+Output:
+item_id: 1
+choice: insightless
+reason: It does not contain much meaningful information, just sentiment about some tickers.
+""",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"You will be given a list of documents with id and you have to rate them based on the relevance to the query. The documents are as follows:\n"
+                        + prompt_docs,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Use the metric choices [outdated, off topic, somewhat relevant, relevant] to evaluate the text toward '{query_string}'?",
+                    },
+                    {
+                        "role": "user",
+                        "content": "Must answer in JSON format of a list of choices with item ids for all the given items: "
+                        + "{'results': [{'item_id': the item id of choice, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
+                    },
+                ],
+                temperature=0,
+            )
+            bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.debug(
+                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+            )
+        except Exception as e:
+            bt.logging.error(f"Error while querying LLM: {e}")
+            return 0
+
+        try:
+            result = json.loads(output.choices[0].message.content)
+            # bt.logging.debug(f"LLM result: {result}")
+            ranking = parse_llm_result_for_author_index(result)
+            bt.logging.info(f"LLM ranking: {ranking}")
+            if len(ranking) != len(docs):
+                raise ValueError(
+                    f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
+                )
+            return ranking
+        except Exception as e:
+            bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
+            if retries > 0:
+                return self.llm_author_index_data_evaluation(docs, retries - 1)
             else:
                 bt.logging.error(
                     f"Failed to parse LLM result after retrying. Returning [0]."
