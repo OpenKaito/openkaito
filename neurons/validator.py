@@ -35,7 +35,11 @@ from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse
-from openkaito.tasks import generate_structured_search_task, random_query
+from openkaito.tasks import (
+    generate_author_index_task,
+    generate_structured_search_task,
+    random_query,
+)
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
 
@@ -71,8 +75,9 @@ class Validator(BaseValidatorNeuron):
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
-            # mixed tasks, 40% chance to send StructuredSearchSynapse, 60% chance to send SearchSynapse
-            if random.random() < 0.6:
+            random_number = random.random()
+            # mixed tasks, 10% chance to send SearchSynapse, 90% chance to send StructuredSearchSynapse
+            if random_number < 0.1:
                 query_string = random_query(input_file="queries.txt")
                 search_query = SearchSynapse(
                     query_string=query_string,
@@ -82,12 +87,25 @@ class Validator(BaseValidatorNeuron):
                 # set the miner query timeout to be 120 seconds to allow more operations in miner
                 timeout_secs = 120
             else:
-                search_query = generate_structured_search_task(
-                    size=self.config.neuron.search_result_size,
-                )
-                # efficient structured search is expected, set the miner query timeout to be 20 seconds
-                # does not invloving crawling in miner
-                timeout_secs = 20
+                # 90% chance to send index author data task,
+                if random_number < 0.9:
+                    search_query = generate_author_index_task(
+                        size=self.config.neuron.search_result_size,
+                        num_authors=2,
+                    )
+                    # this is a bootstrap task for users to crawl more data from the author list.
+                    # miners may implement a more efficient way to crawl and index the author data in the background,
+                    # instead of relying on the validator tasks
+                    timeout_secs = 90
+                # 10% chance to send structured search task
+                # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
+                # And this task is expected to be the mainstream task of this subnet
+                else:
+                    search_query = generate_structured_search_task(
+                        size=self.config.neuron.search_result_size,
+                    )
+                    # does not invloving crawling in miner
+                    timeout_secs = 20
 
             bt.logging.info(
                 f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
