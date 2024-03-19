@@ -139,8 +139,18 @@ class Miner(BaseMinerNeuron):
             )
         bt.logging.debug("sort_type:", query.sort_type)
 
+        if query.author_usernames:
+            bt.logging.debug("author data index task: author_usernames:", query.author_usernames)
+            crawl_size = max(self.config.neuron.crawl_size, query.size)
+            self.structured_search_engine.crawl_and_index_data(
+                query_string=query.query_string,
+                author_usernames=query.author_usernames,
+                # crawl and index more data than needed to ensure we have enough to rank
+                max_size=crawl_size,
+            )
+
         # disable crawling for structured search by default
-        ranked_docs = self.search_engine.search(query)
+        ranked_docs = self.structured_search_engine.search(query)
         bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
         end_time = datetime.now()

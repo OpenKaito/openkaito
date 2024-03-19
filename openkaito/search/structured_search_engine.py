@@ -122,6 +122,15 @@ class StructuredSearchEngine:
         }
 
         if search_query.name == "StructuredSearchSynapse":
+            if search_query.author_usernames:
+                es_query["query"]["bool"]["must"].append(
+                    {
+                        "terms": {
+                            "username": search_query.author_usernames,
+                        }
+                    }
+                )
+
             time_filter = {}
             if search_query.earlier_than_timestamp:
                 time_filter["lte"] = search_query.earlier_than_timestamp
@@ -154,7 +163,7 @@ class StructuredSearchEngine:
             bt.logging.error("recall error...", e)
             return []
 
-    def crawl_and_index_data(self, query_string, max_size):
+    def crawl_and_index_data(self, query_string, author_usernames, max_size):
         """
         Crawls the data from the twitter crawler and indexes it in the elasticsearch database.
         """
@@ -163,7 +172,9 @@ class StructuredSearchEngine:
                 "Twitter crawler is not initialized. skipped crawling and indexing"
             )
         try:
-            processed_docs = self.twitter_crawler.search(query_string, max_size)
+            processed_docs = self.twitter_crawler.search(
+                query_string, author_usernames, max_size
+            )
             bt.logging.debug(f"crawled {len(processed_docs)} docs")
             bt.logging.trace(processed_docs)
         except Exception as e:
