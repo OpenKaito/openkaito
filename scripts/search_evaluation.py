@@ -12,18 +12,17 @@ from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SortType, StructuredSearchSynapse
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking.heuristic_ranking import HeuristicRankingModel
+from openkaito.search.structured_search_engine import StructuredSearchEngine
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Miner Search Ranking Evaluation")
-    parser.add_argument("--query", type=str, default="BTC OR NFT", help="query string")
+    parser.add_argument("--query", type=str, default="BTC", help="query string")
     parser.add_argument(
         "--size", type=int, default=5, help="size of the response items"
     )
     # parser.add_argument('--crawling', type=bool, default=False, action='store_true', help='crawling data before search')
 
-    # --logging.debug, --logging.trace
-    bt.logging.add_args(parser)
     return parser.parse_args()
 
 
@@ -31,11 +30,7 @@ def main():
     args = parse_args()
     print(vars(args))
     load_dotenv()
-    bt.logging.set_debug(True)
-
-    bt.logging(
-        debug=vars(args).get("logging.debug"), trace=vars(args).get("logging.trace")
-    )
+    bt.logging.set_trace(True)
 
     # for ranking results evaluation
     llm_client = openai.OpenAI(
@@ -61,7 +56,7 @@ def main():
     # for ranking recalled results
     ranking_model = HeuristicRankingModel(length_weight=0.8, age_weight=0.2)
 
-    search_engine = SearchEngine(
+    search_engine = StructuredSearchEngine(
         search_client=search_client,
         relevance_ranking_model=ranking_model,
         twitter_crawler=None,
@@ -72,10 +67,6 @@ def main():
         size=args.size,
     )
 
-    search_query = StructuredSearchSynapse(
-        query_string=args.query,
-        size=args.size,
-    )
     print(search_query)
 
     ranked_docs = search_engine.search(search_query=search_query)
@@ -83,7 +74,7 @@ def main():
     print(ranked_docs)
 
     # note this is the llm score, skipped integrity check and batch age score
-    score = evaluator.llm_ranking_evaluation(args.query, args.size, ranked_docs)
+    score = evaluator.llm_keyword_ranking_evaluation(args.query, ranked_docs)
     print("======LLM Score======")
     print(score)
 
