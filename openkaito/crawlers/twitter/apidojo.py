@@ -67,7 +67,7 @@ class ApiDojoTwitterCrawler:
 
         return result
 
-    def search(self, query: str, author_usernames: list, max_size: int):
+    def search(self, query: str, author_usernames: list = None, max_size: int = 10):
         """
         Searches for the given query on the crawled data.
 

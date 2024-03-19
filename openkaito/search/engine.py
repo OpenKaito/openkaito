@@ -110,7 +110,9 @@ class SearchEngine:
                 "Twitter crawler is not initialized. skipped crawling and indexing"
             )
         try:
-            processed_docs = self.twitter_crawler.search(query_string, max_size)
+            processed_docs = self.twitter_crawler.search(
+                query_string, max_size=max_size
+            )
             bt.logging.debug(f"crawled {len(processed_docs)} docs")
             bt.logging.trace(processed_docs)
         except Exception as e:

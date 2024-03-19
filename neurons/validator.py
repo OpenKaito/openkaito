@@ -88,9 +88,9 @@ class Validator(BaseValidatorNeuron):
                 timeout_secs = 120
             else:
                 # 90% chance to send index author data task,
-                if random_number < 0.9:
+                if random_number < 0.2:
                     search_query = generate_author_index_task(
-                        size=self.config.neuron.search_result_size,
+                        size=10,  # author index data size
                         num_authors=2,
                     )
                     # this is a bootstrap task for users to crawl more data from the author list.
@@ -99,7 +99,7 @@ class Validator(BaseValidatorNeuron):
                     timeout_secs = 90
                 # 10% chance to send structured search task
                 # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
-                # And this task is expected to be the mainstream task of this subnet
+                # And this task is expected to be the mainstream task of this subnet, we will increase it's portion in the future
                 else:
                     search_query = generate_structured_search_task(
                         size=self.config.neuron.search_result_size,

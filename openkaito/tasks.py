@@ -75,8 +75,8 @@ def generate_structured_search_task(
 
     # Randomly select the earlier_than and later_than if not provided.
     if later_than is None:
-        # 0.5 ratio to set the later_than or not
-        if random.random() < 0.5:
+        # 0.8 ratio to set the later_than or not
+        if random.random() < 0.8:
             later_than = random_past_datetime()
         else:
             later_than = None
