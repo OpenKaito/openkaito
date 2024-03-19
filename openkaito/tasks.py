@@ -12,8 +12,16 @@ def random_query(input_file="queries.txt"):
     if not os.path.exists(input_file):
         bt.logging.error(f"Queries file not found at location: {input_file}")
         exit(1)
-    lines = open(input_file).read().splitlines()
+    lines = open(input_file).read().strip().splitlines()
     return random.choice(lines)
+
+# The twitter usernames list is from a truncated snapshot of friendtech ( https://dune.com/cryptokoryo/friendtech )
+def random_twitter_username(input_file="twitter_usernames.txt", num_authors: int = 2):
+    if not os.path.exists(input_file):
+        bt.logging.error(f"Twitter usernames file not found at location: {input_file}")
+        exit(1)
+    lines = open(input_file).read().strip().splitlines()
+    return random.sample(lines, num_authors)
 
 
 def random_datetime(start: datetime, end: datetime):
@@ -35,12 +43,25 @@ def random_past_datetime(start_days_ago: int = 365, end_days_ago: int = 10):
     )
 
 
+def generate_author_index_task(
+    size: int = 5,
+    num_authors: int = 2,
+):
+    author_usernames = random_twitter_username(num_authors=num_authors)
+    return StructuredSearchSynapse(
+        size=size,
+        author_usernames=author_usernames,
+        version=get_version(),
+    )
+
+
 def generate_structured_search_task(
     query_string: str = None,
     size: int = 5,
     sort_type: SortType = None,
     earlier_than: datetime = None,
     later_than: datetime = None,
+    author_usernames: list = None,
 ) -> StructuredSearchSynapse:
     """
     Generates a structured search task for the validator to send to the miner.
@@ -79,6 +100,7 @@ def generate_structured_search_task(
         sort_type=sort_type,
         earlier_than_timestamp=(earlier_than.timestamp() if earlier_than else None),
         later_than_timestamp=(later_than.timestamp() if later_than else None),
+        author_usernames=author_usernames,
         version=get_version(),
     )
 
