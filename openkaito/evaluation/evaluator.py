@@ -26,6 +26,12 @@ class Evaluator:
         # for integrity check
         self.twitter_crawler = twitter_crawler
 
+        with open("twitter_usernames.txt", "r") as f:
+            self.credit_twitter_author_usernames = set(f.read().strip().splitlines())
+        bt.logging.info(
+            f"loaded {len(self.credit_twitter_author_usernames)} credit_twitter_author_usernames"
+        )
+
     def evaluate(self, query: bt.Synapse, responses: list):
         query_string = query.query_string
         size = query.size
@@ -39,7 +45,8 @@ class Evaluator:
         avg_ages = torch.zeros(len(responses))
         avg_age_scores = torch.zeros(len(responses))
         uniqueness_scores = torch.zeros(len(responses))
-        author_uniqueness_scores = torch.zeros(len(responses))
+        credit_author_scores = torch.zeros(len(responses))
+
         now = datetime.now(timezone.utc)
         max_avg_age = 0
 
@@ -72,7 +79,7 @@ class Evaluator:
             groundtruth_check = len(groundtruth_docs) > 0
             if not groundtruth_check:
                 bt.logging.warning(
-                    "groundtruth_docs is empty, apify scraper is down, skipping check"
+                    "groundtruth_docs is empty, apify scraper is likely to be down, skipping check"
                 )
         else:
             groundtruth_check = False
@@ -138,20 +145,20 @@ class Evaluator:
                         f"Integrity check passed for {i}-th response: ", response
                     )
 
-                # age and uniqueness score
                 id_set = set()
-                username_set = set()
+                credit_username_count = 0
                 for doc in response:
                     avg_ages[i] += (
                         now - datetime.fromisoformat(doc["created_at"].rstrip("Z"))
                     ).total_seconds()
                     id_set.add(doc["id"])
-                    username_set.add(doc["username"])
+                    if doc["username"] in self.credit_twitter_author_usernames:
+                        credit_username_count += 1
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
 
                 uniqueness_scores[i] = len(id_set) / size
-                author_uniqueness_scores[i] = len(username_set) / size
+                credit_author_scores = credit_username_count / size
 
                 # index author data task
                 if (
@@ -175,8 +182,8 @@ class Evaluator:
 
         # age contribution to encourage recency
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
-        scores = avg_age_scores * 0.2 + rank_scores * 0.8
-        scores = scores * uniqueness_scores * author_uniqueness_scores
+        scores = avg_age_scores * 0.2 + rank_scores * 0.7 + credit_author_scores * 0.1
+        scores = scores * uniqueness_scores
 
         return scores * zero_score_mask
 
