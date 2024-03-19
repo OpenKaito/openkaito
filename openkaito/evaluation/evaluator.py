@@ -77,6 +77,12 @@ class Evaluator:
                 bt.logging.trace(f"Processing {i}-th response")
                 if groundtruth_check:
                     # the spot check doc did not get fetched
+                    if spot_check_id_dict[i] not in groundtruth_docs:
+                            bt.logging.error(
+                                f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
+                            )
+                            zero_score_mask[i] = 0
+                            continue
     
                 if query.name == "StructuredSearchSynapse":
                     if query.sort_type == SortType.RECENCY:
@@ -108,12 +114,6 @@ class Evaluator:
                             zero_score_mask[i] = 0
                             continue
 
-                if spot_check_id_dict[i] not in groundtruth_docs:
-                        bt.logging.error(
-                            f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
-                        )
-                        zero_score_mask[i] = 0
-                        continue
 
                     # check all docs against groundtruth, if fetched
                     for doc in response:
