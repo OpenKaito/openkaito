@@ -73,13 +73,14 @@ class StructuredSearchSynapse(bt.Synapse):
 
     query_string: Optional[str] = None
     size: int = pydantic.Field(5, ge=1, le=50)
-    sort_type: Optional[SortType] = SortType.RELEVANCE
 
     # Note: use int instead of datetime to avoid serialization issues in dendrite.
     earlier_than_timestamp: int = pydantic.Field(None, ge=0)
     later_than_timestamp: int = pydantic.Field(None, ge=0)
 
     author_usernames: Optional[List[str]] = None
+
+    sort_by: Optional[SortType] = None
 
     custom_fields: Optional[Dict] = None
 

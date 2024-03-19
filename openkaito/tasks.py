@@ -60,7 +60,7 @@ def generate_author_index_task(
 def generate_structured_search_task(
     query_string: str = None,
     size: int = 5,
-    sort_type: SortType = None,
+    sort_by: SortType = None,
     earlier_than: datetime = None,
     later_than: datetime = None,
     author_usernames: list = None,
@@ -68,23 +68,10 @@ def generate_structured_search_task(
     """
     Generates a structured search task for the validator to send to the miner.
     """
-    random_number = random.random()
 
     # Randomly generate the query_string if not provided.
     if query_string is None:
-        # 50% chance to generate a simple random query
-        if random_number < 0.5:
-            query_string = random_query()
-        # 30% chance to generate a random query with OR
-        elif random_number < 0.8:
-            query_string = f"{random_query()} OR {random_query()}"
-        # 20% chance to generate a random query with AND
-        else:
-            query_string = f"{random_query()} AND {random_query()}"
-
-    # Randomly select the sort type if not provided.
-    if sort_type is None:
-        sort_type = SortType.RELEVANCE if random.random() < 0.5 else SortType.RECENCY
+        query_string = random_query()
 
     # Randomly select the earlier_than and later_than if not provided.
     if later_than is None:
@@ -99,10 +86,10 @@ def generate_structured_search_task(
     return StructuredSearchSynapse(
         query_string=query_string,
         size=size,
-        sort_type=sort_type,
         earlier_than_timestamp=(earlier_than.timestamp() if earlier_than else None),
         later_than_timestamp=(later_than.timestamp() if later_than else None),
         author_usernames=author_usernames,
+        sort_by=sort_by,
         version=get_version(),
     )
 

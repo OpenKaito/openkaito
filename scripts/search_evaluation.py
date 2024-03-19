@@ -75,7 +75,6 @@ def main():
     search_query = StructuredSearchSynapse(
         query_string=args.query,
         size=args.size,
-        sort_type=SortType.RECENCY if random.random() > 0.5 else SortType.RELEVANCE,
     )
     print(search_query)
 

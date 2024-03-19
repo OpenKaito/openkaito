@@ -137,7 +137,6 @@ class Miner(BaseMinerNeuron):
             bt.logging.warning(
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
-        bt.logging.debug("sort_type:", query.sort_type)
 
         if query.author_usernames:
             bt.logging.debug("author data index task: author_usernames:", query.author_usernames)

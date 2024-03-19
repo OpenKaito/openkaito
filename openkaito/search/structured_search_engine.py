@@ -3,10 +3,6 @@ import os
 import bittensor as bt
 from dotenv import load_dotenv
 
-from ..protocol import SortType
-
-from .ranking.recency_ranking import RecencyRankingModel
-
 
 class StructuredSearchEngine:
     def __init__(
@@ -23,8 +19,6 @@ class StructuredSearchEngine:
 
         # for relevance ranking recalled results
         self.relevance_ranking_model = relevance_ranking_model
-
-        self.recency_ranking_model = RecencyRankingModel()
 
         self.recall_size = recall_size
 
@@ -84,15 +78,7 @@ class StructuredSearchEngine:
             search_query=search_query, recall_size=self.recall_size
         )
 
-        # default ranking model
         ranking_model = self.relevance_ranking_model
-
-        # use recency ranking model if the search query is for recency
-        if (
-            search_query.name == "StructuredSearchSynapse"
-            and search_query.sort_type == SortType.RECENCY
-        ):
-            ranking_model = self.recency_ranking_model
 
         results = ranking_model.rank(search_query.query_string, recalled_items)
 
@@ -143,9 +129,6 @@ class StructuredSearchEngine:
                 es_query["query"]["bool"]["must"].append(
                     {"range": {"created_at": time_filter}}
                 )
-
-            if search_query.sort_type == SortType.RECENCY:
-                es_query["sort"] = [{"created_at": "desc"}]
 
         bt.logging.debug(f"es_query: {es_query}")
 
