@@ -37,10 +37,6 @@ def main():
         debug=vars(args).get("logging.debug"), trace=vars(args).get("logging.trace")
     )
 
-    bt.logging(
-        debug=vars(args).get("logging.debug"), trace=vars(args).get("logging.trace")
-    )
-
     # for ranking results evaluation
     llm_client = openai.OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
