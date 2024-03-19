@@ -52,10 +52,10 @@ def main():
         twitter_crawler=None,
     )
 
-    # search_query = generate_author_index_task(size=10, num_authors=10)
-    search_query = StructuredSearchSynapse(
-        size=10, author_usernames=["elonmusk", "nftbadger"]
-    )
+    # search_query = StructuredSearchSynapse(
+    #     size=10, author_usernames=["elonmusk", "nftbadger"]
+    # )
+    search_query = generate_author_index_task(size=10, num_authors=100)
     print(search_query)
 
     docs = search_engine.search(search_query=search_query)
@@ -64,10 +64,6 @@ def main():
 
     score = evaluator.llm_author_index_data_evaluation(docs)
     print("======LLM Score======")
-    print(score)
-
-    score = evaluator.evaluate(search_query, [docs])
-    print("======Score======")
     print(score)
 
 
