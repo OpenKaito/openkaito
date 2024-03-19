@@ -15,7 +15,9 @@ def random_query(input_file="queries.txt"):
     lines = open(input_file).read().strip().splitlines()
     return random.choice(lines)
 
+
 # The twitter usernames list is from a truncated snapshot of friendtech ( https://dune.com/cryptokoryo/friendtech )
+# You are welcome to suggest modifications to the list, by opening Pull Request over GitHub.
 def random_twitter_username(input_file="twitter_usernames.txt", num_authors: int = 2):
     if not os.path.exists(input_file):
         bt.logging.error(f"Twitter usernames file not found at location: {input_file}")

@@ -62,16 +62,22 @@ class Evaluator:
                     zero_score_mask[i] = 0
                     break
             spot_check_id_dict[i] = random.choice(response)["id"]
-        bt.logging.debug(f"spot_check_id_dict: {spot_check_id_dict}")
 
-        groundtruth_docs = self.twitter_crawler.get_tweets_by_ids_with_retries(
-            list(set(spot_check_id_dict.values())), retries=2
-        )
-        bt.logging.debug(f"groundtruth_docs: {groundtruth_docs}")
-        groundtruth_check = len(groundtruth_docs) > 0
-        if not groundtruth_check:
+        if self.twitter_crawler is not None:
+            bt.logging.debug(f"spot_check_id_dict: {spot_check_id_dict}")
+            groundtruth_docs = self.twitter_crawler.get_tweets_by_ids_with_retries(
+                list(set(spot_check_id_dict.values())), retries=2
+            )
+            bt.logging.debug(f"groundtruth_docs: {groundtruth_docs}")
+            groundtruth_check = len(groundtruth_docs) > 0
+            if not groundtruth_check:
+                bt.logging.warning(
+                    "groundtruth_docs is empty, apify scraper is down, skipping check"
+                )
+        else:
+            groundtruth_check = False
             bt.logging.warning(
-                "groundtruth_docs is empty, apify scraper is down, skipping check"
+                "Twitter crawler is not initialized. spot content check is skipped."
             )
 
         for i, response in enumerate(responses):
@@ -88,6 +94,16 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
+
+                    # check all docs against groundtruth, if fetched
+                    for doc in response:
+                        if doc["id"] in groundtruth_docs:
+                            bt.logging.trace(f"Checking doc {doc['id']}")
+                            if not self.check_document(
+                                doc, groundtruth_docs[doc["id"]]
+                            ):
+                                zero_score_mask[i] = 0
+                                break
 
                 if query.name == "StructuredSearchSynapse":
                     # for author index task
@@ -129,16 +145,6 @@ class Evaluator:
                             zero_score_mask[i] = 0
                             continue
 
-                    # check all docs against groundtruth, if fetched
-                    for doc in response:
-                        if doc["id"] in groundtruth_docs:
-                            bt.logging.trace(f"Checking doc {doc['id']}")
-                            if not self.check_document(
-                                doc, groundtruth_docs[doc["id"]]
-                            ):
-                                zero_score_mask[i] = 0
-                                break
-
                     bt.logging.debug(
                         f"Integrity check passed for {i}-th response: ", response
                     )
@@ -175,9 +181,11 @@ class Evaluator:
                     )
 
                 # if the response is sorted by recency, we get the mean of the scores
-                if (
-                    query.name == "StructuredSearchSynapse"
-                    and query.sort_type == SortType.RECENCY
+                if query.name == "StructuredSearchSynapse" and (
+                    # sort by recency
+                    query.sort_type == SortType.RECENCY
+                    # author index task
+                    or query.author_usernames is not None
                 ):
                     # mean quality score
                     rank_scores[i] = sum(llm_ranking_scores) / len(llm_ranking_scores)
@@ -523,6 +531,8 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app,
             return [0]
 
     def llm_author_index_data_evaluation(self, docs, retries=3):
+        if docs is None or len(docs) == 0:
+            return [0]
         try:
             newline = "\n"
             prompt_docs = "\n\n".join(
@@ -530,6 +540,10 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app,
                     f"ItemId: {i}\nTime: {doc['created_at'].split('T')[0]}\nText: {doc['text'][:1000].replace(newline, '  ')}"
                     for i, doc in enumerate(docs)
                 ]
+            )
+
+            bt.logging.debug(
+                f"Querying LLM of author index data with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -578,12 +592,12 @@ reason: It does not contain much meaningful information, just sentiment about so
                     },
                     {
                         "role": "user",
-                        "content": f"You will be given a list of documents with id and you have to rate them based on the relevance to the query. The documents are as follows:\n"
+                        "content": f"You will be given a list of documents with id and you have to rate them based on its information and insightfulness. The documents are as follows:\n"
                         + prompt_docs,
                     },
                     {
                         "role": "user",
-                        "content": f"Use the metric choices [outdated, off topic, somewhat relevant, relevant] to evaluate the text toward '{query_string}'?",
+                        "content": f"Use the metric choices [outdated, insightless, somewhat insightful, insightful] to evaluate the text.",
                     },
                     {
                         "role": "user",

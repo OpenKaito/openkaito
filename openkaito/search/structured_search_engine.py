@@ -107,19 +107,22 @@ class StructuredSearchEngine:
         es_query = {
             "query": {
                 "bool": {
-                    "must": [
-                        {
-                            "query_string": {
-                                "query": query_string,
-                                "default_field": "text",
-                                "default_operator": "AND",
-                            }
-                        }
-                    ],
+                    "must": [],
                 }
             },
             "size": recall_size,
         }
+
+        if search_query.query_string:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "query_string": {
+                        "query": query_string,
+                        "default_field": "text",
+                        "default_operator": "AND",
+                    }
+                }
+            )
 
         if search_query.name == "StructuredSearchSynapse":
             if search_query.author_usernames:
