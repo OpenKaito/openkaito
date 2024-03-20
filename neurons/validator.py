@@ -35,16 +35,13 @@ from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse
+from openkaito.tasks import (
+    generate_author_index_task,
+    generate_structured_search_task,
+    random_query,
+)
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
-
-
-def random_query(input_file="queries.txt"):
-    if not os.path.exists(input_file):
-        bt.logging.error(f"Queries file not found at location: {input_file}")
-        exit(1)
-    lines = open(input_file).read().splitlines()
-    return random.choice(lines)
 
 
 class Validator(BaseValidatorNeuron):
@@ -78,15 +75,43 @@ class Validator(BaseValidatorNeuron):
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
-            query_string = random_query()
-            search_query = SearchSynapse(
-                query_string=query_string,
-                size=self.config.neuron.search_result_size,
-                version=get_version(),
-            )
+            random_number = random.random()
+            # mixed tasks, 10% chance to send SearchSynapse, 90% chance to send StructuredSearchSynapse
+            if random_number < 0.1:
+                query_string = random_query(input_file="queries.txt")
+                search_query = SearchSynapse(
+                    query_string=query_string,
+                    size=self.config.neuron.search_result_size,
+                    version=get_version(),
+                )
+                # set the miner query timeout to be 120 seconds to allow more operations in miner
+                timeout_secs = 120
+            else:
+                # 90% chance to send index author data task,
+                if random_number < 0.9:
+                    search_query = generate_author_index_task(
+                        size=10,  # author index data size
+                        num_authors=2,
+                    )
+                    # this is a bootstrap task for users to crawl more data from the author list.
+                    # miners may implement a more efficient way to crawl and index the author data in the background,
+                    # instead of relying on the validator tasks
+                    timeout_secs = 90
+                # 10% chance to send structured search task
+                # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
+                # And this task is expected to be the mainstream task of this subnet, we will increase it's portion in the future
+                else:
+                    search_query = generate_structured_search_task(
+                        size=self.config.neuron.search_result_size,
+                    )
+                    # does not invloving crawling in miner
+                    timeout_secs = 20
 
             bt.logging.info(
-                f"Sending search: {search_query} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
+                f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
+            )
+            bt.logging.trace(
+                f"miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
             )
 
             # The dendrite client queries the network.
@@ -95,22 +120,20 @@ class Validator(BaseValidatorNeuron):
                 axons=[self.metagraph.axons[uid] for uid in miner_uids],
                 synapse=search_query,
                 deserialize=True,
-                # set the miner query timeout to be 120 seconds to allow more operations in miner
-                timeout=120,
+                timeout=timeout_secs,
             )
 
             # Log the results for monitoring purposes.
-            bt.logging.info(f"Received responses: {responses}")
+            bt.logging.debug(f"Received responses: {responses}")
 
-            rewards = self.evaluator.evaluate(
-                search_query.query_string, search_query.size, responses
-            )
+            rewards = self.evaluator.evaluate(search_query, responses)
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
             self.update_scores(rewards, miner_uids)
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
 
     def run(self):
         # Check that validator is registered on the network.

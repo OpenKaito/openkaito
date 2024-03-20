@@ -33,3 +33,16 @@ def parse_llm_result(result):
         "relevant": 1,
     }
     return [choice_mapping[doc["choice"]] for doc in result["results"]]
+
+
+def parse_llm_result_for_author_index(result):
+    """
+    This function parses the result from the LLM for author index.
+    """
+    choice_mapping = {
+        "outdated": 0,
+        "insightless": 0,
+        "somewhat insightful": 0.5,
+        "insightful": 1,
+    }
+    return [choice_mapping[doc["choice"]] for doc in result["results"]]

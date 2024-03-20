@@ -7,29 +7,19 @@ import openai
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
+from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SortType, StructuredSearchSynapse
 from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking.heuristic_ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Miner Search Ranking Evaluation")
-    parser.add_argument("--query", type=str, default="BTC", help="query string")
-    parser.add_argument(
-        "--size", type=int, default=5, help="size of the response items"
-    )
-    # parser.add_argument('--crawling', type=bool, default=False, action='store_true', help='crawling data before search')
-
-    return parser.parse_args()
+from openkaito.tasks import generate_author_index_task
 
 
 def main():
-    args = parse_args()
-    print(vars(args))
     load_dotenv()
+    bt.logging.set_debug(True)
     bt.logging.set_trace(True)
 
     # for ranking results evaluation
@@ -39,9 +29,10 @@ def main():
         max_retries=3,
     )
 
+    twitter_crawler = None
     # # for integrity check
-    # twitter_crawler = ApifyTwitterCrawler(os.environ["APIFY_API_KEY"])
-    evaluator = Evaluator(llm_client, None)
+    # twitter_crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
+    evaluator = Evaluator(llm_client, twitter_crawler)
 
     search_client = Elasticsearch(
         os.environ["ELASTICSEARCH_HOST"],
@@ -53,28 +44,25 @@ def main():
         ssl_show_warn=False,
     )
 
-    # for ranking recalled results
-    ranking_model = HeuristicRankingModel(length_weight=0.8, age_weight=0.2)
-
     search_engine = StructuredSearchEngine(
         search_client=search_client,
-        relevance_ranking_model=ranking_model,
+        relevance_ranking_model=HeuristicRankingModel(
+            length_weight=0.8, age_weight=0.2
+        ),
         twitter_crawler=None,
     )
 
-    search_query = SearchSynapse(
-        query_string=args.query,
-        size=args.size,
-    )
-
+    # search_query = StructuredSearchSynapse(
+    #     size=10, author_usernames=["elonmusk", "nftbadger"]
+    # )
+    search_query = generate_author_index_task(size=10, num_authors=100)
     print(search_query)
 
-    ranked_docs = search_engine.search(search_query=search_query)
-    print("======ranked documents======")
-    print(ranked_docs)
+    docs = search_engine.search(search_query=search_query)
+    print("======documents======")
+    print(docs)
 
-    # note this is the llm score, skipped integrity check and batch age score
-    score = evaluator.llm_keyword_ranking_evaluation(args.query, ranked_docs)
+    score = evaluator.llm_author_index_data_evaluation(docs)
     print("======LLM Score======")
     print(score)
 

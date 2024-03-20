@@ -7,7 +7,7 @@ from openkaito.evaluation.utils import tweet_url_to_id
 
 
 class ApiDojoTwitterCrawler:
-    def __init__(self, api_key, timeout_secs=120):
+    def __init__(self, api_key, timeout_secs=90):
         self.client = ApifyClient(api_key)
 
         self.timeout_secs = timeout_secs
@@ -67,7 +67,7 @@ class ApiDojoTwitterCrawler:
 
         return result
 
-    def search(self, query: str, max_size: int):
+    def search(self, query: str, author_usernames: list = None, max_size: int = 10):
         """
         Searches for the given query on the crawled data.
 
@@ -78,7 +78,9 @@ class ApiDojoTwitterCrawler:
         Returns:
             list: The list of results.
         """
-        bt.logging.debug(f"Crawling for query: '{query}' with size {max_size}")
+        bt.logging.debug(
+            f"Crawling for query: '{query}', authors: {author_usernames} with size {max_size}"
+        )
         params = {
             "maxItems": max_size,
             "onlyImage": False,
@@ -86,8 +88,11 @@ class ApiDojoTwitterCrawler:
             "onlyTwitterBlue": False,
             "onlyVerifiedUsers": False,
             "onlyVideo": False,
-            "searchTerms": [query],
         }
+        if query:
+            params["searchTerms"] = [query]
+        if author_usernames:
+            params["twitterHandles"] = author_usernames
 
         run = self.client.actor(self.actor_id).call(
             run_input=params, timeout_secs=self.timeout_secs
