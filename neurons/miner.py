@@ -29,7 +29,6 @@ from openkaito.base.miner import BaseMinerNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
-from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
 from openkaito.utils.version import compare_version, get_version
@@ -70,10 +69,6 @@ class Miner(BaseMinerNeuron):
             else None
         )
 
-        # This is for backward compatibility with the old search engine for the SearchSynapse tasks, if miners already do any optimization on the search engine code
-        # Miners can use the new StructuredSearchEngine for both the StructuredSearchSynapse and SearchSynapse tasks
-        self.search_engine = SearchEngine(search_client, ranking_model, twitter_crawler)
-
         self.structured_search_engine = StructuredSearchEngine(
             search_client=search_client,
             relevance_ranking_model=ranking_model,
@@ -92,7 +87,7 @@ class Miner(BaseMinerNeuron):
             SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         start_time = datetime.now()
-        bt.logging.info("received SearchSynapse...", query)
+        bt.logging.info(f"received SearchSynapse: ", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -103,18 +98,15 @@ class Miner(BaseMinerNeuron):
 
         if not self.config.neuron.disable_crawling:
             crawl_size = max(self.config.neuron.crawl_size, query.size)
-            self.search_engine.crawl_and_index_data(
+            self.structured_search_engine.crawl_and_index_data(
                 query_string=query.query_string,
+                author_usernames=None,
                 # crawl and index more data than needed to ensure we have enough to rank
                 max_size=crawl_size,
             )
 
-        ranked_docs = self.search_engine.search(
-            query.query_string, self.config.neuron.search_recall_size, query.size
-        )
-        # Or you can also use:
-        # ranked_docs = self.structured_search_engine.search(query)
-        
+        ranked_docs = self.structured_search_engine.search(query)
+
         bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
         end_time = datetime.now()
@@ -138,15 +130,13 @@ class Miner(BaseMinerNeuron):
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
 
-        if query.author_usernames:
-            bt.logging.debug("author data index task: author_usernames:", query.author_usernames)
-            crawl_size = max(self.config.neuron.crawl_size, query.size)
-            self.structured_search_engine.crawl_and_index_data(
-                query_string=query.query_string,
-                author_usernames=query.author_usernames,
-                # crawl and index more data than needed to ensure we have enough to rank
-                max_size=crawl_size,
-            )
+        crawl_size = max(self.config.neuron.crawl_size, query.size)
+        self.structured_search_engine.crawl_and_index_data(
+            query_string=query.query_string,
+            author_usernames=query.author_usernames,
+            # crawl and index more data than needed to ensure we have enough to rank
+            max_size=crawl_size,
+        )
 
         # disable crawling for structured search by default
         ranked_docs = self.structured_search_engine.search(query)

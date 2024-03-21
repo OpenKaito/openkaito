@@ -7,7 +7,7 @@ from openkaito.evaluation.utils import tweet_url_to_id
 
 
 class ApiDojoTwitterCrawler:
-    def __init__(self, api_key, timeout_secs=90):
+    def __init__(self, api_key, timeout_secs=80):
         self.client = ApifyClient(api_key)
 
         self.timeout_secs = timeout_secs

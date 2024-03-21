@@ -63,6 +63,10 @@ class Validator(BaseValidatorNeuron):
 
         self.evaluator = Evaluator(llm_client, twitter_crawler)
 
+        with open("twitter_usernames.txt") as f:
+            twitter_usernames = f.read().strip().splitlines()
+        self.twitter_usernames = twitter_usernames
+
     async def forward(self):
         """
         Validator forward pass. Consists of:
@@ -76,16 +80,15 @@ class Validator(BaseValidatorNeuron):
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
             random_number = random.random()
-            # mixed tasks, 10% chance to send SearchSynapse, 90% chance to send StructuredSearchSynapse
-            if random_number < 0.1:
+            # mixed tasks, deprecated SearchSynapse
+            if random_number < 0:
                 query_string = random_query(input_file="queries.txt")
                 search_query = SearchSynapse(
                     query_string=query_string,
                     size=self.config.neuron.search_result_size,
                     version=get_version(),
                 )
-                # set the miner query timeout to be 120 seconds to allow more operations in miner
-                timeout_secs = 120
+                search_query.timeout = 90
             else:
                 # 90% chance to send index author data task,
                 if random_number < 0.9:
@@ -96,20 +99,22 @@ class Validator(BaseValidatorNeuron):
                     # this is a bootstrap task for users to crawl more data from the author list.
                     # miners may implement a more efficient way to crawl and index the author data in the background,
                     # instead of relying on the validator tasks
-                    timeout_secs = 90
+                    search_query.timeout = 90
+
+                    bt.logging.info(
+                        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
+                    )
                 # 10% chance to send structured search task
-                # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
-                # And this task is expected to be the mainstream task of this subnet, we will increase it's portion in the future
                 else:
                     search_query = generate_structured_search_task(
                         size=self.config.neuron.search_result_size,
+                        author_usernames=random.sample(self.twitter_usernames, 100),
                     )
-                    # does not invloving crawling in miner
-                    timeout_secs = 20
+                    search_query.timeout = 90
 
-            bt.logging.info(
-                f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
-            )
+                    bt.logging.info(
+                        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                    )
             bt.logging.trace(
                 f"miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
             )
@@ -120,7 +125,7 @@ class Validator(BaseValidatorNeuron):
                 axons=[self.metagraph.axons[uid] for uid in miner_uids],
                 synapse=search_query,
                 deserialize=True,
-                timeout=timeout_secs,
+                timeout=search_query.timeout,
             )
 
             # Log the results for monitoring purposes.

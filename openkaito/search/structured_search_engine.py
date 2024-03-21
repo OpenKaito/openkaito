@@ -130,7 +130,7 @@ class StructuredSearchEngine:
                     {"range": {"created_at": time_filter}}
                 )
 
-        bt.logging.debug(f"es_query: {es_query}")
+        bt.logging.trace(f"es_query: {es_query}")
 
         try:
             response = self.search_client.search(
