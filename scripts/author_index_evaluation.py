@@ -48,14 +48,22 @@ def main():
         relevance_ranking_model=HeuristicRankingModel(
             length_weight=0.8, age_weight=0.2
         ),
-        twitter_crawler=None,
+        twitter_crawler=ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"]),
     )
 
     # search_query = StructuredSearchSynapse(
     #     size=10, author_usernames=["elonmusk", "nftbadger"]
     # )
-    search_query = generate_author_index_task(size=10, num_authors=100)
+    search_query = generate_author_index_task(size=10, num_authors=2000)
     print(search_query)
+
+    search_engine.crawl_and_index_data(
+        query_string="XXX",
+        author_usernames=search_query.author_usernames,
+        max_size=20
+    )
+
+    exit()
 
     docs = search_engine.search(search_query=search_query)
     print("======documents======")

@@ -63,6 +63,10 @@ class Validator(BaseValidatorNeuron):
 
         self.evaluator = Evaluator(llm_client, twitter_crawler)
 
+        with open("twitter_usernames.txt") as f:
+            twitter_usernames = f.read().strip().splitlines()
+        self.twitter_usernames = twitter_usernames
+
     async def forward(self):
         """
         Validator forward pass. Consists of:
@@ -76,8 +80,8 @@ class Validator(BaseValidatorNeuron):
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
             random_number = random.random()
-            # mixed tasks, 10% chance to send SearchSynapse, 90% chance to send StructuredSearchSynapse
-            if random_number < 0.1:
+            # mixed tasks, deprecated SearchSynapse
+            if random_number < 0:
                 query_string = random_query(input_file="queries.txt")
                 search_query = SearchSynapse(
                     query_string=query_string,
@@ -102,6 +106,8 @@ class Validator(BaseValidatorNeuron):
                 else:
                     search_query = generate_structured_search_task(
                         size=self.config.neuron.search_result_size,
+                        # all credited twitter usernames
+                        author_usernames=self.twitter_usernames,
                     )
                     # does not invloving crawling in miner
                     search_query.timeout = 20

@@ -69,15 +69,11 @@ class Miner(BaseMinerNeuron):
             else None
         )
 
-        with open("twitter_usernames.txt") as f:
-            twitter_author_usernames = f.read().strip().splitlines()
-
         self.structured_search_engine = StructuredSearchEngine(
             search_client=search_client,
             relevance_ranking_model=ranking_model,
             twitter_crawler=twitter_crawler,
             recall_size=self.config.neuron.search_recall_size,
-            twitter_author_usernames=twitter_author_usernames,
         )
 
     async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
