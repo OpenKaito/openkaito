@@ -113,7 +113,10 @@ class StructuredSearchEngine:
                 }
             )
 
-        if search_query.name == "StructuredSearchSynapse" and search_query.author_usernames:
+        if (
+            search_query.name == "StructuredSearchSynapse"
+            and search_query.author_usernames
+        ):
             es_query["query"]["bool"]["must"].append(
                 {
                     "terms": {
@@ -130,6 +133,7 @@ class StructuredSearchEngine:
                 }
             )
 
+        if search_query.name == "StructuredSearchSynapse":
             time_filter = {}
             if search_query.earlier_than_timestamp:
                 time_filter["lte"] = search_query.earlier_than_timestamp

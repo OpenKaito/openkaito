@@ -10,7 +10,6 @@ from elasticsearch import Elasticsearch
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SortType, StructuredSearchSynapse
-from openkaito.search.engine import SearchEngine
 from openkaito.search.ranking.heuristic_ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
 
