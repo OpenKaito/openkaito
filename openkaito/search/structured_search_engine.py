@@ -11,6 +11,7 @@ class StructuredSearchEngine:
         relevance_ranking_model,
         twitter_crawler=None,
         recall_size=50,
+        twitter_author_usernames=[],
     ):
         load_dotenv()
 
@@ -21,6 +22,8 @@ class StructuredSearchEngine:
         self.relevance_ranking_model = relevance_ranking_model
 
         self.recall_size = recall_size
+
+        self.twitter_author_usernames = twitter_author_usernames
 
         # optional, for crawling data
         self.twitter_crawler = twitter_crawler
@@ -110,15 +113,22 @@ class StructuredSearchEngine:
                 }
             )
 
-        if search_query.name == "StructuredSearchSynapse":
-            if search_query.author_usernames:
-                es_query["query"]["bool"]["must"].append(
-                    {
-                        "terms": {
-                            "username": search_query.author_usernames,
-                        }
+        if search_query.name == "StructuredSearchSynapse" and search_query.author_usernames:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "terms": {
+                        "username": search_query.author_usernames,
                     }
-                )
+                }
+            )
+        else:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "terms": {
+                        "username": self.twitter_author_usernames,
+                    }
+                }
+            )
 
             time_filter = {}
             if search_query.earlier_than_timestamp:
@@ -130,7 +140,7 @@ class StructuredSearchEngine:
                     {"range": {"created_at": time_filter}}
                 )
 
-        bt.logging.debug(f"es_query: {es_query}")
+        bt.logging.trace(f"es_query: {es_query}")
 
         try:
             response = self.search_client.search(

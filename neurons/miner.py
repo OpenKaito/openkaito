@@ -74,11 +74,15 @@ class Miner(BaseMinerNeuron):
         # Miners can use the new StructuredSearchEngine for both the StructuredSearchSynapse and SearchSynapse tasks
         self.search_engine = SearchEngine(search_client, ranking_model, twitter_crawler)
 
+        with open("twitter_usernames.txt") as f:
+            twitter_author_usernames = f.read().strip().splitlines()
+
         self.structured_search_engine = StructuredSearchEngine(
             search_client=search_client,
             relevance_ranking_model=ranking_model,
             twitter_crawler=twitter_crawler,
             recall_size=self.config.neuron.search_recall_size,
+            twitter_author_usernames=twitter_author_usernames,
         )
 
     async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
@@ -114,7 +118,7 @@ class Miner(BaseMinerNeuron):
         )
         # Or you can also use:
         # ranked_docs = self.structured_search_engine.search(query)
-        
+
         bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
         query.results = ranked_docs
         end_time = datetime.now()
@@ -139,7 +143,9 @@ class Miner(BaseMinerNeuron):
             )
 
         if query.author_usernames:
-            bt.logging.debug("author data index task: author_usernames:", query.author_usernames)
+            bt.logging.debug(
+                "author data index task: author_usernames:", query.author_usernames
+            )
             crawl_size = max(self.config.neuron.crawl_size, query.size)
             self.structured_search_engine.crawl_and_index_data(
                 query_string=query.query_string,
