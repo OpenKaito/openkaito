@@ -84,8 +84,7 @@ class Validator(BaseValidatorNeuron):
                     size=self.config.neuron.search_result_size,
                     version=get_version(),
                 )
-                # set the miner query timeout to be 120 seconds to allow more operations in miner
-                timeout_secs = 120
+                search_query.timeout = 90
             else:
                 # 90% chance to send index author data task,
                 if random_number < 0.9:
@@ -96,7 +95,7 @@ class Validator(BaseValidatorNeuron):
                     # this is a bootstrap task for users to crawl more data from the author list.
                     # miners may implement a more efficient way to crawl and index the author data in the background,
                     # instead of relying on the validator tasks
-                    timeout_secs = 90
+                    search_query.timeout = 90
                 # 10% chance to send structured search task
                 # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
                 # And this task is expected to be the mainstream task of this subnet, we will increase it's portion in the future
@@ -105,7 +104,7 @@ class Validator(BaseValidatorNeuron):
                         size=self.config.neuron.search_result_size,
                     )
                     # does not invloving crawling in miner
-                    timeout_secs = 20
+                    search_query.timeout = 20
 
             bt.logging.info(
                 f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
@@ -120,7 +119,7 @@ class Validator(BaseValidatorNeuron):
                 axons=[self.metagraph.axons[uid] for uid in miner_uids],
                 synapse=search_query,
                 deserialize=True,
-                timeout=timeout_secs,
+                timeout=search_query.timeout,
             )
 
             # Log the results for monitoring purposes.

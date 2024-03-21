@@ -91,7 +91,7 @@ class Miner(BaseMinerNeuron):
             SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         start_time = datetime.now()
-        bt.logging.info("received SearchSynapse...", query)
+        bt.logging.info(f"received SearchSynapse: timeout={query.timeout}s ", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -125,7 +125,9 @@ class Miner(BaseMinerNeuron):
     ) -> StructuredSearchSynapse:
 
         start_time = datetime.now()
-        bt.logging.info("received StructuredSearchSynapse...", query)
+        bt.logging.info(
+            f"received StructuredSearchSynapse: timeout={query.timeout}s ", query
+        )
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
