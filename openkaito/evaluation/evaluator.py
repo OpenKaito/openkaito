@@ -54,21 +54,27 @@ class Evaluator:
         # quick integrity check and get spot_check_id_dict
         utcnow = datetime.now(timezone.utc)
         for i, response in enumerate(responses):
-            if response is None or not response or len(response) > size:
+            try:
+                if response is None or not response or len(response) > size:
+                    zero_score_mask[i] = 0
+                    continue
+                for doc in response:
+                    doc_id = doc["id"]
+                    url_id = tweet_url_to_id(doc["url"])
+                    if doc_id != url_id:
+                        bt.logging.error(f"Document id {doc_id} not match url id {url_id}")
+                        zero_score_mask[i] = 0
+                        break
+                    if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
+                        bt.logging.error(f"created_at {doc['created_at']} is in the future")
+                        zero_score_mask[i] = 0
+                        break
+                spot_check_id_dict[i] = random.choice(response)["id"]
+            except Exception as e:
+                bt.logging.error(f"Error while intitial checking {i}-th response: {e}, 0 score")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 zero_score_mask[i] = 0
-                continue
-            for doc in response:
-                doc_id = doc["id"]
-                url_id = tweet_url_to_id(doc["url"])
-                if doc_id != url_id:
-                    bt.logging.error(f"Document id {doc_id} not match url id {url_id}")
-                    zero_score_mask[i] = 0
-                    break
-                if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
-                    bt.logging.error(f"created_at {doc['created_at']} is in the future")
-                    zero_score_mask[i] = 0
-                    break
-            spot_check_id_dict[i] = random.choice(response)["id"]
+
 
         if self.twitter_crawler is not None:
             bt.logging.debug(f"spot_check_id_dict: {spot_check_id_dict}")
