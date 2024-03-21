@@ -7,7 +7,7 @@ from openkaito.evaluation.utils import tweet_url_to_id
 
 
 class ApiDojoTwitterCrawler:
-    def __init__(self, api_key, timeout_secs=90):
+    def __init__(self, api_key, timeout_secs=80):
         self.client = ApifyClient(api_key)
 
         self.timeout_secs = timeout_secs
@@ -79,9 +79,8 @@ class ApiDojoTwitterCrawler:
             list: The list of results.
         """
         bt.logging.debug(
-            f"Crawling for query: '{query}', authors: {author_usernames if len(author_usernames) <=10 else 'many authors'} with size {max_size}"
+            f"Crawling for query: '{query}', authors: {author_usernames} with size {max_size}"
         )
-        # the max_size parameter may not strict for apidojo, it may return more than max_size
         params = {
             "maxItems": max_size,
             "onlyImage": False,
@@ -92,12 +91,8 @@ class ApiDojoTwitterCrawler:
         }
         if query:
             params["searchTerms"] = [query]
-            params["maxTweetsPerQuery"] = max_size
-        # too many authors may cause the apidojo crawler fail, just use no twitter handles
-        if author_usernames and len(author_usernames) < 10:
+        if author_usernames:
             params["twitterHandles"] = author_usernames
-            params["maxTweetsPerQuery"] = max(2, max_size // len(author_usernames))
-        bt.logging.trace(f"Apify Actor Params: {params}")
 
         run = self.client.actor(self.actor_id).call(
             run_input=params, timeout_secs=self.timeout_secs

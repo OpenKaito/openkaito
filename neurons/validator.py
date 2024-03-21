@@ -105,16 +105,12 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
                     )
                 # 10% chance to send structured search task
-                # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
-                # And this task is expected to be the mainstream task of this subnet, we will increase it's portion in the future
                 else:
                     search_query = generate_structured_search_task(
                         size=self.config.neuron.search_result_size,
-                        # all credited twitter usernames
-                        author_usernames=self.twitter_usernames,
+                        author_usernames=random.sample(self.twitter_usernames, 100),
                     )
-                    # does not invloving crawling in miner
-                    search_query.timeout = 20
+                    search_query.timeout = 90
 
                     bt.logging.info(
                         f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"

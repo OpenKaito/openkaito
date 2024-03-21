@@ -87,7 +87,7 @@ class Miner(BaseMinerNeuron):
             SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
         """
         start_time = datetime.now()
-        bt.logging.info(f"received SearchSynapse: timeout={query.timeout}s ", query)
+        bt.logging.info(f"received SearchSynapse: ", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -121,9 +121,7 @@ class Miner(BaseMinerNeuron):
     ) -> StructuredSearchSynapse:
 
         start_time = datetime.now()
-        bt.logging.info(
-            f"received StructuredSearchSynapse: timeout={query.timeout}s query_string={query.query_string} size={query.size} author_usernames={query.author_usernames if len(query.author_usernames) < 10 else '...'}",
-        )
+        bt.logging.info("received StructuredSearchSynapse...", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -132,24 +130,13 @@ class Miner(BaseMinerNeuron):
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
 
-        if query.timeout > 30:
-            bt.logging.debug(
-                f"timeout {query.timeout}s is enough, start crawling and indexing data"
-            )
-            crawl_size = max(self.config.neuron.crawl_size, query.size)
-            if query.author_usernames and len(query.author_usernames) < 10:
-                bt.logging.debug("author index data task")
-                author_usernames = query.author_usernames
-            else:
-                # no author specified or too many authors can not be put in apify crawler
-                author_usernames = None
-
-            self.structured_search_engine.crawl_and_index_data(
-                query_string=query.query_string,
-                author_usernames=author_usernames,
-                # crawl and index more data than needed to ensure we have enough to rank
-                max_size=crawl_size,
-            )
+        crawl_size = max(self.config.neuron.crawl_size, query.size)
+        self.structured_search_engine.crawl_and_index_data(
+            query_string=query.query_string,
+            author_usernames=query.author_usernames,
+            # crawl and index more data than needed to ensure we have enough to rank
+            max_size=crawl_size,
+        )
 
         # disable crawling for structured search by default
         ranked_docs = self.structured_search_engine.search(query)
