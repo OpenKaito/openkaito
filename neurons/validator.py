@@ -100,6 +100,10 @@ class Validator(BaseValidatorNeuron):
                     # miners may implement a more efficient way to crawl and index the author data in the background,
                     # instead of relying on the validator tasks
                     search_query.timeout = 90
+
+                    bt.logging.info(
+                        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
+                    )
                 # 10% chance to send structured search task
                 # This structured search task is expected to be efficient, set the miner query timeout to be 20 seconds
                 # And this task is expected to be the mainstream task of this subnet, we will increase it's portion in the future
@@ -112,9 +116,9 @@ class Validator(BaseValidatorNeuron):
                     # does not invloving crawling in miner
                     search_query.timeout = 20
 
-            bt.logging.info(
-                f"Sending {search_query.name}: {search_query} to miner uids: {miner_uids}"
-            )
+                    bt.logging.info(
+                        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                    )
             bt.logging.trace(
                 f"miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
             )

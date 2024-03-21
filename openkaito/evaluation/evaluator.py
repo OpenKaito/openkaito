@@ -103,7 +103,7 @@ class Evaluator:
                     # the spot check doc did not get fetched
                     if spot_check_id_dict[i] not in groundtruth_docs:
                         bt.logging.error(
-                            f"spot check id {spot_check_id_dict[i]} not found in groundtruth_docs"
+                            f"spot check id {spot_check_id_dict[i]} can not be fetched in groundtruth_docs"
                         )
                         zero_score_mask[i] = 0
                         continue

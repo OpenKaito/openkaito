@@ -122,7 +122,7 @@ class Miner(BaseMinerNeuron):
 
         start_time = datetime.now()
         bt.logging.info(
-            f"received StructuredSearchSynapse: timeout={query.timeout}s ", query
+            f"received StructuredSearchSynapse: timeout={query.timeout}s query_string={query.query_string} size={query.size} author_usernames={query.author_usernames if len(query.author_usernames) < 10 else '...'}",
         )
         if (
             query.version is not None
@@ -132,14 +132,21 @@ class Miner(BaseMinerNeuron):
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
 
-        if query.author_usernames:
+        if query.timeout > 30:
             bt.logging.debug(
-                "author data index task: author_usernames:", query.author_usernames
+                f"timeout {query.timeout}s is enough, start crawling and indexing data"
             )
             crawl_size = max(self.config.neuron.crawl_size, query.size)
+            if query.author_usernames and len(query.author_usernames) < 10:
+                bt.logging.debug("author index data task")
+                author_usernames = query.author_usernames
+            else:
+                # no author specified or too many authors can not be put in apify crawler
+                author_usernames = None
+
             self.structured_search_engine.crawl_and_index_data(
                 query_string=query.query_string,
-                author_usernames=query.author_usernames,
+                author_usernames=author_usernames,
                 # crawl and index more data than needed to ensure we have enough to rank
                 max_size=crawl_size,
             )
