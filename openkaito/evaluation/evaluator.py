@@ -62,19 +62,24 @@ class Evaluator:
                     doc_id = doc["id"]
                     url_id = tweet_url_to_id(doc["url"])
                     if doc_id != url_id:
-                        bt.logging.error(f"Document id {doc_id} not match url id {url_id}")
+                        bt.logging.error(
+                            f"Document id {doc_id} not match url id {url_id}"
+                        )
                         zero_score_mask[i] = 0
                         break
                     if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
-                        bt.logging.error(f"created_at {doc['created_at']} is in the future")
+                        bt.logging.error(
+                            f"created_at {doc['created_at']} is in the future"
+                        )
                         zero_score_mask[i] = 0
                         break
                 spot_check_id_dict[i] = random.choice(response)["id"]
             except Exception as e:
-                bt.logging.error(f"Error while intitial checking {i}-th response: {e}, 0 score")
+                bt.logging.error(
+                    f"Error while intitial checking {i}-th response: {e}, 0 score"
+                )
                 bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 zero_score_mask[i] = 0
-
 
         if self.twitter_crawler is not None:
             bt.logging.debug(f"spot_check_id_dict: {spot_check_id_dict}")
@@ -188,8 +193,12 @@ class Evaluator:
 
         # age contribution to encourage recency
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+
         scores = avg_age_scores * 0.2 + rank_scores * 0.7 + credit_author_scores * 0.1
         scores = scores * uniqueness_scores
+
+        # relative scores in a batch
+        scores = scores / (scores.max() + 1e-5)
 
         return scores * zero_score_mask
 
