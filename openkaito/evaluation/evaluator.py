@@ -169,7 +169,7 @@ class Evaluator:
                 max_avg_age = max(max_avg_age, avg_ages[i])
 
                 uniqueness_scores[i] = len(id_set) / size
-                credit_author_scores = credit_username_count / size
+                credit_author_scores[i] = credit_username_count / size
 
                 # index author data task
                 if (
