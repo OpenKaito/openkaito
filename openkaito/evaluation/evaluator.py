@@ -62,19 +62,24 @@ class Evaluator:
                     doc_id = doc["id"]
                     url_id = tweet_url_to_id(doc["url"])
                     if doc_id != url_id:
-                        bt.logging.error(f"Document id {doc_id} not match url id {url_id}")
+                        bt.logging.info(
+                            f"Document id {doc_id} not match url id {url_id}"
+                        )
                         zero_score_mask[i] = 0
                         break
                     if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
-                        bt.logging.error(f"created_at {doc['created_at']} is in the future")
+                        bt.logging.info(
+                            f"created_at {doc['created_at']} is in the future"
+                        )
                         zero_score_mask[i] = 0
                         break
                 spot_check_id_dict[i] = random.choice(response)["id"]
             except Exception as e:
-                bt.logging.error(f"Error while intitial checking {i}-th response: {e}, 0 score")
+                bt.logging.error(
+                    f"Error while intitial checking {i}-th response: {e}, 0 score"
+                )
                 bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 zero_score_mask[i] = 0
-
 
         if self.twitter_crawler is not None:
             bt.logging.debug(f"spot_check_id_dict: {spot_check_id_dict}")
@@ -102,7 +107,7 @@ class Evaluator:
                 if groundtruth_check:
                     # the spot check doc did not get fetched
                     if spot_check_id_dict[i] not in groundtruth_docs:
-                        bt.logging.error(
+                        bt.logging.info(
                             f"spot check id {spot_check_id_dict[i]} can not be fetched in groundtruth_docs"
                         )
                         zero_score_mask[i] = 0
@@ -164,7 +169,7 @@ class Evaluator:
                 max_avg_age = max(max_avg_age, avg_ages[i])
 
                 uniqueness_scores[i] = len(id_set) / size
-                credit_author_scores = credit_username_count / size
+                credit_author_scores[i] = credit_username_count / size
 
                 # index author data task
                 if (
@@ -188,8 +193,12 @@ class Evaluator:
 
         # age contribution to encourage recency
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+
         scores = avg_age_scores * 0.2 + rank_scores * 0.7 + credit_author_scores * 0.1
         scores = scores * uniqueness_scores
+
+        # relative scores in a batch
+        scores = scores / (scores.max() + 1e-5)
 
         return scores * zero_score_mask
 
@@ -201,74 +210,21 @@ class Evaluator:
             check_fields = ["text", "username"]
             for field in check_fields:
                 if doc[field] != groundtruth_doc[field]:
-                    bt.logging.error(
+                    bt.logging.info(
                         f"Document {field} {doc[field]} does not match ground truth {groundtruth_doc[field]}"
                     )
                     return False
             if datetime.fromisoformat(
                 doc["created_at"].rstrip("Z")
             ) != datetime.fromisoformat(groundtruth_doc["created_at"].rstrip("Z")):
-                bt.logging.error(
+                bt.logging.info(
                     f"Document created_at {doc['created_at']} does not match ground truth {groundtruth_doc['created_at']}"
                 )
                 return False
             return True
         except Exception as e:
             bt.logging.error(f"Error while checking integrity of document: {e}")
-            return False
-
-    def check_integrity(self, response):
-        """
-        This function checks the integrity of the response.
-        """
-        try:
-            utcnow = datetime.now(timezone.utc)
-            for doc in response:
-                doc_id = doc["id"]
-                url_id = tweet_url_to_id(doc["url"])
-                if doc_id != url_id:
-                    bt.logging.error(
-                        f"Document id {doc_id} does not match url id {url_id}"
-                    )
-                    return False
-                if datetime.fromisoformat(doc["created_at"].rstrip("Z")) > utcnow:
-                    bt.logging.error(
-                        f"Document created_at {doc['created_at']} is in the future"
-                    )
-                    return False
-
-            # spot check with one document
-            if self.twitter_crawler is None:
-                bt.logging.warning(
-                    "Twitter crawler is not initialized. spot content check is skipped."
-                )
-            else:
-                spot_check = random.choice(response)
-                r = self.twitter_crawler.get_tweet_by_url(spot_check["url"], 20)
-                if not r:
-                    bt.logging.error(
-                        f"Failed to get tweet from url {spot_check['url']}"
-                    )
-                    return False
-                ground_truth_doc = self.twitter_crawler.process_item(r)
-                check_fields = ["text", "username"]
-                for field in check_fields:
-                    if spot_check[field] != ground_truth_doc[field]:
-                        bt.logging.error(
-                            f"Document {field} {spot_check[field]} does not match ground truth {ground_truth_doc[field]}"
-                        )
-                        return False
-                if datetime.fromisoformat(
-                    spot_check["created_at"].rstrip("Z")
-                ) != datetime.fromisoformat(ground_truth_doc["created_at"].rstrip("Z")):
-                    bt.logging.error(
-                        f"Document created_at {spot_check['created_at']} does not match ground truth {ground_truth_doc['created_at']}"
-                    )
-                    return False
-            bt.logging.debug(f"Integrity check passed for response: {response}")
-            return True
-        except Exception as e:
-            bt.logging.error(f"Error while checking integrity of response: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
             return False
 
     def llm_keyword_ranking_evaluation(self, query_string, docs, retries=3):
@@ -357,6 +313,7 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
             )
         except Exception as e:
             bt.logging.error(f"Error while querying LLM: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
             return 0
 
         try:
@@ -467,6 +424,7 @@ reason: It does not contain much meaningful information, just sentiment about so
             )
         except Exception as e:
             bt.logging.error(f"Error while querying LLM: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
             return 0
 
         try:
