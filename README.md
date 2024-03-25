@@ -81,9 +81,9 @@ Rewards are based on the following criteria:
 
 **Diversity:** Rewards consider diversity at both the source level (e.g., one source versus multiple sources) and the content level (e.g., various opinions, different authors), which can be assessed using content clustering methods.
 
-### Subnet Collaboration & Integration
+### Indexing Data from Other Subnets
 
-**SN13 dataverse** is a decentralized data scraping subnet. If you are running a miner for openkaito and happen to also have a miner for SN13, you can use the data from SN13 to enrich your search index. You can refer to `scripts/import_sn13_data.py` for more details.
+**SN13 dataverse** is a decentralized data scraping subnet. If you are running a miner for openkaito and happen to be a miner for SN13, you can use SN13 as an extra source of raw data to be indexed in OpenKaito. Please refer to `scripts/import_sn13_data.py` for more details.
 
 ```bash
 $ python scripts/import_sn13_data.py -h
