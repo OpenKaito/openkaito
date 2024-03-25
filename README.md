@@ -20,8 +20,8 @@ Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/b
 ## Introduction
 
 - Kaito AI is committed to democratizing access to Web3 information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
-- Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet OpenKaito serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define Web3 search as a miner-validator problem, where search relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
-- Our goal is to decentralize Kaito AI's smart search and analytics platform, ensuring that it is built by the public and serves the public.
+- Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet OpenKaito serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define search indexing as a miner-validator problem, where index relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
+- Our goal is to build a decentralize indexing layer powering smart search and analytics.
 
 ## Background Knowledge
 <p align="center">
