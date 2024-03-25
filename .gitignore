@@ -1,6 +1,12 @@
 .env
 tmp*
 
+# venv files
+bin/
+lib64
+pyvenv.cfg
+share/
+
 # pm2 config file
 app.config.js
 
