@@ -81,6 +81,26 @@ Rewards are based on the following criteria:
 
 **Diversity:** Rewards consider diversity at both the source level (e.g., one source versus multiple sources) and the content level (e.g., various opinions, different authors), which can be assessed using content clustering methods.
 
+### Subnet Collaboration & Integration
+
+**SN13 dataverse** is a decentralized data scraping subnet. If you are running a miner for openkaito and happen to also have a miner for SN13, you can use the data from SN13 to enrich your search index. You can refer to `scripts/import_sn13_data.py` for more details.
+
+```bash
+$ python scripts/import_sn13_data.py -h
+usage: import_sn13_data.py [-h] --db DB [--batch_size BATCH_SIZE] [--time_bucket_ids [TIME_BUCKET_IDS ...]]
+
+Import SN13 Data
+
+options:
+  -h, --help            show this help message and exit
+  --db DB               SN13 sqlite3 database file, e.g., ../data-universe/SqliteMinerStorage.sqlite
+  --batch_size BATCH_SIZE
+                        optional, batch size for importing data, default is 100
+  --time_bucket_ids [TIME_BUCKET_IDS ...]
+                        optional, a list of SN13 timeBucketId to be imported, seperate by space, e.g., 474957 474958 474959
+```
+
+
 ## Coming Soon
 
 ### Reward Model Adjustment and More Sources

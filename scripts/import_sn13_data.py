@@ -28,7 +28,7 @@ def parse_args():
         "--time_bucket_ids",
         nargs="*",
         type=str,
-        help="optional, a list of SN13 timeBucketId to be imported, seperate by space, e.g., 474957 474958 474959",
+        help="optional, a list of SN13 timeBucketId to be imported, seperated by space, e.g., 474957 474958 474959",
     )
     return parser.parse_args()
 
