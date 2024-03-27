@@ -7,6 +7,9 @@ lib64
 pyvenv.cfg
 share/
 
+# wandb logs
+wandb/
+
 # pm2 config file
 app.config.js
 
