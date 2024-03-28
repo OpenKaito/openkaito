@@ -213,10 +213,11 @@ class Validator(BaseValidatorNeuron):
             bt.logging.success("Validator killed by keyboard interrupt.")
             exit()
 
-        # In case of unforeseen errors, the validator will log the error and continue operations.
+        # In case of unforeseen errors, the validator will log the error and exit. (restart by pm2)
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            self.should_exit = True
 
     def print_info(self):
         metagraph = self.metagraph
@@ -240,4 +241,8 @@ if __name__ == "__main__":
     with Validator() as validator:
         while True:
             validator.print_info()
+            if validator.should_exit:
+                bt.logging.warning("Ending validator...")
+                break
+
             time.sleep(30)
