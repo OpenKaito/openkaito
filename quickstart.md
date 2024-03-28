@@ -260,6 +260,16 @@ OPENAI_API_KEY="sk-xxxxxx"
 
 > Don't forget to also obtain and set the `APIFY_API_KEY` as mentioned in the above **General** section.
 
+### Obtain WandB API Key
+
+Log in to [Weights & Biases](https://wandb.ai) and generate a key in your account settings.
+
+Set the key `WANDB_API_KEY` in the `.env` file.
+
+```
+WANDB_API_KEY="your_wandb_api_key"
+```
+
 ### Install Dependencies
 
 To enable validator auto update with github repo, you can install `pm2` and `jq`.
