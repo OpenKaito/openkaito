@@ -20,6 +20,7 @@ import json
 import os
 import random
 import time
+import wandb
 from datetime import datetime, timezone
 from traceback import print_exception
 
@@ -30,6 +31,7 @@ import torch
 from dotenv import load_dotenv
 
 import openkaito
+from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
@@ -66,6 +68,25 @@ class Validator(BaseValidatorNeuron):
         with open("twitter_usernames.txt") as f:
             twitter_usernames = f.read().strip().splitlines()
         self.twitter_usernames = twitter_usernames
+
+        if os.getenv("WANDB_API_KEY") is None:
+            bt.logging.warning(
+                "!!! WANDB_API_KEY not found in environment variables. You are strongly recommended to set it. We may enforce to make it required in the future."
+            )
+            self.config.neuron.wandb_off = True
+
+        if not self.config.neuron.wandb_off:
+            wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
+            wandb.init(
+                project=f"sn{self.config.netuid}-validators",
+                entity="subnet-openkaito",
+                config={
+                    "hotkey": self.wallet.hotkey.ss58_address,
+                },
+                name=f"validator-{self.uid}-{__version__}",
+                resume="auto",
+                dir=self.config.neuron.full_path,
+            )
 
     async def forward(self):
         """
@@ -136,6 +157,26 @@ class Validator(BaseValidatorNeuron):
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
             self.update_scores(rewards, miner_uids)
+
+            if not self.config.neuron.wandb_off:
+                wandb_log = {
+                    "synapse": search_query.json(),
+                    "scores": {
+                        uid.item(): reward.item()
+                        for uid, reward in zip(miner_uids, rewards)
+                    },
+                    "responses": {
+                        uid.item(): json.dumps(response)
+                        for uid, response in zip(miner_uids, responses)
+                    },
+                }
+                wandb.log(wandb_log)
+                bt.logging.debug("wandb_log", wandb_log)
+            else:
+                bt.logging.warning(
+                    "!!! WANDB is not enabled. You are strongly recommended to obtain and set WANDB_API_KEY. We may enforce to make it required in the future."
+                )
+
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
