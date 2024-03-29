@@ -131,9 +131,6 @@ class Validator(BaseValidatorNeuron):
                         size=10,  # author index data size
                         num_authors=2,
                     )
-                    # this is a bootstrap task for users to crawl more data from the author list.
-                    # miners may implement a more efficient way to crawl and index the author data in the background,
-                    # instead of relying on the validator tasks
                     search_query.timeout = 10
 
                     bt.logging.info(
