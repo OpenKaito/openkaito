@@ -6,3 +6,4 @@ apify-client
 elasticsearch
 python-dotenv
 pydantic
+wandb

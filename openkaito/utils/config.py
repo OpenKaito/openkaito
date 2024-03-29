@@ -99,6 +99,12 @@ def add_args(cls, parser):
         help="If set, we dont save events to a log file.",
         default=False,
     )
+    parser.add_argument(
+        "--neuron.wandb_off",
+        action="store_true",
+        help="If set, we dont use wandb.",
+        default=False,
+    )
 
     if neuron_type == "validator":
         parser.add_argument(
