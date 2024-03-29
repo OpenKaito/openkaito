@@ -99,7 +99,6 @@ class Validator(BaseValidatorNeuron):
         """
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-            miner_uids = torch.LongTensor([0])
 
             random_number = random.random()
             # mixed tasks, deprecated SearchSynapse
@@ -113,7 +112,7 @@ class Validator(BaseValidatorNeuron):
                 search_query.timeout = 90
             else:
                 # 90% chance to send index author data task,
-                if random_number < 1:
+                if random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
                         num_authors=2,
@@ -121,7 +120,7 @@ class Validator(BaseValidatorNeuron):
                     # this is a bootstrap task for users to crawl more data from the author list.
                     # miners may implement a more efficient way to crawl and index the author data in the background,
                     # instead of relying on the validator tasks
-                    search_query.timeout = 10 if random.random() < 0.5 else 90
+                    search_query.timeout = 90
 
                     bt.logging.info(
                         f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
