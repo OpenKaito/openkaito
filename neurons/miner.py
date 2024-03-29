@@ -121,7 +121,7 @@ class Miner(BaseMinerNeuron):
     ) -> StructuredSearchSynapse:
 
         start_time = datetime.now()
-        bt.logging.info("received StructuredSearchSynapse...", query)
+        bt.logging.info(f"received StructuredSearchSynapse... timeout:{query.timeout}s ", query)
         if (
             query.version is not None
             and compare_version(query.version, get_version()) > 0
@@ -130,13 +130,16 @@ class Miner(BaseMinerNeuron):
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
             )
 
-        crawl_size = max(self.config.neuron.crawl_size, query.size)
-        self.structured_search_engine.crawl_and_index_data(
-            query_string=query.query_string,
-            author_usernames=query.author_usernames,
-            # crawl and index more data than needed to ensure we have enough to rank
-            max_size=crawl_size,
-        )
+        # miners may adjust this timeout config by themselves according to their own crawler speed and latency
+        if query.timeout > 12:
+            # do crawling and indexing, otherwise search from the existing index directly
+            crawl_size = max(self.config.neuron.crawl_size, query.size)
+            self.structured_search_engine.crawl_and_index_data(
+                query_string=query.query_string,
+                author_usernames=query.author_usernames,
+                # crawl and index more data than needed to ensure we have enough to rank
+                max_size=crawl_size,
+            )
 
         # disable crawling for structured search by default
         ranked_docs = self.structured_search_engine.search(query)
