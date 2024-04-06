@@ -18,6 +18,7 @@
 
 import json
 import os
+import pathlib
 import random
 import time
 import wandb
@@ -69,14 +70,20 @@ class Validator(BaseValidatorNeuron):
             twitter_usernames = f.read().strip().splitlines()
         self.twitter_usernames = twitter_usernames
 
-        if os.getenv("WANDB_API_KEY") is None:
+        netrc_path = pathlib.Path.home() / ".netrc"
+        wandb_api_key = os.getenv("WANDB_API_KEY")
+        if wandb_api_key is not None:
+            bt.logging.info("WANDB_API_KEY is set")
+        bt.logging.info("~/.netrc exists:", netrc_path.exists())
+
+        if wandb_api_key is None and not netrc_path.exists():
             bt.logging.warning(
-                "!!! WANDB_API_KEY not found in environment variables. You are strongly recommended to set it. We may enforce to make it required in the future."
+                "!!! WANDB_API_KEY not found in environment variables and `wandb login` didn't run. You are strongly recommended to setup wandb. We may enforce to make it required in the future."
             )
             self.config.neuron.wandb_off = True
 
         if not self.config.neuron.wandb_off:
-            wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
+            # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
                 project=f"sn{self.config.netuid}-validators",
                 entity="subnet-openkaito",
@@ -86,6 +93,7 @@ class Validator(BaseValidatorNeuron):
                 name=f"validator-{self.uid}-{__version__}",
                 resume="auto",
                 dir=self.config.neuron.full_path,
+                reinit=True,
             )
 
     async def forward(self):
