@@ -193,7 +193,7 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.debug("wandb_log", wandb_log)
             else:
                 bt.logging.warning(
-                    "!!! WANDB is not enabled. You are strongly recommended to obtain and set WANDB_API_KEY. We may enforce to make it required in the future."
+                    "!!! WANDB is not enabled. You are strongly recommended to obtain and set WANDB_API_KEY or run `wandb login`. We may enforce to make it required in the future."
                 )
 
         except Exception as e:
