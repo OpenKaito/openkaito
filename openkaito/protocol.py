@@ -90,3 +90,27 @@ class StructuredSearchSynapse(bt.Synapse):
 
     def deserialize(self) -> List[Dict]:
         return self.results
+
+
+class SemanticSearchSynapse(bt.Synapse):
+    """
+    Semantic search protocol representation for handling request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - query_string: A string value representing the semantic search request sent by the validator.
+    - size: the maximal count size of results to return.
+    - version: A `Version` object representing the version of the protocol.
+    - results: A list of `Document` dict which, when filled, represents the response from the miner.
+    """
+
+    query_string: str
+    size: int = pydantic.Field(10, ge=1, le=50)
+    custom_fields: Optional[Dict] = None
+
+    version: Optional[Version] = None
+
+    results: Optional[List[Dict]] = None
+
+    def deserialize(self) -> List[Dict]:
+        return self.results

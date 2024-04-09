@@ -23,12 +23,16 @@ from datetime import datetime
 import bittensor as bt
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
+from sentence_transformers import SentenceTransformer
 
 import openkaito
 from openkaito.base.miner import BaseMinerNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
-from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
-from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
+from openkaito.protocol import (
+    SearchSynapse,
+    StructuredSearchSynapse,
+    SemanticSearchSynapse,
+)
 from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
 from openkaito.utils.version import compare_version, get_version
@@ -69,9 +73,15 @@ class Miner(BaseMinerNeuron):
             else None
         )
 
+        # for semantic search
+        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        # Note: you may consider more powerful embedding models here, or even finetune your own embedding model
+        # but make sure the query embedding is compatible with the document embeddings
+
         self.structured_search_engine = StructuredSearchEngine(
             search_client=search_client,
             relevance_ranking_model=ranking_model,
+            embedding_model=embedding_model,
             twitter_crawler=twitter_crawler,
             recall_size=self.config.neuron.search_recall_size,
         )
@@ -88,13 +98,7 @@ class Miner(BaseMinerNeuron):
         """
         start_time = datetime.now()
         bt.logging.info(f"received SearchSynapse: ", query)
-        if (
-            query.version is not None
-            and compare_version(query.version, get_version()) > 0
-        ):
-            bt.logging.warning(
-                f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
-            )
+        self.check_version(query)
 
         if not self.config.neuron.disable_crawling:
             crawl_size = max(self.config.neuron.crawl_size, query.size)
@@ -121,14 +125,10 @@ class Miner(BaseMinerNeuron):
     ) -> StructuredSearchSynapse:
 
         start_time = datetime.now()
-        bt.logging.info(f"received StructuredSearchSynapse... timeout:{query.timeout}s ", query)
-        if (
-            query.version is not None
-            and compare_version(query.version, get_version()) > 0
-        ):
-            bt.logging.warning(
-                f"Received request with version {query.version}, is newer than miner running version {get_version()}. You should consider updating the repo and restart the miner."
-            )
+        bt.logging.info(
+            f"received StructuredSearchSynapse... timeout:{query.timeout}s ", query
+        )
+        self.check_version(query)
 
         # miners may adjust this timeout config by themselves according to their own crawler speed and latency
         if query.timeout > 12:
@@ -152,6 +152,26 @@ class Miner(BaseMinerNeuron):
         )
         return query
 
+    async def forward_semantic_search(
+        self, query: SemanticSearchSynapse
+    ) -> StructuredSearchSynapse:
+
+        start_time = datetime.now()
+        bt.logging.info(
+            f"received SemanticSearchSynapse... timeout:{query.timeout}s ", query
+        )
+        self.check_version(query)
+
+        ranked_docs = self.structured_search_engine.vector_search(query)
+        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
+        query.results = ranked_docs
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).total_seconds()
+        bt.logging.info(
+            f"processed SemanticSearchSynapse in {elapsed_time} seconds",
+        )
+        return query
+
     def print_info(self):
         metagraph = self.metagraph
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
@@ -169,6 +189,18 @@ class Miner(BaseMinerNeuron):
             f"Emission:{metagraph.E[self.uid]}"
         )
         bt.logging.info(log)
+
+    def check_version(self, query):
+        """
+        Check the version of the incoming request and log a warning if it is newer than the miner's running version.
+        """
+        if (
+            query.version is not None
+            and compare_version(query.version, get_version()) > 0
+        ):
+            bt.logging.warning(
+                f"Received request with version {query.version}, is newer than miner running version {get_version()}. You may updating the repo and restart the miner."
+            )
 
 
 # This is the main function, which runs the miner.

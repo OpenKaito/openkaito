@@ -25,7 +25,11 @@ import bittensor as bt
 import torch
 
 from openkaito.base.neuron import BaseNeuron
-from openkaito.protocol import SearchSynapse, StructuredSearchSynapse
+from openkaito.protocol import (
+    SearchSynapse,
+    SemanticSearchSynapse,
+    StructuredSearchSynapse,
+)
 from openkaito.utils.config import config
 
 
@@ -62,6 +66,10 @@ class BaseMinerNeuron(BaseNeuron):
             forward_fn=self.forward_structured_search,
             blacklist_fn=self.blacklist_structured_search,
             priority_fn=self.priority_structured_search,
+        ).attach(
+            forward_fn=self.forward_semantic_search,
+            blacklist_fn=self.blacklist_semantic_search,
+            priority_fn=self.priority_semantic_search,
         )
         bt.logging.info(f"Axon created: {self.axon}")
 
@@ -84,6 +92,11 @@ class BaseMinerNeuron(BaseNeuron):
         self, query: StructuredSearchSynapse
     ) -> StructuredSearchSynapse:
         bt.logging.warning("unimplemented: forward_structured_search()")
+
+    async def forward_semantic_search(
+        self, query: SemanticSearchSynapse
+    ) -> SemanticSearchSynapse:
+        bt.logging.warning("unimplemented: forward_semantic_search()")
 
     def run(self):
         """
@@ -313,6 +326,14 @@ class BaseMinerNeuron(BaseNeuron):
     async def priority_structured_search(
         self, synapse: StructuredSearchSynapse
     ) -> float:
+        return await self.priority(synapse)
+
+    async def blacklist_semantic_search(
+        self, synapse: SemanticSearchSynapse
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+
+    async def priority_semantic_search(self, synapse: SemanticSearchSynapse) -> float:
         return await self.priority(synapse)
 
     def save_state(self):

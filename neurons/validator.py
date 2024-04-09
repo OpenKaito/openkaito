@@ -35,7 +35,6 @@ import openkaito
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
-from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse
 from openkaito.tasks import (

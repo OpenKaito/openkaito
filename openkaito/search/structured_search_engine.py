@@ -3,12 +3,15 @@ import os
 import bittensor as bt
 from dotenv import load_dotenv
 
+from ..utils.embeddings import pad_tensor, MAX_EMBEDDING_DIM
+
 
 class StructuredSearchEngine:
     def __init__(
         self,
         search_client,
         relevance_ranking_model,
+        embedding_model,
         twitter_crawler=None,
         recall_size=50,
     ):
@@ -21,6 +24,8 @@ class StructuredSearchEngine:
         self.relevance_ranking_model = relevance_ranking_model
 
         self.recall_size = recall_size
+
+        self.embedding_model = embedding_model
 
         # optional, for crawling data
         self.twitter_crawler = twitter_crawler
@@ -148,6 +153,31 @@ class StructuredSearchEngine:
         except Exception as e:
             bt.logging.error("recall error...", e)
             return []
+
+    def vector_search(self, query):
+        index_name = "eth_denver"
+        topk = query.size
+        query_string = query.query_string
+
+        embedding = self.embedding_model.encode(query_string, convert_to_tensor=True)
+        embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
+        body = {
+            "knn": {
+                "field": "embedding",
+                "query_vector": embedding.tolist(),
+                "k": topk,
+                "num_candidates": 5 * topk,
+            },
+            "_source": {
+                "excludes": ["embedding"],
+            },
+        }
+
+        response = self.search_client.search(index=index_name, body=body)
+        ranked_docs = [doc["_source"] for doc in response["hits"]["hits"]]
+        # optional: you may implement yourselves additional post-processing filtering/ranking here
+
+        return ranked_docs
 
     def crawl_and_index_data(self, query_string, author_usernames, max_size):
         """
