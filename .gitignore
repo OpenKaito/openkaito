@@ -1,6 +1,8 @@
 .env
 tmp*
 
+eth_denver_dataset/
+
 # venv files
 bin/
 lib64
