@@ -1,3 +1,11 @@
+"""Vector Search of Eth Denver dataset using Elasticsearch and Sentence Transformers
+
+This script extracts the Eth Denver dataset (open-sourced by https://portal.kaito.ai/events/ETHDenver2024 ), indexes the documents in Elasticsearch, and indexes the embeddings of the documents in Elasticsearch.
+It also provides a test query to retrieve the top-k similar documents to the query.
+
+This script is intentionally kept transparent and hackable, and miners may do their own customizations.
+"""
+
 import os
 from pathlib import Path
 import json
@@ -15,6 +23,8 @@ root_dir = __file__.split("scripts")[0]
 
 ### Extract Eth Denver dataset
 def extract_eth_denver_dataset():
+    """Extract Eth Denver dataset to datasets/eth_denver_dataset directory"""
+
     if os.path.exists(root_dir + "datasets/eth_denver_dataset"):
         print(
             "Eth Denver data already extracted to: ",
@@ -38,6 +48,8 @@ def extract_eth_denver_dataset():
 
 
 def init_eth_denver_index(search_client):
+    """Initialize Eth Denver index in Elasticsearch"""
+
     index_name = "eth_denver"
     if not search_client.indices.exists(index=index_name):
         print("creating index...", index_name)
@@ -71,6 +83,8 @@ def init_eth_denver_index(search_client):
 
 
 def drop_index(search_client, index_name="eth_denver"):
+    """Drop index in Elasticsearch"""
+
     if search_client.indices.exists(index=index_name):
         search_client.indices.delete(index=index_name)
         print("Index deleted: ", index_name)
@@ -79,6 +93,8 @@ def drop_index(search_client, index_name="eth_denver"):
 
 
 def indexing_docs(search_client):
+    """Index documents in Elasticsearch"""
+
     index_name = "eth_denver"
 
     dataset_dir = root_dir + "datasets/eth_denver_dataset"
@@ -97,6 +113,8 @@ def indexing_docs(search_client):
 # padding tensor to MAX_EMBEDDING_DIM with zeros
 # applicable to embeddings with shape (d) or (n, d) where d < MAX_EMBEDDING_DIM
 def pad_tensor(tensor, max_len=MAX_EMBEDDING_DIM):
+    """Pad tensor with zeros to max_len dimensions"""
+
     if isinstance(tensor, np.ndarray):
         tensor = torch.from_numpy(tensor)
     if tensor.ndim == 1:
@@ -113,6 +131,8 @@ def pad_tensor(tensor, max_len=MAX_EMBEDDING_DIM):
 
 
 def indexing_embeddings(search_client, model):
+    """Index embeddings of documents in Elasticsearch"""
+
     index_name = "eth_denver"
 
     for doc in tqdm(
@@ -132,6 +152,8 @@ def indexing_embeddings(search_client, model):
 
 
 def test_retrieval(search_client, query, model, topk=10):
+    """Test retrieval of top-k similar documents to query"""
+    
     index_name = "eth_denver"
     embedding = model.encode(query, convert_to_tensor=True)
     embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
