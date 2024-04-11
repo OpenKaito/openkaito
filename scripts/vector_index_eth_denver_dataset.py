@@ -19,6 +19,7 @@ from sentence_transformers import SentenceTransformer
 
 MAX_EMBEDDING_DIM = 2048
 root_dir = __file__.split("scripts")[0]
+index_name = "eth_denver"
 
 
 ### Extract Eth Denver dataset
@@ -50,7 +51,6 @@ def extract_eth_denver_dataset():
 def init_eth_denver_index(search_client):
     """Initialize Eth Denver index in Elasticsearch"""
 
-    index_name = "eth_denver"
     if not search_client.indices.exists(index=index_name):
         print("creating index...", index_name)
         search_client.indices.create(
@@ -82,7 +82,7 @@ def init_eth_denver_index(search_client):
         print("Index already exists: ", index_name)
 
 
-def drop_index(search_client, index_name="eth_denver"):
+def drop_index(search_client, index_name):
     """Drop index in Elasticsearch"""
 
     if search_client.indices.exists(index=index_name):
@@ -94,8 +94,6 @@ def drop_index(search_client, index_name="eth_denver"):
 
 def indexing_docs(search_client):
     """Index documents in Elasticsearch"""
-
-    index_name = "eth_denver"
 
     dataset_dir = root_dir + "datasets/eth_denver_dataset"
     dataset_path = Path(dataset_dir)
@@ -133,8 +131,6 @@ def pad_tensor(tensor, max_len=MAX_EMBEDDING_DIM):
 def indexing_embeddings(search_client, model):
     """Index embeddings of documents in Elasticsearch"""
 
-    index_name = "eth_denver"
-
     for doc in tqdm(
         helpers.scan(search_client, index=index_name),
         desc="Indexing embeddings",
@@ -154,7 +150,6 @@ def indexing_embeddings(search_client, model):
 def test_retrieval(search_client, query, model, topk=10):
     """Test retrieval of top-k similar documents to query"""
 
-    index_name = "eth_denver"
     embedding = model.encode(query, convert_to_tensor=True)
     embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
     body = {
@@ -183,7 +178,6 @@ if __name__ == "__main__":
 
     extract_eth_denver_dataset()
 
-    index_name = "eth_denver"
     search_client = Elasticsearch(
         os.environ["ELASTICSEARCH_HOST"],
         basic_auth=(
@@ -194,7 +188,7 @@ if __name__ == "__main__":
         ssl_show_warn=False,
     )
 
-    # drop_index(search_client)
+    drop_index(search_client, index_name)
     init_eth_denver_index(search_client)
 
     r = search_client.count(index=index_name)

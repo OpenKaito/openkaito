@@ -154,8 +154,7 @@ class StructuredSearchEngine:
             bt.logging.error("recall error...", e)
             return []
 
-    def vector_search(self, query):
-        index_name = "eth_denver"
+    def vector_search(self, query, index_name="eth_denver"):
         topk = query.size
         query_string = query.query_string
 

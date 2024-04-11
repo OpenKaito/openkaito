@@ -74,9 +74,9 @@ class Miner(BaseMinerNeuron):
         )
 
         # for semantic search
-        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
         # Note: you may consider more powerful embedding models here, or even finetune your own embedding model
         # but make sure the query embedding is compatible with the document embeddings
+        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
         self.structured_search_engine = StructuredSearchEngine(
             search_client=search_client,
