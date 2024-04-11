@@ -18,7 +18,6 @@
 
 import json
 import os
-import pathlib
 import random
 import time
 import wandb
@@ -43,6 +42,8 @@ from openkaito.tasks import (
     generate_author_index_task,
     generate_structured_search_task,
     random_query,
+    generate_question_from_eth_denver,
+    generate_semantic_search_task,
 )
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
@@ -123,76 +124,6 @@ class Validator(BaseValidatorNeuron):
             f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
         )
 
-    def generate_question_from_eth_denver(self):
-        dataset_dir = self.eth_denver_dataset_dir
-        dataset_path = Path(dataset_dir)
-
-        files = random.sample(list(dataset_path.glob("*.json")), 10)
-        segments = []
-        knowledge_text = ""
-        for file in files:
-            with open(file) as f:
-                data = json.load(f)
-                segments.append(data)
-                knowledge_text += "Text: " + data["text"] + "\n\n"
-        bt.logging.debug(f"{len(segments)} segments loaded")
-        bt.logging.trace(segments)
-
-        prompt = (
-            "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024."
-            "Analyze these speaker transcript segments from ETH Denver 2024, "
-            "and generate several meaningful and profound questions that delve into the implications, strategies, "
-            "and future directions discussed in the knowledge.\n\n"
-            "Transcript segments:\n\n"
-        )
-        prompt += knowledge_text
-
-        prompt += (
-            "You need to generate one question with at most 15 words, based on the knowledge you have gained from the transcript segments."
-            "Please answer with the question text only, without any additional context or explanation."
-        )
-
-        bt.logging.debug(f"Prompt: {prompt}")
-
-        try:
-            output = self.llm_client.chat.completions.create(
-                model="gpt-4-turbo",
-                # response_format={"type": "json_object"},
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
-                temperature=2,
-                timeout=60,
-            )
-
-            bt.logging.debug(
-                f"generation questions LLM response: {output.choices[0].message.content}"
-            )
-            bt.logging.debug(
-                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
-            )
-            return output.choices[0].message.content
-        except Exception as e:
-            bt.logging.error(f"Error during LLM completion: {e}")
-            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
-
-        # try:
-        #     questions = json.loads(output.choices[0].message.content)["questions"]
-        #     assert len(questions) > 0
-        #     for question in questions:
-        #         assert isinstance(question, str)
-        #     return questions
-        # except Exception as e:
-        #     if retries > 0:
-        #         bt.logging.error(f"Error during questions parsing: {e}, retrying...")
-        #         return self.generate_questions_from_eth_denver(retries=retries - 1)
-        #     else:
-        #         bt.logging.error(f"Error during questions parsing: {e}, giving up...")
-        #         return ["What is the future of blockchain?"]
-
     async def forward(self):
         """
         Validator forward pass. Consists of:
@@ -217,9 +148,11 @@ class Validator(BaseValidatorNeuron):
                 search_query.timeout = 90
             else:
                 # 20% chance to send senmantic seatch task
-                if random_number < 0.2:
-                    question = self.generate_question_from_eth_denver()
-                    search_query = SemanticSearchSynapse(
+                if random_number < 1:
+                    question = generate_question_from_eth_denver(
+                        self.llm_client, self.eth_denver_dataset_dir
+                    )
+                    search_query = generate_semantic_search_task(
                         query_string=question,
                         # top 10 results
                         size=10,

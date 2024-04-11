@@ -1,10 +1,15 @@
+import json
 import os
+from pathlib import Path
 import random
+import openai
 from datetime import datetime, timedelta
+from traceback import print_exception
+from dotenv import load_dotenv
 
 import bittensor as bt
 
-from .protocol import SortType, StructuredSearchSynapse
+from .protocol import SortType, StructuredSearchSynapse, SemanticSearchSynapse
 from .utils.version import get_version
 
 
@@ -94,7 +99,118 @@ def generate_structured_search_task(
     )
 
 
+def generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir):
+    dataset_path = Path(eth_denver_dataset_dir)
+
+    files = random.sample(list(dataset_path.glob("*.json")), 10)
+    segments = []
+    knowledge_text = ""
+    for file in files:
+        with open(file) as f:
+            data = json.load(f)
+            segments.append(data)
+            knowledge_text += "Text: " + data["text"] + "\n\n"
+    bt.logging.debug(f"{len(segments)} segments loaded")
+    bt.logging.trace(segments)
+
+    prompt = (
+        "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024."
+        "Analyze these speaker transcript segments from ETH Denver 2024, "
+        "and generate several meaningful and profound questions that delve into the implications, strategies, "
+        "and future directions discussed in the knowledge.\n\n"
+        "Transcript segments:\n\n"
+    )
+    prompt += knowledge_text
+
+    prompt += (
+        "You need to generate one question with at most 15 words, based on the knowledge you have gained from the transcript segments."
+        "Please answer with the question text only, without any additional context or explanation."
+    )
+
+    bt.logging.debug(f"Prompt: {prompt}")
+
+    try:
+        output = llm_client.chat.completions.create(
+            model="gpt-4-turbo",
+            # response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            temperature=2,
+            timeout=60,
+        )
+
+        bt.logging.debug(
+            f"generation questions LLM response: {output.choices[0].message.content}"
+        )
+        bt.logging.debug(
+            f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+        )
+        return output.choices[0].message.content
+    except Exception as e:
+        bt.logging.error(f"Error during LLM completion: {e}")
+        bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+
+    # try:
+    #     questions = json.loads(output.choices[0].message.content)["questions"]
+    #     assert len(questions) > 0
+    #     for question in questions:
+    #         assert isinstance(question, str)
+    #     return questions
+    # except Exception as e:
+    #     if retries > 0:
+    #         bt.logging.error(f"Error during questions parsing: {e}, retrying...")
+    #         return self.generate_questions_from_eth_denver(retries=retries - 1)
+    #     else:
+    #         bt.logging.error(f"Error during questions parsing: {e}, giving up...")
+    #         return ["What is the future of blockchain?"]
+
+
+def generate_semantic_search_task(
+    query_string: str = None,
+    size: int = 5,
+    version: str = None,
+) -> SemanticSearchSynapse:
+    """
+    Generates a semantic search task for the validator to send to the miner.
+    """
+    if version is None:
+        version = get_version()
+    return SemanticSearchSynapse(
+        query_string=query_string,
+        size=size,
+        version=version,
+    )
+
+
+def find_repo(path):
+    "Find repository root from the path's parents"
+    for path in Path(path).parents:
+        # Check whether "path/.git" exists and is a directory
+        git_dir = path / ".git"
+        if git_dir.is_dir():
+            return path
+
+
+# `python -m openkatio.tasks`
 if __name__ == "__main__":
     task = generate_structured_search_task("BTC")
     print(task)
     print(task.name)
+
+    load_dotenv()
+    llm_client = openai.OpenAI(
+        api_key=os.environ["OPENAI_API_KEY"],
+        organization=os.getenv("OPENAI_ORGANIZATION"),
+        max_retries=3,
+    )
+
+    bt.logging.set_trace(True)
+    repo_root = find_repo(__file__)
+    eth_denver_dataset_dir = repo_root / "datasets/eth_denver_dataset"
+    question = generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir)
+    task = generate_semantic_search_task(question)
+    print(task)
