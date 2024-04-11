@@ -1,6 +1,6 @@
 bittensor
 torch
-openai
+openai>=1.17.0
 loguru
 apify-client
 elasticsearch
