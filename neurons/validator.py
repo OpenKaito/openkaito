@@ -148,7 +148,7 @@ class Validator(BaseValidatorNeuron):
                 search_query.timeout = 90
             else:
                 # 20% chance to send senmantic seatch task
-                if random_number < 0.2:
+                if random_number < 1:
                     question = generate_question_from_eth_denver(
                         self.llm_client, self.eth_denver_dataset_dir
                     )
@@ -156,6 +156,7 @@ class Validator(BaseValidatorNeuron):
                         query_string=question,
                         # top 10 results
                         size=10,
+                        index_name="eth_denver",
                         version=get_version(),
                     )
                     # should be quick

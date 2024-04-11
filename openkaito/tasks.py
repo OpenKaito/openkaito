@@ -171,7 +171,8 @@ def generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir):
 
 def generate_semantic_search_task(
     query_string: str = None,
-    size: int = 5,
+    index_name: str = "eth_denver",
+    size: int = 10,
     version: str = None,
 ) -> SemanticSearchSynapse:
     """
@@ -181,6 +182,7 @@ def generate_semantic_search_task(
         version = get_version()
     return SemanticSearchSynapse(
         query_string=query_string,
+        index_name=index_name,
         size=size,
         version=version,
     )

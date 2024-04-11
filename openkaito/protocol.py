@@ -106,6 +106,9 @@ class SemanticSearchSynapse(bt.Synapse):
 
     query_string: str
     size: int = pydantic.Field(10, ge=1, le=50)
+
+    index_name: str = pydantic.Field("eth_denver", regex="^[a-z0-9_]+$")
+
     custom_fields: Optional[Dict] = None
 
     version: Optional[Version] = None

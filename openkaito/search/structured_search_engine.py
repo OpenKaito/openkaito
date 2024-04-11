@@ -154,9 +154,10 @@ class StructuredSearchEngine:
             bt.logging.error("recall error...", e)
             return []
 
-    def vector_search(self, query, index_name="eth_denver"):
+    def vector_search(self, query):
         topk = query.size
         query_string = query.query_string
+        index_name = query.index_name if query.index_name else "eth_denver"
 
         embedding = self.embedding_model.encode(query_string, convert_to_tensor=True)
         embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
