@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 import random
 from datetime import datetime, timezone
 from traceback import print_exception
@@ -202,6 +203,65 @@ class Evaluator:
 
         return scores * zero_score_mask
 
+    def evaluate_semantic_search(
+        self, query: bt.Synapse, responses: list, dataset_dir: str
+    ):
+        query_string = query.query_string
+        size = query.size
+
+        dataset_path = Path(dataset_dir)
+
+        scores = torch.zeros(len(responses))
+
+        zero_score_mask = torch.ones(len(responses))
+        rank_scores = torch.zeros(len(responses))
+        uniqueness_scores = torch.zeros(len(responses))
+
+        for i, response in enumerate(responses):
+            try:
+                bt.logging.trace(f"Processing {i}-th response")
+                if response is None or not response or len(response) > size:
+                    zero_score_mask[i] = 0
+                    continue
+
+                id_set = set()
+                groundtruth_docs = []
+                for doc in response:
+                    id_set.add(doc["doc_id"])
+                    groundtruth_path = dataset_path / f"{doc['doc_id']}.json"
+                    if groundtruth_path.exists():
+                        with open(groundtruth_path, "r") as f:
+                            groundtruth_docs.append(json.load(f))
+                    else:
+                        bt.logging.warning(
+                            f"Groundtruth file {groundtruth_path} not found"
+                        )
+                        zero_score_mask[i] = 0
+                        break
+
+                if zero_score_mask[i] == 0:
+                    continue
+
+                uniqueness_scores[i] = len(id_set) / size
+
+                llm_ranking_scores = self.llm_semantic_search_evaluation(
+                    query_string, groundtruth_docs
+                )
+                rank_scores[i] = ndcg_score(llm_ranking_scores, size)
+
+                bt.logging.info(f"Semantic search quality score: {rank_scores[i]}")
+            except Exception as e:
+                bt.logging.error(f"Error while processing {i}-th response: {e}")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                zero_score_mask[i] = 0
+
+        scores = rank_scores * uniqueness_scores
+
+        # relative scores in a batch
+        scores = scores / (scores.max() + 1e-5)
+
+        return scores * zero_score_mask
+
     def check_document(self, doc, groundtruth_doc):
         """
         This function checks the integrity of the document.
@@ -248,7 +308,7 @@ class Evaluator:
                 messages=[
                     {
                         "role": "system",
-                        "content": """Below are the metrics and definations: 
+                        "content": """Below are the metrics and definitions: 
 outdated: Time-sensitive information that is no longer current or relevant.
 off topic: Superficial content lacking depth and comprehensive insights.
 somewhat relevant: Offers partial insight but lacks depth and comprehensive coverage.
@@ -362,7 +422,7 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
                 messages=[
                     {
                         "role": "system",
-                        "content": """Below are the metrics and definations: 
+                        "content": """Below are the metrics and definitions: 
 outdated: Time-sensitive information that is no longer current or relevant.
 insightless: Superficial content lacking depth and comprehensive insights.
 somewhat insightful: Offers partial insight but lacks depth and comprehensive coverage.
@@ -441,6 +501,83 @@ reason: It does not contain much meaningful information, just sentiment about so
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
                 return self.llm_author_index_data_evaluation(docs, retries - 1)
+            else:
+                bt.logging.error(
+                    f"Failed to parse LLM result after retrying. Returning [0]."
+                )
+            return [0]
+
+    def llm_semantic_search_evaluation(self, query_string, docs, retries=3):
+        if docs is None or len(docs) == 0:
+            return [0]
+        try:
+            newline = "\n"
+            prompt_docs = "\n\n".join(
+                [
+                    f"ItemId: {i}\nText: {doc['text'][:2000].replace(newline, '  ')}"
+                    for i, doc in enumerate(docs)
+                ]
+            )
+
+            bt.logging.debug(
+                f"Querying LLM of semantic search with docs:\n" + prompt_docs
+            )
+            output = self.llm_client.chat.completions.create(
+                model="gpt-4-turbo",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """Below are the metrics and definitions:
+off topic: Superficial or unrelevant content that can not answer the given question.
+somewhat relevant: Offers partial insight to partially answer the given question.
+relevant: Comprehensive, insightful content suitable for answering the given question.""",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"You will be given a list of documents with id and you have to rate them based on its information and relevance to the question. The documents are as follows:\n"
+                        + prompt_docs,
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Use the metric choices [off topic, somewhat relevant, relevant] to evaluate whether the text can answer the given question:\n"
+                            f"{query_string}"
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": "Must answer in JSON format of a list of choices with item ids for all the given items: "
+                        + "{'results': [{'item_id': the item id of the text, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
+                    },
+                ],
+                temperature=0,
+            )
+            bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.debug(
+                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+            )
+        except Exception as e:
+            bt.logging.error(f"Error while querying LLM: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+            return 0
+
+        try:
+            result = json.loads(output.choices[0].message.content)
+            # bt.logging.debug(f"LLM result: {result}")
+            ranking = parse_llm_result(result)
+            bt.logging.info(f"LLM ranking: {ranking}")
+            if len(ranking) != len(docs):
+                raise ValueError(
+                    f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
+                )
+            return ranking
+        except Exception as e:
+            bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
+            if retries > 0:
+                return self.llm_semantic_search_evaluation(
+                    query_string, docs, retries - 1
+                )
             else:
                 bt.logging.error(
                     f"Failed to parse LLM result after retrying. Returning [0]."

@@ -153,7 +153,7 @@ def indexing_embeddings(search_client, model):
 
 def test_retrieval(search_client, query, model, topk=10):
     """Test retrieval of top-k similar documents to query"""
-    
+
     index_name = "eth_denver"
     embedding = model.encode(query, convert_to_tensor=True)
     embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
