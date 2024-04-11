@@ -2,21 +2,21 @@
 
 ## General
 
-The `netuid` for `openkaito` is `5` on mainnet, and `88` on testnet. 
-
+The `netuid` for `openkaito` is `5` on mainnet, and `88` on testnet.
 
 ### Prepare Wallet
 
 Generally, for both validator and miner, you need to prepare your wallet and make your key registered in the subnet. You can find related guidance in the [running on mainnet](./docs/running_on_mainnet.md) section.
 
 If you are new to bittensor subnet, you are recommended to start by following
+
 - [running on staging](./docs/running_on_staging.md)
 - [running on testnet](./docs/running_on_testnet.md).
-
 
 ### Install openkaito
 
 In the root folder of this repository, run the following command to install openkaito:
+
 ```bash
 pip install -e .
 ```
@@ -33,18 +33,15 @@ The key is for both the miner and the validator. For miner, it is used to search
 
 > **_NOTE:_** You can also create your own crawler to crawl the data you need. But you need to be aware that the data you crawl should be able to pass the integrity check of the validator.
 
-
 ## Miner Setup
 
-
 Then you can prepare your dotenv file by:
+
 ```bash
 cp .env.example .env
 ```
 
-
 ### Setup Elasticsearch
-
 
 To be a miner of openkaito, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes intalling [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
 
@@ -80,6 +77,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 # Verify that the Docker Engine installation is successful by running the hello-world image
 sudo docker run hello-world
 ```
+
 Then you have successfully installed and started Docker Engine.
 
 **CentOS**
@@ -114,6 +112,7 @@ Then you have successfully installed and started Docker Engine.
 #### Run Elasticsearch with Docker
 
 If you have [docker](https://docs.docker.com/engine/install/) installed, you can run the following command to start an Elasticsearch instance:
+
 ```bash
 sudo docker network create elastic
 sudo docker pull docker.elastic.co/elasticsearch/elasticsearch:8.12.1
@@ -131,6 +130,7 @@ ELASTICSEARCH_PASSWORD="your_password"
 #### Useful Commands
 
 If you forget the password, you can reset it by running the following command:
+
 ```bash
 sudo docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
 ```
@@ -141,6 +141,18 @@ If the Elasticsearch instance exited unexpectedly, you can start it by running t
 sudo docker start elasticsearch
 ```
 
+### Setup Semantic Search Dataset & Indexing
+
+You may refer to and run `scripts/vector_index_eth_denver_dataset.py` to index the ETH Denver 2024 dataset for semantic search.
+
+This script extracts the Eth Denver dataset (open-sourced by [Kaito AI](https://portal.kaito.ai/events/ETHDenver2024)), indexes the documents in Elasticsearch, and indexes the embeddings of the documents in Elasticsearch.
+It also provides a test query to retrieve the top-k similar documents to the query.
+
+This script is intentionally kept transparent and hackable, and miners may do their own customizations.
+
+```bash
+python scripts/vector_index_eth_denver_dataset.py
+```
 
 ### Start the Miner
 
@@ -221,7 +233,6 @@ options:
                         Set ``true`` to stop cli version checking.
 ```
 
-
 ### Notes
 
 We provide `scripts/search_evaluation.py` to quick preview your search engine performance. You can run the following command to evaluate the search engine's performance:
@@ -235,16 +246,15 @@ Note the score may not always be the save even if everything is kept unchanged. 
 To obtain better miner performance, you can consider the following options:
 
 - crawl and index more data, the more data you have, the better the search engine performance you can achieve
-    - adjust the apify crawler running parameters, e.g., increase the size of on search crawling
-    - implement a continuous crawler, instead of or in addition to the on search crawling, to crawl data and ingest into the Elasticsearch instance
+  - adjust the apify crawler running parameters, e.g., increase the size of on search crawling
+  - implement a continuous crawler, instead of or in addition to the on search crawling, to crawl data and ingest into the Elasticsearch instance
 - build better ranking model
-    - customize the provied ranking model, e.g., tune the parameters for `length_weight` and `age_weight`
-    - implement a better ranking model, e.g., integrating LLM
+  - customize the provied ranking model, e.g., tune the parameters for `length_weight` and `age_weight`
+  - implement a better ranking model, e.g., integrating LLM
 - improve the recall stage
-    - tune the parameters for the search query, e.g., adjust the `size` parameter via `MINER_SEARCH_RECALL_SIZE` in `.env`
-    - build better index for the data you crawled and ingested into Elasticsearch, e.g., Knowledge Graph
+  - tune the parameters for the search query, e.g., adjust the `size` parameter via `MINER_SEARCH_RECALL_SIZE` in `.env`
+  - build better index for the data you crawled and ingested into Elasticsearch, e.g., Knowledge Graph
 - any other advanced improvements you can think of
-
 
 ## Validator Setup
 
@@ -283,6 +293,7 @@ sudo npm install -g pm2
 ```
 
 **CentOS**
+
 ```bash
 # Install jq
 sudo yum install jq
@@ -300,6 +311,7 @@ You can start the validator by running the following command, enabling validator
 # Run the run.sh to enable auto update
 pm2 start run.sh --name openkaito_validator_autoupdate -- --netuid 5 --subtensor.network finney --wallet.name <your_wallet_name> --wallet.hotkey <your_hotkey> --logging.debug
 ```
+
 You may pass in more command line arguments to the `validator` command, e.g., `--axon.port <your_axon_port>` etc., if needed.
 
 This will run two PM2 process: one for the `neurons/validator.py` which is called `openkaito_validator_main_process`, and one for the `run.sh` script which is called `openkaito_validator_autoupdate`. The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `openkaito_validator_main_process` and then restart itself.
@@ -383,7 +395,6 @@ options:
   --no_version_checking
                         Set ``true`` to stop cli version checking.
 ```
-
 
 ### Monitor the Validator
 
