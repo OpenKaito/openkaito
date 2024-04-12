@@ -21,6 +21,8 @@ MAX_EMBEDDING_DIM = 2048
 root_dir = __file__.split("scripts")[0]
 index_name = "eth_denver"
 
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 ### Extract Eth Denver dataset
 def extract_eth_denver_dataset():
@@ -188,7 +190,7 @@ if __name__ == "__main__":
         ssl_show_warn=False,
     )
 
-    drop_index(search_client, index_name)
+    # drop_index(search_client, index_name)
     init_eth_denver_index(search_client)
 
     r = search_client.count(index=index_name)
@@ -201,8 +203,6 @@ if __name__ == "__main__":
         print(
             f"Number of docs in {index_name}: {r['count']} == total files {num_files}, no need to reindex docs"
         )
-
-    model = SentenceTransformer("all-MiniLM-L6-v2")
 
     indexing_embeddings(search_client, model)
 

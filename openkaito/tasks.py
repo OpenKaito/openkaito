@@ -99,32 +99,41 @@ def generate_structured_search_task(
     )
 
 
-def generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir):
+def random_eth_denver_segments(
+    eth_denver_dataset_dir,
+    num_sources=3,
+):
     dataset_path = Path(eth_denver_dataset_dir)
 
-    files = random.sample(list(dataset_path.glob("*.json")), 10)
+    files = random.sample(list(dataset_path.glob("*.json")), num_sources)
     segments = []
-    knowledge_text = ""
     for file in files:
         with open(file) as f:
             data = json.load(f)
             segments.append(data)
-            knowledge_text += "Text: " + data["text"] + "\n\n"
-    bt.logging.debug(f"{len(segments)} segments loaded")
-    bt.logging.trace(segments)
+    return segments
+
+
+def generate_question_from_eth_denver_segments(llm_client, segments):
+    knowledge_text = ""
+    for segment in segments:
+        knowledge_text += "Text: " + segment["text"] + "\n\n"
 
     prompt = (
         "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024."
         "Analyze these speaker transcript segments from ETH Denver 2024, "
         "and generate several meaningful and profound questions that delve into the implications, strategies, "
-        "and future directions discussed in the knowledge.\n\n"
+        "and future directions discussed in the knowledge."
+        "\n\n"
         "Transcript segments:\n\n"
     )
     prompt += knowledge_text
 
     prompt += (
-        "You need to generate one question with at most 15 words, based on the knowledge you have gained from the transcript segments."
-        "Please answer with the question text only, without any additional context or explanation."
+        "You need to generate one question with at most 15 words, based on the knowledge you have gained from the transcript segments. "
+        "Your question should be interesting to researchers and traders in crypto currency market. "
+        "Try to grab more information from your knowledge and make the answer to the generated question informative and consistent with the knowledge. "
+        "Please give the question text only, without any additional context or explanation."
     )
 
     bt.logging.debug(f"Prompt: {prompt}")
@@ -139,7 +148,7 @@ def generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir):
                     "content": prompt,
                 }
             ],
-            temperature=2,
+            temperature=1.5,
             timeout=60,
         )
 
@@ -170,7 +179,7 @@ def generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir):
 
 
 def generate_semantic_search_task(
-    query_string: str = None,
+    query_string: str,
     index_name: str = "eth_denver",
     size: int = 10,
     version: str = None,
@@ -180,6 +189,7 @@ def generate_semantic_search_task(
     """
     if version is None:
         version = get_version()
+
     return SemanticSearchSynapse(
         query_string=query_string,
         index_name=index_name,
@@ -213,6 +223,12 @@ if __name__ == "__main__":
     bt.logging.set_trace(True)
     repo_root = find_repo(__file__)
     eth_denver_dataset_dir = repo_root / "datasets/eth_denver_dataset"
-    question = generate_question_from_eth_denver(llm_client, eth_denver_dataset_dir)
+    print(eth_denver_dataset_dir)
+    print("generating question from ETH Denver dataset")
+    segments = random_eth_denver_segments(eth_denver_dataset_dir)
+    question = generate_question_from_eth_denver_segments(llm_client, segments)
+    print(question)
+
     task = generate_semantic_search_task(question)
+
     print(task)

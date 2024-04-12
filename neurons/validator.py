@@ -40,9 +40,10 @@ from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
+    generate_question_from_eth_denver_segments,
     generate_structured_search_task,
+    random_eth_denver_segments,
     random_query,
-    generate_question_from_eth_denver,
     generate_semantic_search_task,
 )
 from openkaito.utils.uids import get_random_uids
@@ -148,9 +149,17 @@ class Validator(BaseValidatorNeuron):
                 search_query.timeout = 90
             else:
                 # 20% chance to send senmantic seatch task
+                # TODO: fix the prob before release
                 if random_number < 1:
-                    question = generate_question_from_eth_denver(
-                        self.llm_client, self.eth_denver_dataset_dir
+                    segments = random_eth_denver_segments(
+                        self.eth_denver_dataset_dir, num_sources=3
+                    )
+                    bt.logging.debug(
+                        f"{len(segments)} segments sampled from ETH Denver dataset."
+                    )
+                    bt.logging.trace(segments)
+                    question = generate_question_from_eth_denver_segments(
+                        self.llm_client, segments
                     )
                     search_query = generate_semantic_search_task(
                         query_string=question,

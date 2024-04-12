@@ -75,7 +75,7 @@ class Miner(BaseMinerNeuron):
 
         # for semantic search
         # Note: you may consider more powerful embedding models here, or even finetune your own embedding model
-        # but make sure the query embedding is compatible with the document embeddings
+        # but make sure the query embedding is compatible with the indexed document embeddings
         embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
         self.structured_search_engine = StructuredSearchEngine(
@@ -154,7 +154,7 @@ class Miner(BaseMinerNeuron):
 
     async def forward_semantic_search(
         self, query: SemanticSearchSynapse
-    ) -> StructuredSearchSynapse:
+    ) -> SemanticSearchSynapse:
 
         start_time = datetime.now()
         bt.logging.info(
