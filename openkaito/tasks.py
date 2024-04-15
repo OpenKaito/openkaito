@@ -117,22 +117,44 @@ def random_eth_denver_segments(
 def generate_question_from_eth_denver_segments(llm_client, segments):
     knowledge_text = ""
     for segment in segments:
-        knowledge_text += "Text: " + segment["text"] + "\n\n"
+        knowledge_text += (
+            "Talk Title: "
+            + segment["episode_title"]
+            + "\n"
+            + "Speaker: "
+            + segment["speaker"]
+            + "\n"
+            + "Text: "
+            + segment["text"]
+            + "\n\n"
+        )
+
+    # prompt = (
+    #     "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024."
+    #     "Analyze these speaker transcript segments from ETH Denver 2024, "
+    #     "and generate several meaningful and profound questions that delve into the implications, strategies, "
+    #     "and future directions discussed in the knowledge."
+    #     "\n\n"
+    #     "Transcript segments:\n\n"
+    # )
+    # prompt += knowledge_text
+
+    # prompt += (
+    #     "You need to generate one question with at most 15 words which can be answered by the knowledge from the transcript segments. "
+    #     "Try to grab more information from your knowledge and make the answer to the generated question informative and consistent with the knowledge. "
+    #     "Please give the question text only, without any additional context or explanation."
+    # )
 
     prompt = (
-        "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024."
-        "Analyze these speaker transcript segments from ETH Denver 2024, "
-        "and generate several meaningful and profound questions that delve into the implications, strategies, "
-        "and future directions discussed in the knowledge."
-        "\n\n"
+        "As a crypto researcher analyzing a transcript from ETH Denver 2024, identify one meaningful and profound question that the transcript segments answer. "
+        "Ensure that the question is specific enough to be clearly answered by the content of the transcript segments. "
+        # "Please think about one question that the transcript segments answer, and state the question in less than 15 words. "
+        "The question may regard the talk title, speaker, or text."
         "Transcript segments:\n\n"
     )
     prompt += knowledge_text
-
     prompt += (
-        "You need to generate one question with at most 15 words, based on the knowledge you have gained from the transcript segments. "
-        "Your question should be interesting to researchers and traders in crypto currency market. "
-        "Try to grab more information from your knowledge and make the answer to the generated question informative and consistent with the knowledge. "
+        "Provide the question in less than 15 words. "
         "Please give the question text only, without any additional context or explanation."
     )
 
@@ -209,9 +231,9 @@ def find_repo(path):
 
 # `python -m openkatio.tasks`
 if __name__ == "__main__":
-    task = generate_structured_search_task("BTC")
-    print(task)
-    print(task.name)
+    # task = generate_structured_search_task("BTC")
+    # print(task)
+    # print(task.name)
 
     load_dotenv()
     llm_client = openai.OpenAI(
@@ -225,7 +247,7 @@ if __name__ == "__main__":
     eth_denver_dataset_dir = repo_root / "datasets/eth_denver_dataset"
     print(eth_denver_dataset_dir)
     print("generating question from ETH Denver dataset")
-    segments = random_eth_denver_segments(eth_denver_dataset_dir)
+    segments = random_eth_denver_segments(eth_denver_dataset_dir, num_sources=3)
     question = generate_question_from_eth_denver_segments(llm_client, segments)
     print(question)
 
