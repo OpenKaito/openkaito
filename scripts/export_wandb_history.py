@@ -15,7 +15,7 @@ if __name__ == "__main__":
     api = wandb.Api()
 
     # run is specified by <entity>/<project>/<run_id>
-    run = api.run(f"subnet-openkaito/sn5-validators/{args.run_id}")
+    run = api.run(f"openkaito/sn5-validators/{args.run_id}")
 
     metrics_dataframe = run.history()
     # metrics_dataframe.to_csv("metrics.csv")

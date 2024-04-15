@@ -92,7 +92,7 @@ class Validator(BaseValidatorNeuron):
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
                 project=f"sn{self.config.netuid}-validators",
-                entity="subnet-openkaito",
+                entity="openkaito",
                 config={
                     "hotkey": self.wallet.hotkey.ss58_address,
                 },
