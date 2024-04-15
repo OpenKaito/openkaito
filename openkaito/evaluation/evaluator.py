@@ -514,7 +514,7 @@ reason: It does not contain much meaningful information, just sentiment about so
             newline = "\n"
             prompt_docs = "\n\n".join(
                 [
-                    f"ItemId: {i}\nText: {doc['text'][:2000].replace(newline, '  ')}"
+                    f"ItemId: {i}\nTalk Title: {doc['episode_title']}\nSpeaker:{doc['speaker']}\nText: {doc['text'][:2000].replace(newline, '  ')}"
                     for i, doc in enumerate(docs)
                 ]
             )
