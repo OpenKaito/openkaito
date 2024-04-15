@@ -181,7 +181,7 @@ def generate_question_from_eth_denver_segments(llm_client, segments):
 def generate_semantic_search_task(
     query_string: str,
     index_name: str = "eth_denver",
-    size: int = 10,
+    size: int = 5,
     version: str = None,
 ) -> SemanticSearchSynapse:
     """

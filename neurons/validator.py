@@ -163,8 +163,6 @@ class Validator(BaseValidatorNeuron):
                     )
                     search_query = generate_semantic_search_task(
                         query_string=question,
-                        # top 10 results
-                        size=10,
                         index_name="eth_denver",
                         version=get_version(),
                     )
