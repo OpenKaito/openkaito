@@ -129,27 +129,9 @@ def generate_question_from_eth_denver_segments(llm_client, segments):
             + "\n\n"
         )
 
-    # prompt = (
-    #     "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024."
-    #     "Analyze these speaker transcript segments from ETH Denver 2024, "
-    #     "and generate several meaningful and profound questions that delve into the implications, strategies, "
-    #     "and future directions discussed in the knowledge."
-    #     "\n\n"
-    #     "Transcript segments:\n\n"
-    # )
-    # prompt += knowledge_text
-
-    # prompt += (
-    #     "You need to generate one question with at most 15 words which can be answered by the knowledge from the transcript segments. "
-    #     "Try to grab more information from your knowledge and make the answer to the generated question informative and consistent with the knowledge. "
-    #     "Please give the question text only, without any additional context or explanation."
-    # )
-
     prompt = (
-        "As a crypto researcher analyzing a transcript from ETH Denver 2024, identify one meaningful and profound question that the transcript segments answer. "
-        "Ensure that the question is specific enough to be clearly answered by the content of the transcript segments. "
-        # "Please think about one question that the transcript segments answer, and state the question in less than 15 words. "
-        "The question may regard the talk title, speaker, or text."
+        "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024. "
+        "Your job is to look for a question about the speaker and text that can be answered by this segment"
         "Transcript segments:\n\n"
     )
     prompt += knowledge_text
@@ -185,19 +167,6 @@ def generate_question_from_eth_denver_segments(llm_client, segments):
         bt.logging.error(f"Error during LLM completion: {e}")
         bt.logging.debug(print_exception(type(e), e, e.__traceback__))
 
-    # try:
-    #     questions = json.loads(output.choices[0].message.content)["questions"]
-    #     assert len(questions) > 0
-    #     for question in questions:
-    #         assert isinstance(question, str)
-    #     return questions
-    # except Exception as e:
-    #     if retries > 0:
-    #         bt.logging.error(f"Error during questions parsing: {e}, retrying...")
-    #         return self.generate_questions_from_eth_denver(retries=retries - 1)
-    #     else:
-    #         bt.logging.error(f"Error during questions parsing: {e}, giving up...")
-    #         return ["What is the future of blockchain?"]
 
 
 def generate_semantic_search_task(

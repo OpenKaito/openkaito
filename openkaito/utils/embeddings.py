@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-MAX_EMBEDDING_DIM = 2048
+MAX_EMBEDDING_DIM = 1024
 
 # padding tensor to MAX_EMBEDDING_DIM with zeros
 # applicable to embeddings with shape (d) or (n, d) where d < MAX_EMBEDDING_DIM

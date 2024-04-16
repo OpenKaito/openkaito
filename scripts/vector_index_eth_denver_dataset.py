@@ -23,7 +23,7 @@ from openkaito.utils.embeddings import pad_tensor, MAX_EMBEDDING_DIM
 root_dir = __file__.split("scripts")[0]
 index_name = "eth_denver"
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("paraphrase-TinyBERT-L6-v2")
 
 
 ### Extract Eth Denver dataset
