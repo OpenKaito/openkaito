@@ -3,6 +3,8 @@ import os
 import bittensor as bt
 from dotenv import load_dotenv
 
+from ..utils.embeddings import pad_tensor, text_embedding, MAX_EMBEDDING_DIM
+
 
 class StructuredSearchEngine:
     def __init__(
@@ -148,6 +150,31 @@ class StructuredSearchEngine:
         except Exception as e:
             bt.logging.error("recall error...", e)
             return []
+
+    def vector_search(self, query):
+        topk = query.size
+        query_string = query.query_string
+        index_name = query.index_name if query.index_name else "eth_denver"
+
+        embedding = text_embedding(query_string)[0]
+        embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
+        body = {
+            "knn": {
+                "field": "embedding",
+                "query_vector": embedding.tolist(),
+                "k": topk,
+                "num_candidates": 5 * topk,
+            },
+            "_source": {
+                "excludes": ["embedding"],
+            },
+        }
+
+        response = self.search_client.search(index=index_name, body=body)
+        ranked_docs = [doc["_source"] for doc in response["hits"]["hits"]]
+        # optional: you may implement yourselves additional post-processing filtering/ranking here
+
+        return ranked_docs
 
     def crawl_and_index_data(self, query_string, author_usernames, max_size):
         """

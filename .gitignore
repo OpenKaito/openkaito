@@ -1,6 +1,10 @@
 .env
 tmp*
 
+.vscode/
+
+eth_denver_dataset/
+
 # venv files
 bin/
 lib64

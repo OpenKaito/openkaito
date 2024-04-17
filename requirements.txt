@@ -1,9 +1,11 @@
 bittensor
 torch
-openai
+openai>=1.20.0
 loguru
 apify-client
 elasticsearch
 python-dotenv
 pydantic
 wandb
+transformers
+tqdm

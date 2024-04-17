@@ -18,12 +18,13 @@
 
 import json
 import os
-import pathlib
 import random
 import time
 import wandb
+import tarfile
 from datetime import datetime, timezone
 from traceback import print_exception
+from pathlib import Path
 
 # Bittensor
 import bittensor as bt
@@ -35,13 +36,15 @@ import openkaito
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
-from openkaito.crawlers.twitter.microworlds import MicroworldsTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import SearchSynapse
+from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
+    generate_question_from_eth_denver_segments,
     generate_structured_search_task,
+    random_eth_denver_segments,
     random_query,
+    generate_semantic_search_task,
 )
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
@@ -59,6 +62,7 @@ class Validator(BaseValidatorNeuron):
             organization=os.getenv("OPENAI_ORGANIZATION"),
             max_retries=3,
         )
+        self.llm_client = llm_client
 
         # for integrity check
         # twitter_crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
@@ -70,7 +74,9 @@ class Validator(BaseValidatorNeuron):
             twitter_usernames = f.read().strip().splitlines()
         self.twitter_usernames = twitter_usernames
 
-        netrc_path = pathlib.Path.home() / ".netrc"
+        self.init_eth_denver_dataset()
+
+        netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
         if wandb_api_key is not None:
             bt.logging.info("WANDB_API_KEY is set")
@@ -86,7 +92,7 @@ class Validator(BaseValidatorNeuron):
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
                 project=f"sn{self.config.netuid}-validators",
-                entity="subnet-openkaito",
+                entity="openkaito",
                 config={
                     "hotkey": self.wallet.hotkey.ss58_address,
                 },
@@ -95,6 +101,29 @@ class Validator(BaseValidatorNeuron):
                 dir=self.config.neuron.full_path,
                 reinit=True,
             )
+
+    def init_eth_denver_dataset(self):
+        root_dir = __file__.split("neurons")[0]
+        dataset_dir = root_dir + "datasets/eth_denver_dataset"
+        self.eth_denver_dataset_dir = dataset_dir
+        dataset_path = Path(dataset_dir)
+
+        with tarfile.open(
+            root_dir + "datasets/eth_denver_dataset.tar.gz", "r:gz"
+        ) as tar:
+            original_file_list = tar.getnames()
+            original_file_list.remove("eth_denver_dataset")
+            if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
+                bt.logging.info(
+                    f"Eth Denver data already extracted to: {dataset_dir}, no need to re-extract"
+                )
+            else:
+                tar.extractall(root_dir + "datasets")
+                bt.logging.info(f"Eth Denver data extracted to: {dataset_dir}")
+
+        bt.logging.info(
+            f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
+        )
 
     async def forward(self):
         """
@@ -119,8 +148,31 @@ class Validator(BaseValidatorNeuron):
                 )
                 search_query.timeout = 90
             else:
-                # 80% chance to send index author data task with crawling and indexing
-                if random_number < 0.8:
+                # 40% chance to send semantic search task
+                if random_number < 0.4:
+                    segments = random_eth_denver_segments(
+                        self.eth_denver_dataset_dir, num_sources=3
+                    )
+                    bt.logging.debug(
+                        f"{len(segments)} segments sampled from ETH Denver dataset."
+                    )
+                    bt.logging.trace(segments)
+                    question = generate_question_from_eth_denver_segments(
+                        self.llm_client, segments
+                    )
+                    search_query = generate_semantic_search_task(
+                        query_string=question,
+                        index_name="eth_denver",
+                        version=get_version(),
+                    )
+                    # should be quick
+                    search_query.timeout = 10
+                    bt.logging.info(
+                        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                    )
+
+                # 50% chance to send index author data task with crawling and indexing
+                elif random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
                         num_authors=2,
@@ -134,7 +186,7 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
                     )
                 # 10% chance to send author search task without crawling
-                elif random_number < 0.9:
+                elif random_number < 1:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
                         num_authors=2,
@@ -144,7 +196,7 @@ class Validator(BaseValidatorNeuron):
                     bt.logging.info(
                         f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
                     )
-                # 10% chance to send structured search task
+                # 0% chance to send structured search task
                 else:
                     search_query = generate_structured_search_task(
                         size=self.config.neuron.search_result_size,
@@ -171,7 +223,18 @@ class Validator(BaseValidatorNeuron):
             # Log the results for monitoring purposes.
             bt.logging.debug(f"Received responses: {responses}")
 
-            rewards = self.evaluator.evaluate(search_query, responses)
+            if search_query.name == "SemanticSearchSynapse":
+                rewards = self.evaluator.evaluate_semantic_search(
+                    search_query, responses, self.eth_denver_dataset_dir
+                )
+            elif (
+                search_query.name == "StructuredSearchSynapse"
+                or search_query.name == "SearchSynapse"
+            ):
+                rewards = self.evaluator.evaluate(search_query, responses)
+            else:
+                bt.logging.error(f"Unknown search query name: {search_query.name}")
+                rewards = torch.zeros(len(miner_uids))
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
