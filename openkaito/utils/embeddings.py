@@ -1,7 +1,10 @@
 import torch
 import numpy as np
 
+from transformers import BertTokenizer, BertModel
+
 MAX_EMBEDDING_DIM = 1024
+
 
 # padding tensor to MAX_EMBEDDING_DIM with zeros
 # applicable to embeddings with shape (d) or (n, d) where d < MAX_EMBEDDING_DIM
@@ -23,3 +26,22 @@ def pad_tensor(tensor, max_len=MAX_EMBEDDING_DIM):
     else:
         raise ValueError("Invalid tensor shape")
     return tensor
+
+
+# for semantic search
+# Note: you may consider more powerful embedding models here, or even finetune your own embedding model
+# but make sure the query embedding is compatible with the indexed document embeddings
+def text_embedding(text, model_name="bert-base-uncased"):
+    """Get text embedding using Bert model"""
+
+    tokenizer = BertTokenizer.from_pretrained(model_name)
+    model = BertModel.from_pretrained(model_name)
+
+    encoded_input = tokenizer(text, return_tensors="pt")
+
+    with torch.no_grad():
+        model_output = model(**encoded_input)
+
+    embedding = model_output[0][:, 0]
+
+    return embedding

@@ -7,5 +7,5 @@ elasticsearch
 python-dotenv
 pydantic
 wandb
-sentence-transformers
+transformers
 tqdm

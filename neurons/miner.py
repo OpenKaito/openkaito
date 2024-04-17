@@ -23,7 +23,6 @@ from datetime import datetime
 import bittensor as bt
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-from sentence_transformers import SentenceTransformer
 
 import openkaito
 from openkaito.base.miner import BaseMinerNeuron
@@ -73,15 +72,9 @@ class Miner(BaseMinerNeuron):
             else None
         )
 
-        # for semantic search
-        # Note: you may consider more powerful embedding models here, or even finetune your own embedding model
-        # but make sure the query embedding is compatible with the indexed document embeddings
-        embedding_model = SentenceTransformer("paraphrase-TinyBERT-L6-v2")
-
         self.structured_search_engine = StructuredSearchEngine(
             search_client=search_client,
             relevance_ranking_model=ranking_model,
-            embedding_model=embedding_model,
             twitter_crawler=twitter_crawler,
             recall_size=self.config.neuron.search_recall_size,
         )

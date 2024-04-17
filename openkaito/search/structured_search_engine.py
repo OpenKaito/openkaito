@@ -3,7 +3,7 @@ import os
 import bittensor as bt
 from dotenv import load_dotenv
 
-from ..utils.embeddings import pad_tensor, MAX_EMBEDDING_DIM
+from ..utils.embeddings import pad_tensor, text_embedding, MAX_EMBEDDING_DIM
 
 
 class StructuredSearchEngine:
@@ -11,7 +11,6 @@ class StructuredSearchEngine:
         self,
         search_client,
         relevance_ranking_model,
-        embedding_model,
         twitter_crawler=None,
         recall_size=50,
     ):
@@ -24,8 +23,6 @@ class StructuredSearchEngine:
         self.relevance_ranking_model = relevance_ranking_model
 
         self.recall_size = recall_size
-
-        self.embedding_model = embedding_model
 
         # optional, for crawling data
         self.twitter_crawler = twitter_crawler
@@ -159,7 +156,7 @@ class StructuredSearchEngine:
         query_string = query.query_string
         index_name = query.index_name if query.index_name else "eth_denver"
 
-        embedding = self.embedding_model.encode(query_string, convert_to_tensor=True)
+        embedding = text_embedding(query_string)[0]
         embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
         body = {
             "knn": {

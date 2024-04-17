@@ -1,4 +1,4 @@
-"""Vector Search of Eth Denver dataset using Elasticsearch and Sentence Transformers
+"""Vector Search of Eth Denver dataset using Elasticsearch and Transformers
 
 This script extracts the Eth Denver dataset (open-sourced by https://portal.kaito.ai/events/ETHDenver2024 ), indexes the documents in Elasticsearch, and indexes the embeddings of the documents in Elasticsearch.
 It also provides a test query to retrieve the top-k similar documents to the query.
@@ -11,19 +11,16 @@ from pathlib import Path
 import json
 from tqdm import tqdm
 import torch
-import numpy as np
 
 from elasticsearch import Elasticsearch, helpers
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 
-from openkaito.utils.embeddings import pad_tensor, MAX_EMBEDDING_DIM
+
+from openkaito.utils.embeddings import pad_tensor, text_embedding, MAX_EMBEDDING_DIM
 
 
 root_dir = __file__.split("scripts")[0]
 index_name = "eth_denver"
-
-model = SentenceTransformer("paraphrase-TinyBERT-L6-v2")
 
 
 ### Extract Eth Denver dataset
@@ -112,7 +109,7 @@ def indexing_docs(search_client):
             search_client.index(index=index_name, body=doc, id=doc["doc_id"])
 
 
-def indexing_embeddings(search_client, model):
+def indexing_embeddings(search_client):
     """Index embeddings of documents in Elasticsearch"""
 
     for doc in tqdm(
@@ -122,7 +119,7 @@ def indexing_embeddings(search_client, model):
     ):
         doc_id = doc["_id"]
         text = doc["_source"]["text"]
-        embedding = model.encode(text, convert_to_tensor=True)
+        embedding = text_embedding(text)[0]
         embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
         search_client.update(
             index=index_name,
@@ -131,10 +128,10 @@ def indexing_embeddings(search_client, model):
         )
 
 
-def test_retrieval(search_client, query, model, topk=10):
+def test_retrieval(search_client, query, topk=5):
     """Test retrieval of top-k similar documents to query"""
 
-    embedding = model.encode(query, convert_to_tensor=True)
+    embedding = text_embedding(query)[0]
     embedding = pad_tensor(embedding, max_len=MAX_EMBEDDING_DIM)
     body = {
         "knn": {
@@ -186,14 +183,14 @@ if __name__ == "__main__":
             f"Number of docs in {index_name}: {r['count']} == total files {num_files}, no need to reindex docs"
         )
 
-    indexing_embeddings(search_client, model)
+    indexing_embeddings(search_client)
 
     query = "What is the future of blockchain?"
-    response = test_retrieval(search_client, query, model, topk=10)
+    response = test_retrieval(search_client, query, topk=5)
     # print(response)
     for response in response["hits"]["hits"]:
         print(response["_source"]["created_at"])
-        print(response["_source"]["speaker"])
         print(response["_source"]["episode_title"])
+        print(response["_source"]["speaker"])
         print(response["_source"]["text"])
         print(response["_score"])
