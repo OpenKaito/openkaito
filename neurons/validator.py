@@ -148,9 +148,8 @@ class Validator(BaseValidatorNeuron):
                 )
                 search_query.timeout = 90
             else:
-                # 20% chance to send senmantic seatch task
-                # TODO: fix the prob before release
-                if random_number < 1:
+                # 40% chance to send semantic search task
+                if random_number < 0.4:
                     segments = random_eth_denver_segments(
                         self.eth_denver_dataset_dir, num_sources=3
                     )
@@ -172,8 +171,8 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                     )
 
-                # 60% chance to send index author data task with crawling and indexing
-                elif random_number < 0.8:
+                # 50% chance to send index author data task with crawling and indexing
+                elif random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
                         num_authors=2,
@@ -187,7 +186,7 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
                     )
                 # 10% chance to send author search task without crawling
-                elif random_number < 0.9:
+                elif random_number < 1:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
                         num_authors=2,
@@ -197,7 +196,7 @@ class Validator(BaseValidatorNeuron):
                     bt.logging.info(
                         f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
                     )
-                # 10% chance to send structured search task
+                # 0% chance to send structured search task
                 else:
                     search_query = generate_structured_search_task(
                         size=self.config.neuron.search_result_size,
