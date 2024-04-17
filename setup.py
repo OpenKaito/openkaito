@@ -63,14 +63,14 @@ with codecs.open(
 setup(
     name="openkaito",
     version=version_string,
-    description="decentralized search engine",
+    description="decentralized indexing engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/OpenKaito/openkaito", 
-    author="https://github.com/OpenKaito",  # TODO(developer): Change this value to your module subnet author name.
+    url="https://github.com/OpenKaito/openkaito",
+    author="https://github.com/OpenKaito",
     packages=find_packages(),
     include_package_data=True,
-    author_email="",  # TODO(developer): Change this value to your module subnet author email.
+    author_email="",
     license="MIT",
     python_requires=">=3.8",
     install_requires=requirements,

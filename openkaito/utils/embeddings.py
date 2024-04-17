@@ -42,6 +42,12 @@ def text_embedding(text, model_name="bert-base-uncased"):
     with torch.no_grad():
         model_output = model(**encoded_input)
 
-    embedding = model_output[0][:, 0]
+    # cls pooling
+    # embedding = model_output[0][:, 0]
+
+    # mean pooling
+    embedding = torch.mean(model_output[0], dim=1)
+
+    # Note: miners are encouraged to explore more pooling strategies, finetune the model, etc.
 
     return embedding
