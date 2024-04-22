@@ -148,8 +148,8 @@ class Validator(BaseValidatorNeuron):
                 )
                 search_query.timeout = 90
             else:
-                # 40% chance to send semantic search task
-                if random_number < 0.4:
+                # 60% chance to send semantic search task
+                if random_number < 0.6:
                     segments = random_eth_denver_segments(
                         self.eth_denver_dataset_dir, num_sources=3
                     )
@@ -171,7 +171,7 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                     )
 
-                # 50% chance to send index author data task with crawling and indexing
+                # 30% chance to send index author data task with crawling and indexing
                 elif random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
