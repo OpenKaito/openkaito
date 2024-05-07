@@ -40,6 +40,7 @@ from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
+    generate_discord_search_task,
     generate_question_from_eth_denver_segments,
     generate_structured_search_task,
     random_eth_denver_segments,
@@ -138,17 +139,22 @@ class Validator(BaseValidatorNeuron):
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
             random_number = random.random()
-            # mixed tasks, deprecated SearchSynapse
+
+            # preview, no real traffic
             if random_number < 0:
-                query_string = random_query(input_file="queries.txt")
-                search_query = SearchSynapse(
-                    query_string=query_string,
-                    size=self.config.neuron.search_result_size,
+                with open("bittensor_channels.json") as f:
+                    channels = json.load(f)
+                search_query = generate_discord_search_task(
+                    query_string=None,
+                    channel_ids=[random.choice(channels)["channel_id"]],
+                    size=5,
                     version=get_version(),
                 )
-                search_query.timeout = 90
+                search_query.timeout = 10
+                bt.logging.info(
+                    f"Sending {search_query.name}: {search_query.json()} to miner uids: {miner_uids}"
+                )
             else:
-                # 60% chance to send semantic search task
                 if random_number < 0.6:
                     segments = random_eth_denver_segments(
                         self.eth_denver_dataset_dir, num_sources=3
@@ -232,6 +238,10 @@ class Validator(BaseValidatorNeuron):
                 or search_query.name == "SearchSynapse"
             ):
                 rewards = self.evaluator.evaluate(search_query, responses)
+            elif search_query.name == "DiscordSearchSynapse":
+                rewards = self.evaluator.evaluate_discord_search(
+                    search_query, responses
+                )
             else:
                 bt.logging.error(f"Unknown search query name: {search_query.name}")
                 rewards = torch.zeros(len(miner_uids))

@@ -6,8 +6,11 @@ from datetime import datetime, timezone
 from traceback import print_exception
 
 import bittensor as bt
+import dateutil.parser
 import openai
+import requests
 import torch
+import dateutil
 
 from openkaito.protocol import SortType
 
@@ -17,6 +20,9 @@ from .utils import (
     parse_llm_result_for_author_index,
     tweet_url_to_id,
 )
+
+# TODO: public api url after the task goes live
+DISCORD_MESSAGE_VALIDATE_API_URL = "http://localhost:8000/discord/{msg_id}"
 
 
 class Evaluator:
@@ -262,6 +268,187 @@ class Evaluator:
 
         return scores * zero_score_mask
 
+    def evaluate_discord_search(self, query, responses):
+
+        # query_string = query.query_string
+        size = query.size
+
+        scores = torch.zeros(len(responses))
+
+        zero_score_mask = torch.ones(len(responses))
+
+        rank_scores = torch.zeros(len(responses))
+
+        avg_ages = torch.zeros(len(responses))
+        avg_age_scores = torch.zeros(len(responses))
+        uniqueness_scores = torch.zeros(len(responses))
+
+        now = datetime.now(timezone.utc)
+        max_avg_age = 0
+
+        for i, response in enumerate(responses):
+            try:
+                if response is None or not response or len(response) > size:
+                    zero_score_mask[i] = 0
+                    continue
+
+                # groundtruth integrity check
+                for doc in response:
+                    doc_id = doc["id"]
+                    discord_msg_validate_url = DISCORD_MESSAGE_VALIDATE_API_URL.format(
+                        msg_id=doc_id
+                    )
+                    try:
+                        groundtruth = requests.get(discord_msg_validate_url).json()
+                        if groundtruth["id"] != doc_id:
+                            bt.logging.warning(
+                                f"Discord message id {doc_id} not match url id {groundtruth['id']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+                        if groundtruth["text"] != doc["text"]:
+                            bt.logging.warning(
+                                f"Document text {doc['text']} not match ground truth {groundtruth['text']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+                        if groundtruth["author_username"] != doc["author_username"]:
+                            bt.logging.warning(
+                                f"Document author_username {doc['author_username']} not match ground truth {groundtruth['author_username']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+                        if dateutil.parser.isoparse(
+                            groundtruth["created_at"]
+                        ) != dateutil.parser.isoparse(doc["created_at"]):
+                            bt.logging.warning(
+                                f"Document created_at {doc['created_at']} not match ground truth {groundtruth['created_at']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+
+                    except Exception as e:
+                        bt.logging.error(f"Error while validating discord message: {e}")
+                        bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                        zero_score_mask[i] = 0
+                        break
+            except Exception as e:
+                bt.logging.error(
+                    f"Error while intitial checking {i}-th response: {e}, 0 score"
+                )
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                zero_score_mask[i] = 0
+
+        for i, response in enumerate(responses):
+            try:
+                if zero_score_mask[i] == 0:
+                    continue
+
+                bt.logging.debug(f"Processing {i}-th response")
+
+                # for author index task
+                # check if the response is from the request author list
+                if query.author_usernames is not None:
+                    if not all(
+                        doc["author_username"] in query.author_usernames
+                        for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"Author username not in query author usernames {query.author_usernames}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
+                if query.sort_by == SortType.RECENCY:
+                    # check if the response is sorted by recency
+                    if not all(
+                        dateutil.parser.isoparse(a["created_at"])
+                        > dateutil.parser.isoparse(b["created_at"])
+                        for a, b in zip(response, response[1:])
+                    ):
+                        bt.logging.warning("Response not sorted by recency")
+                        # not sorted by recency
+                        zero_score_mask[i] = 0
+                        continue
+
+                if query.channel_ids is not None:
+                    if not all(
+                        doc["channel_id"] in query.channel_ids for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"Channel id not in query channel ids {query.channel_ids}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+                    
+                # check if the response is within the time range filter
+                if query.earlier_than_timestamp is not None:
+                    if not all(
+                        dateutil.parser.isoparse(doc["created_at"]).timestamp()
+                        < query.earlier_than_timestamp
+                        for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"created_at {doc['created_at']} is later than earlier_than_timestamp {query.earlier_than_timestamp}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+                if query.later_than_timestamp is not None:
+                    if not all(
+                        dateutil.parser.isoparse(doc["created_at"]).timestamp()
+                        > query.later_than_timestamp
+                        for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"created_at {doc['created_at']} is earlier than later_than_timestamp {query.later_than_timestamp}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
+                bt.logging.debug(
+                    f"Integrity check passed for {i}-th response: ", response
+                )
+
+                id_set = set()
+                for doc in response:
+                    avg_ages[i] += (
+                        now - datetime.fromisoformat(doc["created_at"].rstrip("Z"))
+                    ).total_seconds()
+                    id_set.add(doc["id"])
+                avg_ages[i] /= len(response)
+                max_avg_age = max(max_avg_age, avg_ages[i])
+
+                uniqueness_scores[i] = len(id_set) / size
+                if query.query_string is None:
+                    llm_ranking_scores = self.llm_author_index_data_evaluation(response)
+                else:
+                    llm_ranking_scores = self.llm_keyword_ranking_evaluation(
+                        query.query_string, response
+                    )
+
+                if query.sort_by == SortType.RECENCY:
+                    # mean quality score
+                    rank_scores[i] = sum(llm_ranking_scores) / size
+                else:
+                    rank_scores[i] = ndcg_score(llm_ranking_scores, size)
+
+                bt.logging.info(f"Quality score: {rank_scores[i]}")
+            except Exception as e:
+                bt.logging.error(f"Error while processing {i}-th response: {e}")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                zero_score_mask[i] = 0
+
+        # age contribution to encourage recency
+        avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+
+        scores = avg_age_scores * 0.2 + rank_scores * 0.8
+        scores = scores * uniqueness_scores
+
+        # relative scores in a batch
+        scores = scores / (scores.max() + 1e-5)
+
+        return scores * zero_score_mask
+
     def check_document(self, doc, groundtruth_doc):
         """
         This function checks the integrity of the document.
@@ -417,7 +604,7 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
                 f"Querying LLM of author index data with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4-turbo",
                 response_format={"type": "json_object"},
                 messages=[
                     {

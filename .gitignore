@@ -1,9 +1,12 @@
 .env
 tmp*
+etc/
 
 .vscode/
 
 eth_denver_dataset/
+
+channel_data/
 
 # venv files
 bin/

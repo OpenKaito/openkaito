@@ -1,9 +1,14 @@
 import os
+import traceback
 
 import bittensor as bt
 from dotenv import load_dotenv
 
+from openkaito.protocol import SortType
+
 from ..utils.embeddings import pad_tensor, text_embedding, MAX_EMBEDDING_DIM
+
+from opensearchpy import OpenSearch
 
 
 class StructuredSearchEngine:
@@ -61,6 +66,48 @@ class StructuredSearchEngine:
                             "reply_count": {"type": "long"},
                             "retweet_count": {"type": "long"},
                             "favorite_count": {"type": "long"},
+                        }
+                    }
+                },
+            )
+
+        # recommended discord index schema mapping
+        # (optional): miners may modify and improve it
+        index_name = "discord"
+        if not self.search_client.indices.exists(index=index_name):
+            bt.logging.info("creating index...", index_name)
+            self.search_client.indices.create(
+                index=index_name,
+                body={
+                    "mappings": {
+                        "properties": {
+                            "server_id": {"type": "keyword"},
+                            "server_name": {"type": "keyword"},
+                            "channel_id": {"type": "keyword"},
+                            "channel_name": {"type": "keyword"},
+                            "channel_type": {"type": "keyword"},
+                            "channel_category_id": {"type": "keyword"},
+                            "channel_category": {"type": "keyword"},
+                            "id": {"type": "long"},
+                            "text": {"type": "text"},
+                            "message_type": {"type": "keyword"},
+                            "reference_message_id": {"type": "long"},
+                            "is_pinned": {"type": "boolean"},
+                            "reactions_count": {"type": "long"},
+                            "created_at": {"type": "date"},
+                            "modified_at": {"type": "date"},
+                            "author_id": {"type": "keyword"},
+                            "author_username": {"type": "keyword"},
+                            "author_nickname": {"type": "keyword"},
+                            "author_discriminator": {"type": "keyword"},
+                            "author_is_bot": {"type": "boolean"},
+                            "author_roles": {
+                                "properties": {
+                                    "role_id": {"type": "keyword"},
+                                    "role_name": {"type": "keyword"},
+                                }
+                            },
+                            "last_message_id": {"type": "long"},
                         }
                     }
                 },
@@ -149,6 +196,96 @@ class StructuredSearchEngine:
             return results
         except Exception as e:
             bt.logging.error("recall error...", e)
+            return []
+
+    def discord_search(self, search_query):
+        """
+        Structured search interface for discord data
+        """
+
+        es_query = {
+            "query": {
+                "bool": {
+                    "must": [],
+                }
+            },
+            "size": search_query.size,
+        }
+
+        if search_query.query_string:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "query_string": {
+                        "query": search_query.query_string,
+                        "default_field": "text",
+                    }
+                }
+            )
+
+        if search_query.author_usernames:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "terms": {
+                        "author_username": search_query.author_usernames,
+                    }
+                }
+            )
+
+        if search_query.server_name:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "bool": {
+                        "should": [
+                            {"term": {"server_name": search_query.server_name}},
+                            {"term": {"server_id": search_query.server_name}},
+                        ]
+                    }
+                }
+            )
+
+        if search_query.channel_ids:
+            es_query["query"]["bool"]["must"].append(
+                {
+                    "terms": {
+                        "channel_id": search_query.channel_ids,
+                    }
+                }
+            )
+
+        if search_query.sort_by == SortType.RECENCY:
+            es_query["sort"] = [{"created_at": {"order": "desc"}}]
+
+        time_filter = {}
+        if search_query.earlier_than_timestamp:
+            time_filter["lte"] = search_query.earlier_than_timestamp
+        if search_query.later_than_timestamp:
+            time_filter["gte"] = search_query.later_than_timestamp
+        if time_filter:
+            es_query["query"]["bool"]["must"].append(
+                {"range": {"created_at": time_filter}}
+            )
+
+        bt.logging.trace(f"es_query: {es_query}")
+
+        search_client = self.search_client
+        index_name = search_query.index_name if search_query.index_name else "discord"
+        try:
+            response = search_client.search(
+                index=index_name,
+                body=es_query,
+            )
+            documents = response["hits"]["hits"]
+            results = []
+            for document in documents if documents else []:
+                doc = document["_source"]
+                results.append(doc)
+            bt.logging.info(f"retrieved {len(results)} results")
+            bt.logging.trace(f"results: ")
+            return results[: search_query.size]
+        except Exception as e:
+            bt.logging.error("retrieve error...", e)
+            bt.logging.error(traceback.format_exc())
+
             return []
 
     def vector_search(self, query):
