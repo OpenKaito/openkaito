@@ -117,3 +117,46 @@ class SemanticSearchSynapse(bt.Synapse):
 
     def deserialize(self) -> List[Dict]:
         return self.results
+
+
+class DiscordSearchSynapse(bt.Synapse):
+    """
+    Semantic search protocol representation for handling request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - query_string: A string value representing the search request sent by the validator.
+    - size: the maximal count size of results to return.
+    - sort_type: the type of sorting to use for the search results.
+    - earlier_than_timestamp: A timestamp value representing the earliest time to search for.
+    - later_than_timestamp: A timestamp value representing the latest time to search for.
+    - version: A `Version` object representing the version of the protocol.
+    """
+
+    query_string: Optional[str] = None
+    size: int = pydantic.Field(5, ge=1, le=50)
+
+    index_name: str = pydantic.Field("discord", regex="^[a-z0-9_]+$")
+
+    # this is for extension, currently the task is bootstrapped with the content in Bittensor discord server only.
+    server_name: str = pydantic.Field("Bittensor")
+
+    # accurate channel filter
+    channel_ids: Optional[List[str]] = pydantic.Field(None)
+
+    # Note: use int instead of datetime to avoid serialization issues in dendrite.
+    earlier_than_timestamp: int = pydantic.Field(None, ge=0)
+    later_than_timestamp: int = pydantic.Field(None, ge=0)
+
+    author_usernames: Optional[List[str]] = None
+
+    sort_by: Optional[SortType] = None
+
+    custom_fields: Optional[Dict] = None
+
+    version: Optional[Version] = None
+
+    results: Optional[List[Dict]] = None
+
+    def deserialize(self) -> List[Dict]:
+        return self.results
