@@ -18,11 +18,13 @@ from .utils import (
     ndcg_score,
     parse_llm_result,
     parse_llm_result_for_author_index,
+    parse_llm_result_for_discord_msg,
     tweet_url_to_id,
 )
 
-# TODO: public api url after the task goes live
-DISCORD_MESSAGE_VALIDATE_API_URL = "http://localhost:8000/discord/{msg_id}"
+DISCORD_MESSAGE_VALIDATE_API_URL = (
+    "https://hx36hc3ne0.execute-api.us-west-2.amazonaws.com/dev/discord/{msg_id}"
+)
 
 
 class Evaluator:
@@ -380,7 +382,7 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
-                    
+
                 # check if the response is within the time range filter
                 if query.earlier_than_timestamp is not None:
                     if not all(
@@ -412,7 +414,7 @@ class Evaluator:
                 id_set = set()
                 for doc in response:
                     avg_ages[i] += (
-                        now - datetime.fromisoformat(doc["created_at"].rstrip("Z"))
+                        now - dateutil.parser.isoparse(doc["created_at"])
                     ).total_seconds()
                     id_set.add(doc["id"])
                 avg_ages[i] /= len(response)
@@ -420,7 +422,8 @@ class Evaluator:
 
                 uniqueness_scores[i] = len(id_set) / size
                 if query.query_string is None:
-                    llm_ranking_scores = self.llm_author_index_data_evaluation(response)
+                    llm_ranking_scores = self.llm_discord_message_evaluation(response)
+                # currently the task does not contain query string, below is a placeholer/no-op
                 else:
                     llm_ranking_scores = self.llm_keyword_ranking_evaluation(
                         query.query_string, response
@@ -430,6 +433,7 @@ class Evaluator:
                     # mean quality score
                     rank_scores[i] = sum(llm_ranking_scores) / size
                 else:
+                    # nDCG quality score
                     rank_scores[i] = ndcg_score(llm_ranking_scores, size)
 
                 bt.logging.info(f"Quality score: {rank_scores[i]}")
@@ -441,7 +445,8 @@ class Evaluator:
         # age contribution to encourage recency
         avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
 
-        scores = avg_age_scores * 0.2 + rank_scores * 0.8
+        # recency counts up to 40%
+        scores = avg_age_scores * 0.4 + rank_scores * 0.6
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
@@ -765,6 +770,78 @@ relevant: Comprehensive, insightful content suitable for answering the given que
                 return self.llm_semantic_search_evaluation(
                     query_string, docs, retries - 1
                 )
+            else:
+                bt.logging.error(
+                    f"Failed to parse LLM result after retrying. Returning [0]."
+                )
+            return [0]
+
+    def llm_discord_message_evaluation(self, docs, retries=3):
+        if docs is None or len(docs) == 0:
+            return [0]
+        try:
+            newline = "\n"
+            prompt_docs = "\n\n".join(
+                [
+                    f"ItemId: {i}\nText: {doc['text'][:1000].replace(newline, '  ')}"
+                    for i, doc in enumerate(docs)
+                ]
+            )
+
+            bt.logging.debug(
+                f"Querying LLM of discord message data with docs:\n" + prompt_docs
+            )
+            output = self.llm_client.chat.completions.create(
+                model="gpt-4o",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You will be given a list of messages with id and you have to rate them based on its information and meaningfulness.
+A message is meaningful if it is self-contained with valuable information or insights, for example, it can be an announcement, a news, a discussion, a explanation/guide/question of code, or a opinion towards a subnet project or topic.
+A message is meaningless if it is spam, off-topic, or contains no valuable information or insights without additional context.
+""",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"You will be given a list of documents with id and you have to rate them based on its information and meaningfulness. The documents are as follows:\n"
+                        + prompt_docs,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Use the metric choices [meaningful, meaningless] to evaluate the text.",
+                    },
+                    {
+                        "role": "user",
+                        "content": "Must answer in JSON format of a list of choices with item ids for all the given items: "
+                        + "{'results': [{'item_id': the item id of choice, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
+                    },
+                ],
+                temperature=0,
+            )
+            bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.debug(
+                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+            )
+        except Exception as e:
+            bt.logging.error(f"Error while querying LLM: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+            return 0
+
+        try:
+            result = json.loads(output.choices[0].message.content)
+            # bt.logging.debug(f"LLM result: {result}")
+            ranking = parse_llm_result_for_discord_msg(result)
+            bt.logging.info(f"LLM ranking: {ranking}")
+            if len(ranking) != len(docs):
+                raise ValueError(
+                    f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
+                )
+            return ranking
+        except Exception as e:
+            bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
+            if retries > 0:
+                return self.llm_author_index_data_evaluation(docs, retries - 1)
             else:
                 bt.logging.error(
                     f"Failed to parse LLM result after retrying. Returning [0]."

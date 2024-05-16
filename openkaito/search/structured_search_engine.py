@@ -93,21 +93,13 @@ class StructuredSearchEngine:
                             "message_type": {"type": "keyword"},
                             "reference_message_id": {"type": "long"},
                             "is_pinned": {"type": "boolean"},
-                            "reactions_count": {"type": "long"},
                             "created_at": {"type": "date"},
                             "modified_at": {"type": "date"},
                             "author_id": {"type": "keyword"},
                             "author_username": {"type": "keyword"},
                             "author_nickname": {"type": "keyword"},
                             "author_discriminator": {"type": "keyword"},
-                            "author_is_bot": {"type": "boolean"},
-                            "author_roles": {
-                                "properties": {
-                                    "role_id": {"type": "keyword"},
-                                    "role_name": {"type": "keyword"},
-                                }
-                            },
-                            "last_message_id": {"type": "long"},
+                            # add more fields for better indexing
                         }
                     }
                 },

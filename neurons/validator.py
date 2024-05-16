@@ -140,8 +140,8 @@ class Validator(BaseValidatorNeuron):
 
             random_number = random.random()
 
-            # preview, no real traffic
-            if random_number < 0:
+            # todo: fix this
+            if random_number < 1:
                 with open("bittensor_channels.json") as f:
                     channels = json.load(f)
                 search_query = generate_discord_search_task(
