@@ -140,8 +140,8 @@ class Validator(BaseValidatorNeuron):
 
             random_number = random.random()
 
-            # todo: fix this
-            if random_number < 1:
+            # 20% discord task
+            if random_number < 0.2:
                 with open("bittensor_channels.json") as f:
                     channels = json.load(f)
                 search_query = generate_discord_search_task(
@@ -155,7 +155,8 @@ class Validator(BaseValidatorNeuron):
                     f"Sending {search_query.name}: {search_query.json()} to miner uids: {miner_uids}"
                 )
             else:
-                if random_number < 0.6:
+                # 60% chance to send ETH Denver semantic search task
+                if random_number < 0.8:
                     segments = random_eth_denver_segments(
                         self.eth_denver_dataset_dir, num_sources=3
                     )
@@ -177,7 +178,7 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                     )
 
-                # 30% chance to send index author data task with crawling and indexing
+                # 10% chance to send index author data task with crawling and indexing
                 elif random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
@@ -246,6 +247,11 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.error(f"Unknown search query name: {search_query.name}")
                 rewards = torch.zeros(len(miner_uids))
 
+            raw_scores = rewards.clone().detach()
+
+            # relative scores in a batch
+            rewards = rewards / (rewards.max() + 1e-5)
+
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
             self.update_scores(rewards, miner_uids)
@@ -257,10 +263,26 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    "responses": {
-                        uid.item(): json.dumps(response)
-                        for uid, response in zip(miner_uids, responses)
+                    "raw_scores": {
+                        uid.item(): raw_score.item()
+                        for uid, raw_score in zip(miner_uids, raw_scores)
                     },
+                    search_query.name
+                    + "_scores": {
+                        uid.item(): reward.item()
+                        for uid, reward in zip(miner_uids, rewards)
+                    },
+                    search_query.name
+                    + "_raw_scores": {
+                        uid.item(): raw_score.item()
+                        for uid, raw_score in zip(miner_uids, raw_scores)
+                    },
+                    # "responses": {
+                    #     uid.item(): json.dumps(response)
+                    #     for uid, response in zip(miner_uids, responses)
+                    # },
+                    search_query.name + "_avg_score": raw_scores.mean().item(),
+                    "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 }
                 wandb.log(wandb_log)
                 bt.logging.debug("wandb_log", wandb_log)

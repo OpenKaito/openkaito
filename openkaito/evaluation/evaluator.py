@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import random
 from datetime import datetime, timezone
+from dateutil import parser
 from traceback import print_exception
 
 import bittensor as bt
@@ -207,8 +208,9 @@ class Evaluator:
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
-        scores = scores / (scores.max() + 1e-5)
+        # scores = scores / (scores.max() + 1e-5)
 
+        # return raw scores for tracking
         return scores * zero_score_mask
 
     def evaluate_semantic_search(
@@ -266,8 +268,9 @@ class Evaluator:
         scores = rank_scores * uniqueness_scores
 
         # relative scores in a batch
-        scores = scores / (scores.max() + 1e-5)
+        # scores = scores / (scores.max() + 1e-5)
 
+        # return raw scores for tracking
         return scores * zero_score_mask
 
     def evaluate_discord_search(self, query, responses):
@@ -287,6 +290,7 @@ class Evaluator:
 
         now = datetime.now(timezone.utc)
         max_avg_age = 0
+        min_avg_age = float("inf")
 
         for i, response in enumerate(responses):
             try:
@@ -302,6 +306,7 @@ class Evaluator:
                     )
                     try:
                         groundtruth = requests.get(discord_msg_validate_url).json()
+
                         if groundtruth["id"] != doc_id:
                             bt.logging.warning(
                                 f"Discord message id {doc_id} not match url id {groundtruth['id']}"
@@ -419,6 +424,7 @@ class Evaluator:
                     id_set.add(doc["id"])
                 avg_ages[i] /= len(response)
                 max_avg_age = max(max_avg_age, avg_ages[i])
+                min_avg_age = min(min_avg_age, avg_ages[i])
 
                 uniqueness_scores[i] = len(id_set) / size
                 if query.query_string is None:
@@ -443,15 +449,19 @@ class Evaluator:
                 zero_score_mask[i] = 0
 
         # age contribution to encourage recency
-        avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+        # avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+        avg_age_scores = 1 - (avg_ages - min_avg_age) / (
+            max_avg_age - min_avg_age + 1e-5
+        )
 
         # recency counts up to 40%
         scores = avg_age_scores * 0.4 + rank_scores * 0.6
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
-        scores = scores / (scores.max() + 1e-5)
+        # scores = scores / (scores.max() + 1e-5)
 
+        # return raw scores for tracking
         return scores * zero_score_mask
 
     def check_document(self, doc, groundtruth_doc):
@@ -783,7 +793,7 @@ relevant: Comprehensive, insightful content suitable for answering the given que
             newline = "\n"
             prompt_docs = "\n\n".join(
                 [
-                    f"ItemId: {i}\nText: {doc['text'][:1000].replace(newline, '  ')}"
+                    f"ItemId: {i}\nTimestamp:{doc['created_at']}\nText: {doc['text'][:1000].replace(newline, '  ')}"
                     for i, doc in enumerate(docs)
                 ]
             )
@@ -797,14 +807,20 @@ relevant: Comprehensive, insightful content suitable for answering the given que
                 messages=[
                     {
                         "role": "system",
-                        "content": """You will be given a list of messages with id and you have to rate them based on its information and meaningfulness.
-A message is meaningful if it is self-contained with valuable information or insights, for example, it can be an announcement, a news, a discussion, a explanation/guide/question of code, or a opinion towards a subnet project or topic.
-A message is meaningless if it is spam, off-topic, or contains no valuable information or insights without additional context.
+                        "content": """You will be given a list of messages from a discord channel and you have to rate them based on its information and meaningfulness.
+A message is meaningful if it is self-contained with valuable information, for example, it can be an announcement, a news, an instruction about code, or a opinion towards a subnet.
+A message is meaningless if it contains no valuable information or is a piece of conversation taken out of contexts.
+For example, meaningless messages can be a question without context, a response to an unknown question, log without explanation, code without context, very short messages, or an announcement from six months ago.
+Note even if a message itself is informative, it should still be categorized into meaningless if it is part of a conversation or lacks context to understand the information based on the message itself.
 """,
                     },
                     {
+                        "role": "system",
+                        "content": f"Current Time: {datetime.now().isoformat().split('T')[0]}",
+                    },
+                    {
                         "role": "user",
-                        "content": f"You will be given a list of documents with id and you have to rate them based on its information and meaningfulness. The documents are as follows:\n"
+                        "content": f"You will be given a list of documents with id and timestamp, please rate them based on its information and meaningfulness. The documents are as follows:\n"
                         + prompt_docs,
                     },
                     {
