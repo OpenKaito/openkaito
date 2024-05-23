@@ -9,3 +9,5 @@ pydantic
 wandb
 transformers
 tqdm
+requests
+python-dateutil

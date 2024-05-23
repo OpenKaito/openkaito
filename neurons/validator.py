@@ -22,7 +22,7 @@ import random
 import time
 import wandb
 import tarfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from traceback import print_exception
 from pathlib import Path
 
@@ -40,6 +40,7 @@ from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
+    generate_discord_search_task,
     generate_question_from_eth_denver_segments,
     generate_structured_search_task,
     random_eth_denver_segments,
@@ -138,18 +139,28 @@ class Validator(BaseValidatorNeuron):
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
 
             random_number = random.random()
-            # mixed tasks, deprecated SearchSynapse
-            if random_number < 0:
-                query_string = random_query(input_file="queries.txt")
-                search_query = SearchSynapse(
-                    query_string=query_string,
-                    size=self.config.neuron.search_result_size,
+
+            # 20% discord task
+            if random_number < 0.2:
+                with open("bittensor_channels.json") as f:
+                    channels = json.load(f)
+                search_query = generate_discord_search_task(
+                    query_string=None,
+                    channel_ids=[random.choice(channels)["channel_id"]],
+                    # earlier than 1 day messages to allow latency in validation groundtruth
+                    earlier_than_timestamp=int(
+                        (datetime.now() - timedelta(days=1)).timestamp() * 1000
+                    ),
+                    size=5,
                     version=get_version(),
                 )
-                search_query.timeout = 90
+                search_query.timeout = 10
+                bt.logging.info(
+                    f"Sending {search_query.name}: {search_query.json()} to miner uids: {miner_uids}"
+                )
             else:
-                # 60% chance to send semantic search task
-                if random_number < 0.6:
+                # 60% chance to send ETH Denver semantic search task
+                if random_number < 0.8:
                     segments = random_eth_denver_segments(
                         self.eth_denver_dataset_dir, num_sources=3
                     )
@@ -171,7 +182,7 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                     )
 
-                # 30% chance to send index author data task with crawling and indexing
+                # 10% chance to send index author data task with crawling and indexing
                 elif random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
@@ -232,9 +243,18 @@ class Validator(BaseValidatorNeuron):
                 or search_query.name == "SearchSynapse"
             ):
                 rewards = self.evaluator.evaluate(search_query, responses)
+            elif search_query.name == "DiscordSearchSynapse":
+                rewards = self.evaluator.evaluate_discord_search(
+                    search_query, responses
+                )
             else:
                 bt.logging.error(f"Unknown search query name: {search_query.name}")
                 rewards = torch.zeros(len(miner_uids))
+
+            raw_scores = rewards.clone().detach()
+
+            # relative scores in a batch
+            rewards = rewards / (rewards.max() + 1e-5)
 
             bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
@@ -247,10 +267,26 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    "responses": {
-                        uid.item(): json.dumps(response)
-                        for uid, response in zip(miner_uids, responses)
+                    "raw_scores": {
+                        uid.item(): raw_score.item()
+                        for uid, raw_score in zip(miner_uids, raw_scores)
                     },
+                    search_query.name
+                    + "_scores": {
+                        uid.item(): reward.item()
+                        for uid, reward in zip(miner_uids, rewards)
+                    },
+                    search_query.name
+                    + "_raw_scores": {
+                        uid.item(): raw_score.item()
+                        for uid, raw_score in zip(miner_uids, raw_scores)
+                    },
+                    # "responses": {
+                    #     uid.item(): json.dumps(response)
+                    #     for uid, response in zip(miner_uids, responses)
+                    # },
+                    search_query.name + "_avg_score": raw_scores.mean().item(),
+                    "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 }
                 wandb.log(wandb_log)
                 bt.logging.debug("wandb_log", wandb_log)

@@ -28,6 +28,7 @@ import openkaito
 from openkaito.base.miner import BaseMinerNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.protocol import (
+    DiscordSearchSynapse,
     SearchSynapse,
     StructuredSearchSynapse,
     SemanticSearchSynapse,
@@ -162,6 +163,26 @@ class Miner(BaseMinerNeuron):
         elapsed_time = (end_time - start_time).total_seconds()
         bt.logging.info(
             f"processed SemanticSearchSynapse in {elapsed_time} seconds",
+        )
+        return query
+
+    async def forward_discord_search(
+        self, query: DiscordSearchSynapse
+    ) -> DiscordSearchSynapse:
+
+        start_time = datetime.now()
+        bt.logging.info(
+            f"received DiscordSearchSynapse... timeout:{query.timeout}s ", query
+        )
+        self.check_version(query)
+
+        ranked_docs = self.structured_search_engine.discord_search(query)
+        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
+        query.results = ranked_docs
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).total_seconds()
+        bt.logging.info(
+            f"processed DiscordSearchSynapse in {elapsed_time} seconds",
         )
         return query
 

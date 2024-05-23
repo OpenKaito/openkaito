@@ -46,3 +46,11 @@ def parse_llm_result_for_author_index(result):
         "insightful": 1,
     }
     return [choice_mapping[doc["choice"]] for doc in result["results"]]
+
+
+def parse_llm_result_for_discord_msg(result):
+    choice_mapping = {
+        "meaningless": 0,
+        "meaningful": 1,
+    }
+    return [choice_mapping[doc["choice"]] for doc in result["results"]]

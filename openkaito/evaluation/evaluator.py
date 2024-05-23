@@ -3,11 +3,15 @@ import os
 from pathlib import Path
 import random
 from datetime import datetime, timezone
+from dateutil import parser
 from traceback import print_exception
 
 import bittensor as bt
+import dateutil.parser
 import openai
+import requests
 import torch
+import dateutil
 
 from openkaito.protocol import SortType
 
@@ -15,7 +19,12 @@ from .utils import (
     ndcg_score,
     parse_llm_result,
     parse_llm_result_for_author_index,
+    parse_llm_result_for_discord_msg,
     tweet_url_to_id,
+)
+
+DISCORD_MESSAGE_VALIDATE_API_URL = (
+    "https://hx36hc3ne0.execute-api.us-west-2.amazonaws.com/dev/discord/{msg_id}"
 )
 
 
@@ -199,8 +208,9 @@ class Evaluator:
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
-        scores = scores / (scores.max() + 1e-5)
+        # scores = scores / (scores.max() + 1e-5)
 
+        # return raw scores for tracking
         return scores * zero_score_mask
 
     def evaluate_semantic_search(
@@ -258,8 +268,200 @@ class Evaluator:
         scores = rank_scores * uniqueness_scores
 
         # relative scores in a batch
-        scores = scores / (scores.max() + 1e-5)
+        # scores = scores / (scores.max() + 1e-5)
 
+        # return raw scores for tracking
+        return scores * zero_score_mask
+
+    def evaluate_discord_search(self, query, responses):
+
+        # query_string = query.query_string
+        size = query.size
+
+        scores = torch.zeros(len(responses))
+
+        zero_score_mask = torch.ones(len(responses))
+
+        rank_scores = torch.zeros(len(responses))
+
+        avg_ages = torch.zeros(len(responses))
+        avg_age_scores = torch.zeros(len(responses))
+        uniqueness_scores = torch.zeros(len(responses))
+
+        now = datetime.now(timezone.utc)
+        max_avg_age = 0
+        min_avg_age = float("inf")
+
+        for i, response in enumerate(responses):
+            try:
+                if response is None or not response or len(response) > size:
+                    zero_score_mask[i] = 0
+                    continue
+
+                # groundtruth integrity check
+                for doc in response:
+                    doc_id = doc["id"]
+                    discord_msg_validate_url = DISCORD_MESSAGE_VALIDATE_API_URL.format(
+                        msg_id=doc_id
+                    )
+                    try:
+                        groundtruth = requests.get(discord_msg_validate_url).json()
+
+                        if groundtruth["id"] != doc_id:
+                            bt.logging.warning(
+                                f"Discord message id {doc_id} not match url id {groundtruth['id']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+                        if groundtruth["text"] != doc["text"]:
+                            bt.logging.warning(
+                                f"Document text {doc['text']} not match ground truth {groundtruth['text']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+                        if groundtruth["author_username"] != doc["author_username"]:
+                            bt.logging.warning(
+                                f"Document author_username {doc['author_username']} not match ground truth {groundtruth['author_username']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+                        if dateutil.parser.isoparse(
+                            groundtruth["created_at"]
+                        ) != dateutil.parser.isoparse(doc["created_at"]):
+                            bt.logging.warning(
+                                f"Document created_at {doc['created_at']} not match ground truth {groundtruth['created_at']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
+
+                    except Exception as e:
+                        bt.logging.error(f"Error while validating discord message: {e}")
+                        bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                        zero_score_mask[i] = 0
+                        break
+            except Exception as e:
+                bt.logging.error(
+                    f"Error while intitial checking {i}-th response: {e}, 0 score"
+                )
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                zero_score_mask[i] = 0
+
+        for i, response in enumerate(responses):
+            try:
+                if zero_score_mask[i] == 0:
+                    continue
+
+                bt.logging.debug(f"Processing {i}-th response")
+
+                # for author index task
+                # check if the response is from the request author list
+                if query.author_usernames is not None:
+                    if not all(
+                        doc["author_username"] in query.author_usernames
+                        for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"Author username not in query author usernames {query.author_usernames}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
+                if query.sort_by == SortType.RECENCY:
+                    # check if the response is sorted by recency
+                    if not all(
+                        dateutil.parser.isoparse(a["created_at"])
+                        > dateutil.parser.isoparse(b["created_at"])
+                        for a, b in zip(response, response[1:])
+                    ):
+                        bt.logging.warning("Response not sorted by recency")
+                        # not sorted by recency
+                        zero_score_mask[i] = 0
+                        continue
+
+                if query.channel_ids is not None:
+                    if not all(
+                        doc["channel_id"] in query.channel_ids for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"Channel id not in query channel ids {query.channel_ids}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
+                # check if the response is within the time range filter
+                if query.earlier_than_timestamp is not None:
+                    if not all(
+                        dateutil.parser.isoparse(doc["created_at"]).timestamp()
+                        < query.earlier_than_timestamp
+                        for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"created_at {doc['created_at']} is later than earlier_than_timestamp {query.earlier_than_timestamp}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+                if query.later_than_timestamp is not None:
+                    if not all(
+                        dateutil.parser.isoparse(doc["created_at"]).timestamp()
+                        > query.later_than_timestamp
+                        for doc in response
+                    ):
+                        bt.logging.warning(
+                            f"created_at {doc['created_at']} is earlier than later_than_timestamp {query.later_than_timestamp}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
+                bt.logging.debug(
+                    f"Integrity check passed for {i}-th response: ", response
+                )
+
+                id_set = set()
+                for doc in response:
+                    avg_ages[i] += (
+                        now - dateutil.parser.isoparse(doc["created_at"])
+                    ).total_seconds()
+                    id_set.add(doc["id"])
+                avg_ages[i] /= len(response)
+                max_avg_age = max(max_avg_age, avg_ages[i])
+                min_avg_age = min(min_avg_age, avg_ages[i])
+
+                uniqueness_scores[i] = len(id_set) / size
+                if query.query_string is None:
+                    llm_ranking_scores = self.llm_discord_message_evaluation(response)
+                # currently the task does not contain query string, below is a placeholer/no-op
+                else:
+                    llm_ranking_scores = self.llm_keyword_ranking_evaluation(
+                        query.query_string, response
+                    )
+
+                if query.sort_by == SortType.RECENCY:
+                    # mean quality score
+                    rank_scores[i] = sum(llm_ranking_scores) / size
+                else:
+                    # nDCG quality score
+                    rank_scores[i] = ndcg_score(llm_ranking_scores, size)
+
+                bt.logging.info(f"Quality score: {rank_scores[i]}")
+            except Exception as e:
+                bt.logging.error(f"Error while processing {i}-th response: {e}")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                zero_score_mask[i] = 0
+
+        # age contribution to encourage recency
+        # avg_age_scores = 1 - (avg_ages / (max_avg_age + 1))
+        avg_age_scores = 1 - (avg_ages - min_avg_age) / (
+            max_avg_age - min_avg_age + 1e-5
+        )
+
+        # recency counts up to 40%
+        scores = avg_age_scores * 0.4 + rank_scores * 0.6
+        scores = scores * uniqueness_scores
+
+        # relative scores in a batch
+        # scores = scores / (scores.max() + 1e-5)
+
+        # return raw scores for tracking
         return scores * zero_score_mask
 
     def check_document(self, doc, groundtruth_doc):
@@ -417,7 +619,7 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
                 f"Querying LLM of author index data with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4-turbo",
                 response_format={"type": "json_object"},
                 messages=[
                     {
@@ -578,6 +780,84 @@ relevant: Comprehensive, insightful content suitable for answering the given que
                 return self.llm_semantic_search_evaluation(
                     query_string, docs, retries - 1
                 )
+            else:
+                bt.logging.error(
+                    f"Failed to parse LLM result after retrying. Returning [0]."
+                )
+            return [0]
+
+    def llm_discord_message_evaluation(self, docs, retries=3):
+        if docs is None or len(docs) == 0:
+            return [0]
+        try:
+            newline = "\n"
+            prompt_docs = "\n\n".join(
+                [
+                    f"ItemId: {i}\nTimestamp:{doc['created_at']}\nText: {doc['text'][:1000].replace(newline, '  ')}"
+                    for i, doc in enumerate(docs)
+                ]
+            )
+
+            bt.logging.debug(
+                f"Querying LLM of discord message data with docs:\n" + prompt_docs
+            )
+            output = self.llm_client.chat.completions.create(
+                model="gpt-4o",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You will be given a list of messages from a discord channel and you have to rate them based on its information and meaningfulness.
+A message is meaningful if it is self-contained with valuable information, for example, it can be an announcement, a news, an instruction about code, or a opinion towards a subnet.
+A message is meaningless if it contains no valuable information or is a piece of conversation taken out of contexts.
+For example, meaningless messages can be a question without context, a response to an unknown question, log without explanation, code without context, very short messages, or an announcement from six months ago.
+Note even if a message itself is informative, it should still be categorized into meaningless if it is part of a conversation or lacks context to understand the information based on the message itself.
+""",
+                    },
+                    {
+                        "role": "system",
+                        "content": f"Current Time: {datetime.now().isoformat().split('T')[0]}",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"You will be given a list of documents with id and timestamp, please rate them based on its information and meaningfulness. The documents are as follows:\n"
+                        + prompt_docs,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Use the metric choices [meaningful, meaningless] to evaluate the text.",
+                    },
+                    {
+                        "role": "user",
+                        "content": "Must answer in JSON format of a list of choices with item ids for all the given items: "
+                        + "{'results': [{'item_id': the item id of choice, e.g. 0, 'reason': a very short explanation of your choice, 'choice':The choice of answer. }, {'item_id': 1, 'reason': explanation, 'choice': answer } , ... ] } ",
+                    },
+                ],
+                temperature=0,
+            )
+            bt.logging.debug(f"LLM response: {output.choices[0].message.content}")
+            bt.logging.debug(
+                f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+            )
+        except Exception as e:
+            bt.logging.error(f"Error while querying LLM: {e}")
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+            return 0
+
+        try:
+            result = json.loads(output.choices[0].message.content)
+            # bt.logging.debug(f"LLM result: {result}")
+            ranking = parse_llm_result_for_discord_msg(result)
+            bt.logging.info(f"LLM ranking: {ranking}")
+            if len(ranking) != len(docs):
+                raise ValueError(
+                    f"Length of ranking {len(ranking)} does not match input docs length {len(docs)}"
+                )
+            return ranking
+        except Exception as e:
+            bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
+            if retries > 0:
+                return self.llm_author_index_data_evaluation(docs, retries - 1)
             else:
                 bt.logging.error(
                     f"Failed to parse LLM result after retrying. Returning [0]."

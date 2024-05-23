@@ -26,6 +26,7 @@ import torch
 
 from openkaito.base.neuron import BaseNeuron
 from openkaito.protocol import (
+    DiscordSearchSynapse,
     SearchSynapse,
     SemanticSearchSynapse,
     StructuredSearchSynapse,
@@ -70,6 +71,10 @@ class BaseMinerNeuron(BaseNeuron):
             forward_fn=self.forward_semantic_search,
             blacklist_fn=self.blacklist_semantic_search,
             priority_fn=self.priority_semantic_search,
+        ).attach(
+            forward_fn=self.forward_discord_search,
+            blacklist_fn=self.blacklist_discord_search,
+            priority_fn=self.priority_discord_search,
         )
         bt.logging.info(f"Axon created: {self.axon}")
 
@@ -97,6 +102,11 @@ class BaseMinerNeuron(BaseNeuron):
         self, query: SemanticSearchSynapse
     ) -> SemanticSearchSynapse:
         bt.logging.warning("unimplemented: forward_semantic_search()")
+
+    async def forward_discord_search(
+        self, query: DiscordSearchSynapse
+    ) -> DiscordSearchSynapse:
+        bt.logging.warning("unimplemented: forward_discord_search()")
 
     def run(self):
         """
@@ -333,6 +343,14 @@ class BaseMinerNeuron(BaseNeuron):
         return await self.blacklist(synapse)
 
     async def priority_semantic_search(self, synapse: SemanticSearchSynapse) -> float:
+        return await self.priority(synapse)
+
+    async def blacklist_discord_search(
+        self, synapse: DiscordSearchSynapse
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+
+    async def priority_discord_search(self, synapse: DiscordSearchSynapse) -> float:
         return await self.priority(synapse)
 
     def save_state(self):
