@@ -198,6 +198,8 @@ def generate_discord_search_task(
     index_name: str = "discord",
     channel_ids: list = None,
     author_usernames: list = None,
+    earlier_than_timestamp: int = None,
+    later_than_timestamp: int = None,
     size: int = 5,
     version: str = None,
 ) -> DiscordSearchSynapse:
@@ -212,6 +214,8 @@ def generate_discord_search_task(
         index_name=index_name,
         channel_ids=channel_ids,
         author_usernames=author_usernames,
+        earlier_than_timestamp=earlier_than_timestamp,
+        later_than_timestamp=later_than_timestamp,
         size=size,
         version=version,
     )

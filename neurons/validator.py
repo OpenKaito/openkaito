@@ -22,7 +22,7 @@ import random
 import time
 import wandb
 import tarfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from traceback import print_exception
 from pathlib import Path
 
@@ -147,6 +147,10 @@ class Validator(BaseValidatorNeuron):
                 search_query = generate_discord_search_task(
                     query_string=None,
                     channel_ids=[random.choice(channels)["channel_id"]],
+                    # earlier than 1 day messages to allow latency in validation groundtruth
+                    earlier_than_timestamp=int(
+                        (datetime.now() - timedelta(days=1)).timestamp() * 1000
+                    ),
                     size=5,
                     version=get_version(),
                 )
