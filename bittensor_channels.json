@@ -15,16 +15,6 @@
     "channel_name": "\ud83d\udce3\u30fbannouncements"
   },
   {
-    "channel_id": "799672011814862902",
-    "channel_category": "[\u30fbCommunity\u30fb]",
-    "channel_name": "\ud83d\udcad\u30fbgeneral"
-  },
-  {
-    "channel_id": "1230665820859007039",
-    "channel_category": "[\u30fbCommunity\u30fb]",
-    "channel_name": "\ud83e\uddee\u30fbdtao"
-  },
-  {
     "channel_id": "1161765008347254915",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u2206\u30fbdelta\u30fb4"
@@ -80,7 +70,7 @@
     "channel_name": "\u03ba\u30fbkappa\u30fb10"
   },
   {
-    "channel_id": "1161765231953989712",
+    "channel_id": "1232378968187867147",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u03bb\u30fblambda\u30fb11"
   },
@@ -150,7 +140,7 @@
     "channel_name": "\u03c9\u30fbomega\u30fb24"
   },
   {
-    "channel_id": "1234896994674278491",
+    "channel_id": "1234881153832321024",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05d0\u30fbalef\u30fb25"
   },
@@ -190,9 +180,24 @@
     "channel_name": "\u05d7\u30fbchet\u30fb32"
   },
   {
+    "channel_id": "1233428828479819876",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05d8\u30fbtet\u30fb33"
+  },
+  {
+    "channel_id": "1235677956081193122",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05d9\u30fbyod\u30fb34"
+  },
+  {
     "channel_id": "1213131262483628102",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fb\u2207-tensorplex\u30fb98"
+  },
+  {
+    "channel_id": "1240801129177157692",
+    "channel_category": "[\u30fbTESTNET\u30fb]",
+    "channel_name": "t\u30fbany-to-any\u30fb157"
   },
   {
     "channel_id": "1222672871092912262",
@@ -210,11 +215,6 @@
     "channel_name": "t\u30fbbitaudit\u30fb74"
   },
   {
-    "channel_id": "1233428828479819876",
-    "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbcgp\u30fb138"
-  },
-  {
     "channel_id": "1161764869280903240",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbd3\u30fb18"
@@ -225,9 +225,9 @@
     "channel_name": "t\u30fbdaasi\u30fb77"
   },
   {
-    "channel_id": "1232378968187867147",
+    "channel_id": "1241046233800507482",
     "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbdippy-roleplay\u30fb135"
+    "channel_name": "t\u30fbedge-opt\u30fb70"
   },
   {
     "channel_id": "1204855126045753434",
@@ -240,24 +240,9 @@
     "channel_name": "t\u30fbflavia\u30fb58"
   },
   {
-    "channel_id": "1234881153832321024",
-    "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbfolding\u30fb141"
-  },
-  {
-    "channel_id": "1232797834806427791",
-    "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbfolding\u30fb89"
-  },
-  {
     "channel_id": "1179798609273815111",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbhealthcare\u30fb53"
-  },
-  {
-    "channel_id": "1235677956081193122",
-    "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbhealthi\u30fb133"
   },
   {
     "channel_id": "1230499299197194260",
@@ -285,6 +270,11 @@
     "channel_name": "t\u30fbtaomap\u30fb32"
   },
   {
+    "channel_id": "1161765231953989712",
+    "channel_category": "[\u30fbTESTNET\u30fb]",
+    "channel_name": "t\u30fbtranscription\u30fb47"
+  },
+  {
     "channel_id": "1234548085238272122",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbtransverse\u30fb140"
@@ -293,5 +283,15 @@
     "channel_id": "1176585029367906314",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbzktensor\u30fb39"
+  },
+  {
+    "channel_id": "799672011814862902",
+    "channel_category": "[\u30fbCommunity\u30fb]",
+    "channel_name": "\ud83d\udcad\u30fbgeneral"
+  },
+  {
+    "channel_id": "1230665820859007039",
+    "channel_category": "[\u30fbCommunity\u30fb]",
+    "channel_name": "\ud83e\uddee\u30fbdao"
   }
 ]
