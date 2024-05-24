@@ -140,8 +140,8 @@ class Validator(BaseValidatorNeuron):
 
             random_number = random.random()
 
-            # 20% discord task
-            if random_number < 0.2:
+            # 10% discord task
+            if random_number < 0.1:
                 with open("bittensor_channels.json") as f:
                     channels = json.load(f)
                 search_query = generate_discord_search_task(
@@ -160,7 +160,7 @@ class Validator(BaseValidatorNeuron):
                 )
             else:
                 # 60% chance to send ETH Denver semantic search task
-                if random_number < 0.8:
+                if random_number < 0.7:
                     segments = random_eth_denver_segments(
                         self.eth_denver_dataset_dir, num_sources=3
                     )
@@ -182,7 +182,7 @@ class Validator(BaseValidatorNeuron):
                         f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                     )
 
-                # 10% chance to send index author data task with crawling and indexing
+                # 20% chance to send index author data task with crawling and indexing
                 elif random_number < 0.9:
                     search_query = generate_author_index_task(
                         size=10,  # author index data size
