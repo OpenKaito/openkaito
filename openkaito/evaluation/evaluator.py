@@ -857,7 +857,7 @@ Note even if a message itself is informative, it should still be categorized int
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
-                return self.llm_author_index_data_evaluation(docs, retries - 1)
+                return self.llm_discord_message_evaluation(docs, retries - 1)
             else:
                 bt.logging.error(
                     f"Failed to parse LLM result after retrying. Returning [0]."
