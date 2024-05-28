@@ -8,8 +8,6 @@ from openkaito.protocol import SortType
 
 from ..utils.embeddings import pad_tensor, text_embedding, MAX_EMBEDDING_DIM
 
-from opensearchpy import OpenSearch
-
 
 class StructuredSearchEngine:
     def __init__(

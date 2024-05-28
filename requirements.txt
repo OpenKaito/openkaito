@@ -1,4 +1,4 @@
-bittensor
+bittensor>=6.12.0
 torch
 openai>=1.20.0
 loguru
