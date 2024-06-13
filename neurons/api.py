@@ -24,7 +24,7 @@ from openkaito.utils.version import get_version
 from openkaito.utils.misc import ttl_get_block
 
 
-class ApiNeuron(object):
+class ApiNeuron:
     """
     API node for storage network
 
@@ -77,23 +77,18 @@ class ApiNeuron(object):
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
 
-        try:
-            self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon = bt.axon(wallet=self.wallet, config=self.config)
 
-            self.axon.attach(
-                forward_fn=self.forward_semantic_search,
-                blacklist_fn=self.blacklist_semantic_search,
-                priority_fn=self.priority_semantic_search,
-            )
-            bt.logging.info(f"Axon created: {self.axon}")
-        except Exception as e:
-            bt.logging.error(f"Failed to create Axon initialize: {e}")
-            pass
+        self.axon.attach(
+            forward_fn=self.forward_semantic_search,
+            blacklist_fn=self.blacklist_semantic_search,
+            priority_fn=self.priority_semantic_search,
+        )
+        bt.logging.info(f"Axon created: {self.axon}")
+
 
         self.dendrite = bt.dendrite(wallet=self.wallet)
         bt.logging.debug(str(self.dendrite))
-
-        self.loop = asyncio.get_event_loop()
 
         self.last_sync_block = self.block - 10
 
@@ -106,30 +101,17 @@ class ApiNeuron(object):
 
     def run(self):
         self.resync_metagraph()
-        try:
-            loop = asyncio.get_event_loop()
-            print("loop", loop)
-        except RuntimeError as e:
-            if str(e).startswith("There is no current event loop in thread"):
-                print("Creating new event loop")
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            else:
-                print("Error event loop", e)
-                raise
 
         bt.logging.info(
-            f"Serving miner axon {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+            f"Serving API axon {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
         )
-        try:
-            self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
-            self.axon.start()
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
-            bt.logging.info(f"Miner starting at block: {self.block}")
-        except Exception as e:
-            bt.logging.error(f"Failed to start miner: {e}")
-            self.should_exit = True
+        self.axon.start()
+
+        bt.logging.info(f"API neuron starting at block: {self.block}")
+    
 
         # This loop maintains the miner's operations until intentionally stopped.
         try:
@@ -151,18 +133,12 @@ class ApiNeuron(object):
         # If someone intentionally stops the miner, it'll safely terminate operations.
         except KeyboardInterrupt:
             self.axon.stop()
-            bt.logging.success("Miner killed by keyboard interrupt.")
+            bt.logging.success("API Neuron killed by keyboard interrupt.")
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
         except Exception as e:
             bt.logging.error(traceback.format_exc())
-
-        # After all we have to ensure subtensor connection is closed properly
-        finally:
-            if hasattr(self, "subtensor"):
-                bt.logging.debug("Closing subtensor connection")
-                self.subtensor.close()
 
     def run_in_background_thread(self):
         if not self.is_running:
@@ -170,6 +146,7 @@ class ApiNeuron(object):
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
+            # asyncio.new_event_loop().run_until_complete(self.run())
             self.is_running = True
             bt.logging.debug("Started")
 
