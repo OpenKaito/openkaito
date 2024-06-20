@@ -1,8 +1,9 @@
 <div align="center">
 
 # **OpenKaito - Decentralized Kaito AI** <!-- omit in toc -->
+
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ---
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
@@ -11,12 +12,15 @@
 ## Installation
 
 ### Validator Installation
+
 Please see [Validator Setup](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md#validator-setup) in the [quick start guide](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md).
 
 ### Miner Installation
+
 Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md#miner-setup) in the [quick start guide](https://github.com/MetaSearch-IO/decentralized-search/blob/main/quickstart.md).
 
 ---
+
 ## Introduction
 
 - Kaito AI is committed to democratizing access to Web3 information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
@@ -24,21 +28,25 @@ Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/b
 - Our goal is to build a decentralize indexing layer powering smart search and analytics.
 
 ## Background Knowledge
+
 <p align="center">
   <img src="https://github.com/MetaSearch-IO/decentralized-search/assets/106579566/68a4c45d-72bc-4444-a5f6-2cc4d917871b" width="60%" height="auto">
 </p>
 
 ### Inverted Index
-An inverted index serves as the foundation of a search engine. The high level idea is to construct a reverse lookup table from a keyword to documents containing the keyword. A sophisticated search engine usually leverages NLP techniques (e.g. tokenization, stemming) and content understanding models (e.g. classification, tagging, categorization) to optimize keyword extractions. 
+
+An inverted index serves as the foundation of a search engine. The high level idea is to construct a reverse lookup table from a keyword to documents containing the keyword. A sophisticated search engine usually leverages NLP techniques (e.g. tokenization, stemming) and content understanding models (e.g. classification, tagging, categorization) to optimize keyword extractions.
 
 A search query typically expresses logical constraint on keywords and can be fulfilled by operations on the inverted index. An inverted index is distributed by nature - keyword partition and document partition are the two common partition schemes.
 
 ### Search Ranking
-**Retrieval ranking** ranks documents satisfying the retrieval condition based on a ranking criteria. It focuses on simple, indexable signals such as term frequency (TF) and inverse document frequency (IDF), along with a linear combination of more static signals that enhance the speed and relevance of search results. 
+
+**Retrieval ranking** ranks documents satisfying the retrieval condition based on a ranking criteria. It focuses on simple, indexable signals such as term frequency (TF) and inverse document frequency (IDF), along with a linear combination of more static signals that enhance the speed and relevance of search results.
 
 **Re-ranking** ranks a smaller set of candidates selected by retrieval ranking with more expensive techniques. Modern re-ranking employs deep learning algorithms to analyze complex signals like user interaction data. In a decentralized environment, this presents opportunities for optimization through collective intelligence, where network participants contribute to the validation and improvement of the re-ranking process.
 
 ### Knowledge Graph
+
 A Knowledge Graph in the context of search engines is a structured representation of real-world entities and their interrelations. It serves as a foundation for enhancing search queries and document understanding by understanding the context and the relationships between different pieces of information. In web3, contexts like the relationship between projects, influencers, etc. are critical to effective search & analytics, and its evolving nature makes it a great fit to be solved with collective intelligence.
 
 ## Towards a Decentralized Web3 Search
@@ -81,6 +89,24 @@ Rewards are based on the following criteria:
 
 **Diversity:** Rewards consider diversity at both the source level (e.g., one source versus multiple sources) and the content level (e.g., various opinions, different authors), which can be assessed using content clustering methods.
 
+### Validator API Server
+
+Validtor can setup an API server to issue search queries to the network, for building Apps on OpenKaito subnet, interacting with other subnets, etc. The API server will be responsible for issuing search queries to the network and receiving ranked results from miners.
+
+To setup the API server, you can set some api keys in `.env` file separated by comma,
+
+```bash
+OPENKAITO_VALIDATOR_API_KEYS="key1,key2,key3"
+```
+
+modify your wallet and subtensor info in `api/api_server.py`, then run the following command:
+
+```bash
+fastapi run api/api_server.py --port 8900
+```
+
+Then you can refer to `api/sample_request.py` for sending search queries to the network.
+
 ### Indexing Data from Other Subnets
 
 **SN13 dataverse** is a decentralized data scraping subnet. If you are running a miner for openkaito and happen to be a miner for SN13, you can use SN13 as an extra source of raw data to be indexed in OpenKaito. Please refer to `scripts/import_sn13_data.py` for more details.
@@ -100,16 +126,18 @@ options:
                         optional, a list of SN13 timeBucketId to be imported, seperate by space, e.g., 474957 474958 474959
 ```
 
-
 ## Coming Soon
 
 ### Reward Model Adjustment and More Sources
+
 Currently Twitter is the only source that we onboarded and the evaluation is based on relevance and recency so that we can better calibrate the reward model. The team is actively working on onboarding more sources (e.g. News, Governance, Audio) and more diversed ranking & evaluation signals. Stay tuned!
 
 ### Rich Semantics
+
 We are working on supporting a varity of search semantics including AND/OR, filter, sort by, etc.
 
 ### Vector Retrieval
+
 We will be supporting vector retrieval for RAG use cases
 
 ### The OpenKaito App
