@@ -1,3 +1,5 @@
+# Refer to https://github.com/OpenKaito/openkaito?tab=readme-ov-file#Validator-API-Server for documentation
+
 import json
 import os
 import random
