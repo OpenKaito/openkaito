@@ -156,7 +156,7 @@ class Validator(BaseValidatorNeuron):
                 )
                 search_query.timeout = 10
                 bt.logging.info(
-                    f"Sending {search_query.name}: {search_query.json()} to miner uids: {miner_uids}"
+                    f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
             else:
                 # 60% chance to send ETH Denver semantic search task
@@ -262,7 +262,7 @@ class Validator(BaseValidatorNeuron):
 
             if not self.config.neuron.wandb_off:
                 wandb_log = {
-                    "synapse": search_query.json(),
+                    "synapse": search_query.model_dump_json(),
                     "scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)

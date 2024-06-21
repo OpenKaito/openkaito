@@ -30,6 +30,7 @@ class Version(pydantic.BaseModel):
     patch: int
 
 
+# Deprecated, use `StructuredSearchSynapse` instead.
 class SearchSynapse(bt.Synapse):
     """
     Search protocol representation for handling request and response communication between
@@ -75,8 +76,8 @@ class StructuredSearchSynapse(bt.Synapse):
     size: int = pydantic.Field(5, ge=1, le=50)
 
     # Note: use int instead of datetime to avoid serialization issues in dendrite.
-    earlier_than_timestamp: int = pydantic.Field(None, ge=0)
-    later_than_timestamp: int = pydantic.Field(None, ge=0)
+    earlier_than_timestamp: Optional[int] = pydantic.Field(None, ge=0)
+    later_than_timestamp: Optional[int] = pydantic.Field(None, ge=0)
 
     author_usernames: Optional[List[str]] = None
 
@@ -107,7 +108,7 @@ class SemanticSearchSynapse(bt.Synapse):
     query_string: str
     size: int = pydantic.Field(10, ge=1, le=50)
 
-    index_name: str = pydantic.Field("eth_denver", regex="^[a-z0-9_]+$")
+    index_name: str = pydantic.Field("eth_denver")
 
     custom_fields: Optional[Dict] = None
 
@@ -136,7 +137,7 @@ class DiscordSearchSynapse(bt.Synapse):
     query_string: Optional[str] = None
     size: int = pydantic.Field(5, ge=1, le=50)
 
-    index_name: str = pydantic.Field("discord", regex="^[a-z0-9_]+$")
+    index_name: str = pydantic.Field("discord")
 
     # this is for extension, currently the task is bootstrapped with the content in Bittensor discord server only.
     server_name: str = pydantic.Field("Bittensor")
@@ -145,8 +146,8 @@ class DiscordSearchSynapse(bt.Synapse):
     channel_ids: Optional[List[str]] = pydantic.Field(None)
 
     # Note: use int instead of datetime to avoid serialization issues in dendrite.
-    earlier_than_timestamp: int = pydantic.Field(None, ge=0)
-    later_than_timestamp: int = pydantic.Field(None, ge=0)
+    earlier_than_timestamp: Optional[int] = pydantic.Field(None, ge=0)
+    later_than_timestamp: Optional[int] = pydantic.Field(None, ge=0)
 
     author_usernames: Optional[List[str]] = None
 
