@@ -11,3 +11,4 @@ transformers
 tqdm
 requests
 python-dateutil
+numpy<2.0
