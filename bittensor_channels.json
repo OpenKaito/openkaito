@@ -45,7 +45,7 @@
     "channel_name": "\u03b5\u30fbepsilon\u30fb5"
   },
   {
-    "channel_id": "1200530530416988353",
+    "channel_id": "1209554949449457705",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u03b6\u30fbzeta\u30fb6"
   },
@@ -120,7 +120,7 @@
     "channel_name": "\u03c5\u30fbupsilon\u30fb20"
   },
   {
-    "channel_id": "1182096085636878406",
+    "channel_id": "1240801129177157692",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u03c6\u30fbphi\u30fb21"
   },
@@ -165,11 +165,6 @@
     "channel_name": "\u05d4\u30fbhe\u30fb29"
   },
   {
-    "channel_id": "1211034110722842674",
-    "channel_category": "[\u30fbSubnets\u30fb]",
-    "channel_name": "\u05d5\u30fbwav\u30fb30"
-  },
-  {
     "channel_id": "1222990781577433232",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05d6\u30fbzayin\u30fb31"
@@ -190,19 +185,39 @@
     "channel_name": "\u05d9\u30fbyod\u30fb34"
   },
   {
+    "channel_id": "1204855126045753434",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05db\u30fbkaf\u30fb35"
+  },
+  {
+    "channel_id": "1230499299197194260",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05dc\u30fblamed\u30fb36"
+  },
+  {
+    "channel_id": "1253448873305964626",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05de\u30fbmem\u30fb37"
+  },
+  {
     "channel_id": "1213131262483628102",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fb\u2207-tensorplex\u30fb98"
   },
   {
-    "channel_id": "1240801129177157692",
+    "channel_id": "1247680967225905273",
     "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbany-to-any\u30fb157"
+    "channel_name": "t\u30fbai-fake-det\u30fb168"
   },
   {
     "channel_id": "1222672871092912262",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbapollo-zk\u30fb115"
+  },
+  {
+    "channel_id": "1249845979780223117",
+    "channel_category": "[\u30fbTESTNET\u30fb]",
+    "channel_name": "t\u30fbastrobio\u30fb4"
   },
   {
     "channel_id": "1166816341697761300",
@@ -213,6 +228,11 @@
     "channel_id": "1209137911044505611",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbbitaudit\u30fb74"
+  },
+  {
+    "channel_id": "1245768323036217408",
+    "channel_category": "[\u30fbTESTNET\u30fb]",
+    "channel_name": "t\u30fbchunking\u30fb166"
   },
   {
     "channel_id": "1161764869280903240",
@@ -227,12 +247,7 @@
   {
     "channel_id": "1241046233800507482",
     "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbedge-opt\u30fb70"
-  },
-  {
-    "channel_id": "1204855126045753434",
-    "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbeinstein-ait\u30fb78"
+    "channel_name": "t\u30fbedge-opt\u30fb159"
   },
   {
     "channel_id": "1173712344409460766",
@@ -245,19 +260,14 @@
     "channel_name": "t\u30fbhealthcare\u30fb53"
   },
   {
-    "channel_id": "1230499299197194260",
-    "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbhip\u30fb134"
-  },
-  {
     "channel_id": "1174839377659183174",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbhivetrain\u30fb100"
   },
   {
-    "channel_id": "1209554949449457705",
+    "channel_id": "1250917363029639230",
     "channel_category": "[\u30fbTESTNET\u30fb]",
-    "channel_name": "t\u30fbinfinite-games\u30fb101"
+    "channel_name": "t\u30fbrender\u30fb175"
   },
   {
     "channel_id": "1162154665971028048",
@@ -278,6 +288,11 @@
     "channel_id": "1234548085238272122",
     "channel_category": "[\u30fbTESTNET\u30fb]",
     "channel_name": "t\u30fbtransverse\u30fb140"
+  },
+  {
+    "channel_id": "1250922806871593102",
+    "channel_category": "[\u30fbTESTNET\u30fb]",
+    "channel_name": "t\u30fbtune\u30fb177"
   },
   {
     "channel_id": "1176585029367906314",
