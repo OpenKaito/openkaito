@@ -505,7 +505,7 @@ class Evaluator:
                 f"Querying LLM of {query_string} with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o",
                 response_format={"type": "json_object"},
                 messages=[
                     {
@@ -619,7 +619,7 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
                 f"Querying LLM of author index data with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-4o",
                 response_format={"type": "json_object"},
                 messages=[
                     {
@@ -725,7 +725,7 @@ reason: It does not contain much meaningful information, just sentiment about so
                 f"Querying LLM of semantic search with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-4o",
                 response_format={"type": "json_object"},
                 messages=[
                     {

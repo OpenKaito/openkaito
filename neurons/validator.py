@@ -140,8 +140,8 @@ class Validator(BaseValidatorNeuron):
 
             random_number = random.random()
 
-            # 10% discord task
-            if random_number < 0.1:
+            # 40% discord task
+            if random_number < 0.4:
                 with open("bittensor_channels.json") as f:
                     channels = json.load(f)
                 search_query = generate_discord_search_task(
@@ -158,66 +158,67 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
-            else:
-                # 60% chance to send ETH Denver semantic search task
-                if random_number < 0.7:
-                    segments = random_eth_denver_segments(
-                        self.eth_denver_dataset_dir, num_sources=3
-                    )
-                    bt.logging.debug(
-                        f"{len(segments)} segments sampled from ETH Denver dataset."
-                    )
-                    bt.logging.trace(segments)
-                    question = generate_question_from_eth_denver_segments(
-                        self.llm_client, segments
-                    )
-                    search_query = generate_semantic_search_task(
-                        query_string=question,
-                        index_name="eth_denver",
-                        version=get_version(),
-                    )
-                    # should be quick
-                    search_query.timeout = 10
-                    bt.logging.info(
-                        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
-                    )
 
-                # 20% chance to send index author data task with crawling and indexing
-                elif random_number < 0.9:
-                    search_query = generate_author_index_task(
-                        size=10,  # author index data size
-                        num_authors=2,
-                    )
-                    # this is a bootstrap task for users to crawl more data from the author list.
-                    # miners may implement a more efficient way to crawl and index the author data in the background,
-                    # instead of relying on the validator tasks
-                    search_query.timeout = 90
+            # 50% chance to send ETH Denver semantic search task
+            elif random_number < 0.9:
+            
+                segments = random_eth_denver_segments(
+                    self.eth_denver_dataset_dir, num_sources=3
+                )
+                bt.logging.debug(
+                    f"{len(segments)} segments sampled from ETH Denver dataset."
+                )
+                bt.logging.trace(segments)
+                question = generate_question_from_eth_denver_segments(
+                    self.llm_client, segments
+                )
+                search_query = generate_semantic_search_task(
+                    query_string=question,
+                    index_name="eth_denver",
+                    version=get_version(),
+                )
+                # should be quick
+                search_query.timeout = 10
+                bt.logging.info(
+                    f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                )
 
-                    bt.logging.info(
-                        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
-                    )
-                # 10% chance to send author search task without crawling
-                elif random_number < 1:
-                    search_query = generate_author_index_task(
-                        size=10,  # author index data size
-                        num_authors=2,
-                    )
-                    search_query.timeout = 10
+            # 10% chance to send index author data task with crawling and indexing
+            elif random_number < 1:
+                search_query = generate_author_index_task(
+                    size=10,  # author index data size
+                    num_authors=2,
+                )
+                # this is a bootstrap task for users to crawl more data from the author list.
+                # miners may implement a more efficient way to crawl and index the author data in the background,
+                # instead of relying on the validator tasks
+                search_query.timeout = 90
 
-                    bt.logging.info(
-                        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
+                bt.logging.info(
+                    f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
                     )
-                # 0% chance to send structured search task
-                else:
-                    search_query = generate_structured_search_task(
-                        size=self.config.neuron.search_result_size,
-                        author_usernames=random.sample(self.twitter_usernames, 100),
-                    )
-                    search_query.timeout = 90
+            # 10% chance to send author search task without crawling
+            #elif random_number < 1:
+            #    search_query = generate_author_index_task(
+            #        size=10,  # author index data size
+            #        num_authors=2,
+            #    )
+            #    search_query.timeout = 10
 
-                    bt.logging.info(
-                        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
-                    )
+            #   bt.logging.info(
+            #        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
+            #    )
+            # 0% chance to send structured search task
+            #else:
+            #    search_query = generate_structured_search_task(
+            #        size=self.config.neuron.search_result_size,
+            #        author_usernames=random.sample(self.twitter_usernames, 100),
+            #    )
+            #    search_query.timeout = 90
+
+            #    bt.logging.info(
+            #        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+            #    )
             bt.logging.trace(
                 f"miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
             )
