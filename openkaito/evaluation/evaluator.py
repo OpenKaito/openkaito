@@ -576,7 +576,7 @@ reason: It is not directly related to Arbitrum as it just uses the arbitrum app.
         except Exception as e:
             bt.logging.error(f"Error while querying LLM: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
-            return 0
+            return [0]
 
         try:
             result = json.loads(output.choices[0].message.content)
@@ -687,7 +687,7 @@ reason: It does not contain much meaningful information, just sentiment about so
         except Exception as e:
             bt.logging.error(f"Error while querying LLM: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
-            return 0
+            return [0]
 
         try:
             result = json.loads(output.choices[0].message.content)
@@ -762,7 +762,7 @@ relevant: Comprehensive, insightful content suitable for answering the given que
         except Exception as e:
             bt.logging.error(f"Error while querying LLM: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
-            return 0
+            return [0]
 
         try:
             result = json.loads(output.choices[0].message.content)
@@ -842,7 +842,7 @@ Note even if a message itself is informative, it should still be categorized int
         except Exception as e:
             bt.logging.error(f"Error while querying LLM: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
-            return 0
+            return [0]
 
         try:
             result = json.loads(output.choices[0].message.content)

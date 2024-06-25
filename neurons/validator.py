@@ -154,7 +154,7 @@ class Validator(BaseValidatorNeuron):
                     size=5,
                     version=get_version(),
                 )
-                search_query.timeout = 10
+                search_query.timeout = 20
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
@@ -178,7 +178,7 @@ class Validator(BaseValidatorNeuron):
                     version=get_version(),
                 )
                 # should be quick
-                search_query.timeout = 10
+                search_query.timeout = 20
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )
