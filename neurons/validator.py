@@ -52,7 +52,6 @@ from openkaito.utils.version import get_version
 
 
 class Validator(BaseValidatorNeuron):
-
     def __init__(self):
         super(Validator, self).__init__()
         load_dotenv()
@@ -161,7 +160,6 @@ class Validator(BaseValidatorNeuron):
 
             # 50% chance to send ETH Denver semantic search task
             elif random_number < 0.9:
-            
                 segments = random_eth_denver_segments(
                     self.eth_denver_dataset_dir, num_sources=3
                 )
@@ -196,9 +194,9 @@ class Validator(BaseValidatorNeuron):
 
                 bt.logging.info(
                     f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
-                    )
+                )
             # 10% chance to send author search task without crawling
-            #elif random_number < 1:
+            # elif random_number < 1:
             #    search_query = generate_author_index_task(
             #        size=10,  # author index data size
             #        num_authors=2,
@@ -209,7 +207,7 @@ class Validator(BaseValidatorNeuron):
             #        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
             #    )
             # 0% chance to send structured search task
-            #else:
+            # else:
             #    search_query = generate_structured_search_task(
             #        size=self.config.neuron.search_result_size,
             #        author_usernames=random.sample(self.twitter_usernames, 100),
@@ -272,20 +270,18 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    search_query.name
-                    + "_scores": {
+                    search_query.name + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    search_query.name
-                    + "_raw_scores": {
+                    search_query.name + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    # "responses": {
-                    #     uid.item(): json.dumps(response)
-                    #     for uid, response in zip(miner_uids, responses)
-                    # },
+                    search_query.name + "_responses": {
+                        uid.item(): json.dumps(response)
+                        for uid, response in zip(miner_uids, responses)
+                    },
                     search_query.name + "_avg_score": raw_scores.mean().item(),
                     "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 }
