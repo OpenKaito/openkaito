@@ -66,7 +66,7 @@ class StructuredSearchSynapse(bt.Synapse):
     Attributes:
     - query_string: A string value representing the search request sent by the validator.
     - size: the maximal count size of results to return.
-    - sort_type: the type of sorting to use for the search results.
+    - sort_by: the type of sorting to use for the search results.
     - earlier_than_timestamp: A timestamp value representing the earliest time to search for.
     - later_than_timestamp: A timestamp value representing the latest time to search for.
     - version: A `Version` object representing the version of the protocol.
@@ -122,13 +122,13 @@ class SemanticSearchSynapse(bt.Synapse):
 
 class DiscordSearchSynapse(bt.Synapse):
     """
-    Semantic search protocol representation for handling request and response communication between
+    Discord search protocol representation for handling request and response communication between
     the miner and the validator.
 
     Attributes:
     - query_string: A string value representing the search request sent by the validator.
     - size: the maximal count size of results to return.
-    - sort_type: the type of sorting to use for the search results.
+    - sort_by: the type of sorting to use for the search results.
     - earlier_than_timestamp: A timestamp value representing the earliest time to search for.
     - later_than_timestamp: A timestamp value representing the latest time to search for.
     - version: A `Version` object representing the version of the protocol.
