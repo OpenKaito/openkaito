@@ -23,9 +23,43 @@ Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/b
 
 ## Introduction
 
-- Kaito AI is committed to democratizing access to Web3 information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
-- Search engines are complex systems beyond a mere database or a ranking algorithm. A useful search engine must also possess low latency, presenting additional challenges to its decentralization. Subnet OpenKaito serves as Kaito AI’s foray into technical innovations to address these challenges. By leveraging BitTensor’s built-in Yuma consensus, we define search indexing as a miner-validator problem, where index relevance is evaluated by an AI-based nDCG evaluator that learns from real user engagement feedback. We also plan to introduce a seamless search and analytics product based on this decentralized search layer, featuring intelligent coordination and caching mechanisms on validator nodes.
-- Our goal is to build a decentralize indexing layer powering smart search and analytics.
+### The Problem
+The internet is becoming more closed than open -
+- **Paradigm Shift**: Data is increasingly generated and hosted on closed platforms rathen than the open web.
+- **Data Restrictions**: More platforms are imposing greater restrictions on public user data (eg X, Reddit).
+- **The Consequence**: A less open internet and greater centralization of power to platforms.
+
+### OpenKaito's Mission
+- Kaito AI is committed to democratizing access to information through its established platform. However, the in-house approach to data collection, indexing, AI training, and ranking imposes operational burdens and stifles broader public innovation.
+- OpenKaito aims to build a decentralized indexing layer that powers smart search and feeds across both the open and closed web, curated and indexed by the community.
+
+### An Analology to Google
+- Google runs large-scale data acquisition on the open web, performs content understanding and indexing, and serves search queries through proprietary ranking algorithms.
+- For OpenKaito, the community decides the valuable knowledge to acquire, provides their proprietary resources for data acquisition (e.g., IP addresses, access to closed platforms), and competes on the best indexing and ranking algorithm around the knowledge.
+
+## App Ecosystem
+OpenKaito operates as an application-agnostic infrastructure layer to provide indexed and ranked data, powering a series of applications. Here is a non-exhaustive list of projects based on OpenKaito:
+
+[Ethereum Conference Knowledge Base (sponsored by Ethereum Foundation)](https://portal.kaito.ai/events/ETHDenver2024)
+<p align="left">
+  <img src="https://github.com/OpenKaito/openkaito/assets/106579566/d2e1feda-60b0-49b8-b16b-123227cf89a9" width="40%" height="auto">
+</p>
+
+[Bittensor Discord Search by Corcel)](https://playground.corcel.io/open-kaito/discord-search)
+<p align="left">
+  <img src="https://github.com/OpenKaito/openkaito/assets/106579566/761eef6b-63bb-469e-9a48-4d634a88c228" width="40%" height="auto">
+</p>
+
+[TaoBot Integration (under development)](https://x.com/taodotbot/status/1796174248395813336)
+
+## Token Economy
+OpenKaito aims to have a self-sustainable economy 
+- Sponsors/doners will pay the network for maintaining the vertical search engine 
+- Users will pay the network to access premium features (premium content, analytics, alerts, etc) 
+- Miners and validators will be rewarded by doing the work that actually generates economic value in the eyes of sponsors and users 
+- Economic surplus (fees from sponsors and users) will be shared among the participants in the network (miners, validators, subnet owner) 
+
+As proof of concept we've already secured grants from the Ethereum Foundation and Starknet Foundation, and are in talks with other sponsors (including non-crypto entities and communities) who recognise the economic values of such vertical search engine for their communities.
 
 ## Background Knowledge
 
@@ -49,7 +83,7 @@ A search query typically expresses logical constraint on keywords and can be ful
 
 A Knowledge Graph in the context of search engines is a structured representation of real-world entities and their interrelations. It serves as a foundation for enhancing search queries and document understanding by understanding the context and the relationships between different pieces of information. In web3, contexts like the relationship between projects, influencers, etc. are critical to effective search & analytics, and its evolving nature makes it a great fit to be solved with collective intelligence.
 
-## Towards a Decentralized Web3 Search
+## Towards a Decentralized Search Engine
 
 Instead of building a decentralized version of every component of a search engine, we focus on posing search relevance as a validation-miner problem to encourage miners to come up with innovative solutions to data acquisition, indexing, ranking, and knowledge graph. To goal is that based on a fair and effective criterion, miners are incentivized to optimize components with the highest ROI, similar to how a search engineering team runs on A/B testing and failure analysis.
 
@@ -126,24 +160,27 @@ options:
                         optional, a list of SN13 timeBucketId to be imported, seperate by space, e.g., 474957 474958 474959
 ```
 
-## Coming Soon
+## Engineering Roadmap
 
-### Reward Model Adjustment and More Sources
+#### ~~[Done] Reward Model Adjustment and More Sources~~
+~~Currently Twitter is the only source that we onboarded and the evaluation is based on relevance and recency so that we can better calibrate the reward model. The team is actively working on onboarding more sources (e.g. News, Governance, Audio) and more diversed ranking & evaluation signals. Stay tuned!~~
 
-Currently Twitter is the only source that we onboarded and the evaluation is based on relevance and recency so that we can better calibrate the reward model. The team is actively working on onboarding more sources (e.g. News, Governance, Audio) and more diversed ranking & evaluation signals. Stay tuned!
+#### ~~[Done] Rich Semantics~~
+~~We are working on supporting a varity of search semantics including AND/OR, filter, sort by, etc.~~
 
-### Rich Semantics
+#### ~~[Done] Vector Retrieval and Embedding Model~~
+~~We will be supporting vector retrieval for RAG use cases and add competition for embedding models~~
 
-We are working on supporting a varity of search semantics including AND/OR, filter, sort by, etc.
+#### ~~[Done] Validator Tools~~
+~~Validator API and various tooling for better access and diagoniss of OpenKaito data~~
 
-### Vector Retrieval
+#### QA Engine on Social Network Data
+Extend the RAG capability beyond conference data to create a real-time QA engine for social network data.
 
-We will be supporting vector retrieval for RAG use cases
+#### Expansion Beyond Web3
+Plan to expand into more verticals beyond Web3.
 
-### The OpenKaito App
+#### Revenue Distribution Mechanism
+We plan to implement a system that redistributes economic surplus back to the community.
 
-To provide a fast and seamless user experience, we have designed a centralized client layer on top of validator nodes, leading to an end-to-end search and analytics product for Web3. This design stems from several key insights from the Kaito AI team's product research:
 
-1. **Head-heavy Query Distribution:** Search queries to Kaito AI’s institutional product are predominantly head-heavy—the top queries, typically project names and tickers, account for the majority of traffic. This indicates that proactive fetching and aggregation of search results into local storage can enable a low-latency experience for most queries.
-2. **Ticker-centered Feeds & Analytics:** A central aspect of Kaito AI's product offering is its feeds and analytics focused on tickers, which are powered by its search stack and curated by AI. This focus on tickers is well-suited for pre-fetching, aggregation, and caching.
-3. **Tail Queries:** To ensure a smooth experience for less common queries, whose results cannot be pre-fetched, the search backend will store and index any aggregated results locally. The search client can build up this content index by indexing results from frequent queries, as well as by continuously issuing crypto-related queries to the Subnet (e.g., Crypto topics and narratives as currently indexed by Kaito AI).
