@@ -1,6 +1,7 @@
 import os
 import traceback
-
+import requests
+import json
 import bittensor as bt
 from dotenv import load_dotenv
 
