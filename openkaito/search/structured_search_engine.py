@@ -212,15 +212,6 @@ class StructuredSearchEngine:
                 }
             )
 
-        if search_query.author_usernames:
-            es_query["query"]["bool"]["must"].append(
-                {
-                    "terms": {
-                        "author_username": search_query.author_usernames,
-                    }
-                }
-            )
-
         if search_query.server_name:
             es_query["query"]["bool"]["must"].append(
                 {
@@ -241,9 +232,6 @@ class StructuredSearchEngine:
                     }
                 }
             )
-
-        if search_query.sort_by == SortType.RECENCY:
-            es_query["sort"] = [{"created_at": {"order": "desc"}}]
 
         time_filter = {}
         if search_query.earlier_than_timestamp:
@@ -268,7 +256,15 @@ class StructuredSearchEngine:
             results = []
             for document in documents if documents else []:
                 doc = document["_source"]
-                results.append(doc)
+                # make it to a list of list of messages (list of conversations)
+                results.append([doc])
+                # Note:
+                # for QA requests (query_string != None):
+                #   list of conversations(multiple messages within a time window) will be accepted
+                #   i.e., [ [message1, message2, ...], [message3, message4, ...], ...]
+                # for subnet feed requests (query_string == None):
+                #   each conversation should contain only one message
+                #   i.e., [ [message1], [message2], ...]
             bt.logging.info(f"retrieved {len(results)} results")
             bt.logging.trace(f"results: ")
             return results[: search_query.size]

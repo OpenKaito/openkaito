@@ -41,6 +41,7 @@ from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
+    generate_discord_semaintic_search_task,
     generate_question_from_eth_denver_segments,
     generate_structured_search_task,
     random_eth_denver_segments,
@@ -140,20 +141,33 @@ class Validator(BaseValidatorNeuron):
             random_number = random.random()
 
             # 40% discord task
-            if random_number < 0.4:
-                with open("bittensor_channels.json") as f:
-                    channels = json.load(f)
-                search_query = generate_discord_search_task(
-                    query_string=None,
-                    channel_ids=[random.choice(channels)["channel_id"]],
+            # among them, 20% discord semantic search(QA) tasks, 20% discord channel feeds tasks
+            if random_number < 0.2:
+                # generation logic is in openkaito/tasks
+                search_query = generate_discord_semaintic_search_task(
+                    llm_client=self.llm_client,
                     # earlier than 1 day messages to allow latency in validation groundtruth
                     earlier_than_timestamp=int(
                         (datetime.now() - timedelta(days=1)).timestamp() * 1000
                     ),
-                    size=5,
+                    size=2,
                     version=get_version(),
                 )
-                search_query.timeout = 20
+                search_query.timeout = 15
+                bt.logging.info(
+                    f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
+                )
+            # 20% discord channel feeds task
+            elif random_number < 0.4:
+                search_query = generate_discord_search_task(
+                    size=5,
+                    # earlier than 1 day messages to allow latency in validation groundtruth
+                    earlier_than_timestamp=int(
+                        (datetime.now() - timedelta(days=1)).timestamp() * 1000
+                    ),
+                    version=get_version(),
+                )
+                search_query.timeout = 15
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
@@ -176,7 +190,7 @@ class Validator(BaseValidatorNeuron):
                     version=get_version(),
                 )
                 # should be quick
-                search_query.timeout = 20
+                search_query.timeout = 15
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )
@@ -243,7 +257,7 @@ class Validator(BaseValidatorNeuron):
             ):
                 rewards = self.evaluator.evaluate(search_query, responses)
             elif search_query.name == "DiscordSearchSynapse":
-                rewards = self.evaluator.evaluate_discord_search(
+                rewards = self.evaluator.evaluate_discord_query_search(
                     search_query, responses
                 )
             else:

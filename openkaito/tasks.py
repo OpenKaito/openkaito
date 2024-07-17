@@ -48,7 +48,6 @@ def random_datetime(start: datetime, end: datetime):
 
 
 def random_past_datetime(start_days_ago: int = 365, end_days_ago: int = 10):
-
     return random_datetime(
         datetime.now() - timedelta(days=start_days_ago),
         datetime.now() - timedelta(days=end_days_ago),
@@ -193,27 +192,198 @@ def generate_semantic_search_task(
     )
 
 
+DISCORD_MSG_CATEGORIES = {
+    "Announcements": "Official updates or important news",
+    "Questions": "Inquiries seeking information or clarification",
+    # "Answers": "Direct responses to users' questions",
+    "Advice": "Suggestions and guidance on various topics",
+    "Technical Support": "Assistance with technical issues or troubleshooting",
+    # "Casual Conversation": "Informal chat and everyday discussions",
+    "Planning": "Discussions about organizing events or activities",
+    "Resources": "Sharing useful links, tools, or educational content",
+    # "Humor": "Jokes, memes, and other light-hearted content",
+    "Controversy": "Debates or heated discussions",
+    "Feedback": "General neutral opinions about any topic discussed, while not explicitly positive or negative",
+    "Praise": "Positive feedback and compliments",
+    "Criticism": "Negative feedback or constructive criticism",
+    # "Warnings": "Alerts or cautionary advice about potential issues",
+    # "Introductions": "Welcoming new members or personal introductions",
+    # "Hack": "Innovative tricks or shortcuts to improve efficiency or solve problems",
+    "Exploit": "Exploring vulnerabilities or flaws in systems or software",
+    # "Off-Topic": "Messages that stray from the main subject or theme",
+}
+
+BITTENSOR_DISCORD_CHANNEL_PROJECS = {
+    0: "Announcements",
+    1: "Text Prompting",
+    2: "Omron",
+    3: "MyShell TTS",
+    4: "Targon",
+    5: "Open Kaito",
+    6: "Infinite Games",
+    7: "Subvortex",
+    8: "Proprietary Trading Network",
+    9: "Pretraining",
+    10: "Sturdy",
+    11: "Dippy Roleplay",
+    12: "Horde",
+    13: "Dataverse",
+    14: "LLM Defender",
+    15: "Blockchain Insights",
+    16: "BitAds",
+    17: "Three Gen",
+    18: "Cortex.t",
+    19: "Vision",
+    20: "BitAgent",
+    21: "Omega Any-to-Any",
+    22: "Meta Search",
+    23: "SocialTensor",
+    24: "Omega Labs",
+    25: "Protein Folding",
+    26: "Tensor Alchemy",
+    27: "Compute",
+    28: "Foundry S&P 500 Oracle",
+    29: "Fractal",
+    30: "Bettensor",
+    31: "NAS Chain",
+    32: "It's AI",
+    33: "Conversation Genome",
+    34: "Healthi",
+    35: "LogicNet",
+    36: "Human Intelligence Primitive",
+    37: "Finetuning",
+    38: "Unknown",
+    39: "Unknown",
+    40: "Unknown",
+    41: "Unknown",
+    42: "Unknown",
+    43: "Unknown",
+    44: "Unknown",
+    45: "Unknown",
+}
+
+
+def generate_discord_query_string(llm_client, subnet_name, msg_category, category_info):
+    prompt = (
+        f"Imagine you are testing a semantic search engine about project {subnet_name} in a discord channel of its developers and users, "
+        + f"please generate a search query around any {msg_category} around the project? "
+        + f"{msg_category} is about {category_info}."
+    )
+    prompt += (
+        "Provide the query string in less than 20 words. "
+        "Please give the question text only, without any additional context or explanation."
+    )
+
+    bt.logging.debug(f"Discord Query Prompt: {prompt}")
+    try:
+        output = llm_client.chat.completions.create(
+            model="gpt-4o",
+            # response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            # temperature=1.5,
+            temperature=1,
+            timeout=60,
+        )
+
+        bt.logging.debug(
+            f"generation questions LLM response: {output.choices[0].message.content}"
+        )
+        bt.logging.debug(
+            f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+        )
+        return output.choices[0].message.content
+    except Exception as e:
+        bt.logging.error(f"Error during LLM completion: {e}")
+        bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+
+
+# Existing discord tasks before v0.4.5
+# discord channel feeds and keyword search tasks
 def generate_discord_search_task(
-    query_string: str,
+    query_string: str = None,
     index_name: str = "discord",
     channel_ids: list = None,
-    author_usernames: list = None,
     earlier_than_timestamp: int = None,
     later_than_timestamp: int = None,
     size: int = 5,
     version: str = None,
 ) -> DiscordSearchSynapse:
     """
-    Generates a semantic search task for the validator to send to the miner.
+    Generates a discord channel feeds task or discord keyword search task for the validator to send to the miner.
     """
-    if version is None:
+    if not version:
         version = get_version()
+
+    if not channel_ids:
+        with open("bittensor_channels.json") as f:
+            channels = json.load(f)
+        channel_info = random.choice(channels)
+        channel_ids = [channel_info["channel_id"]]
 
     return DiscordSearchSynapse(
         query_string=query_string,
         index_name=index_name,
         channel_ids=channel_ids,
-        author_usernames=author_usernames,
+        earlier_than_timestamp=earlier_than_timestamp,
+        later_than_timestamp=later_than_timestamp,
+        size=size,
+        version=version,
+    )
+
+
+# discord channel semantic search tasks
+def generate_discord_semaintic_search_task(
+    llm_client=None,
+    query_string: str = None,
+    index_name: str = "discord",
+    # channel_ids: list = None,
+    earlier_than_timestamp: int = None,
+    later_than_timestamp: int = None,
+    ## set the default size of conversations to be 2
+    size: int = 2,
+    version: str = None,
+) -> DiscordSearchSynapse:
+    """
+    Generates a semantic search task for the validator to send to the miner.
+    """
+    if not version:
+        version = get_version()
+
+    with open("bittensor_channels.json") as f:
+        channels = json.load(f)
+    # exclude the announcement channel
+    channel_info = random.choice(channels[1:])
+
+    # NOT explicitly set channel id in the request
+    # channel_ids = [channel_info["channel_id"]]
+    subnet_id = None
+    subnet_name = None
+
+    # subnet channel
+    if "Subnets" in channel_info["channel_category"]:
+        subnet_id = int(channel_info["channel_name"].split("\u30fb")[-1])
+        subnet_name = BITTENSOR_DISCORD_CHANNEL_PROJECS[subnet_id]
+        msg_category = random.choice(list(DISCORD_MSG_CATEGORIES.keys()))
+        query_string = generate_discord_query_string(
+            llm_client, subnet_name, msg_category, DISCORD_MSG_CATEGORIES[msg_category]
+        )
+        bt.logging.debug(
+            f"Channel ID: {channel_info['channel_id']}, Subnet ID: {subnet_id}, Subnet Name: {subnet_name}"
+        )
+    # actually no-op
+    else:
+        query_string = "What is the latest announcement in Bittensor discord server?"
+    bt.logging.debug(f"Generated query string: {query_string}")
+
+    return DiscordSearchSynapse(
+        query_string=query_string,
+        index_name=index_name,
+        channel_ids=None,
         earlier_than_timestamp=earlier_than_timestamp,
         later_than_timestamp=later_than_timestamp,
         size=size,
@@ -243,15 +413,65 @@ if __name__ == "__main__":
         max_retries=3,
     )
 
-    bt.logging.set_trace(True)
-    repo_root = find_repo(__file__)
-    eth_denver_dataset_dir = repo_root / "datasets/eth_denver_dataset"
-    print(eth_denver_dataset_dir)
-    print("generating question from ETH Denver dataset")
-    segments = random_eth_denver_segments(eth_denver_dataset_dir, num_sources=3)
-    question = generate_question_from_eth_denver_segments(llm_client, segments)
-    print(question)
+    # bt.logging.set_trace(True)
+    bt.logging.set_debug(False)
+    # repo_root = find_repo(__file__)
+    # eth_denver_dataset_dir = repo_root / "datasets/eth_denver_dataset"
+    # print(eth_denver_dataset_dir)
+    # print("generating question from ETH Denver dataset")
+    # segments = random_eth_denver_segments(eth_denver_dataset_dir, num_sources=3)
+    # question = generate_question_from_eth_denver_segments(llm_client, segments)
+    # print(question)
 
-    task = generate_semantic_search_task(question)
+    # task = generate_semantic_search_task(question)
 
-    print(task)
+    # task = generate_discord_search_task(llm_client=llm_client, size=5)
+
+    # print(task)
+    subnet_name = "Open Kaito"
+    for msg_category in DISCORD_MSG_CATEGORIES.keys():
+        question = generate_discord_query_string(
+            llm_client=llm_client,
+            subnet_name=subnet_name,
+            msg_category=msg_category,
+            category_info=DISCORD_MSG_CATEGORIES[msg_category],
+        )
+        print(msg_category)
+        print(question)
+
+# EXAMPLE DISCORD QUESTIONS:
+"""Announcements
+"Any official announcements or updates regarding Project Open Kaito?"
+Questions
+"What are the main features and future plans for project Open Kaito?"
+Answers
+"What are the key features provided by Answers in project Open Kaito for responding to user queries?"
+Advice
+Advice on best practices to optimize performance in Project Open Kaito development?
+Technical Support
+"Troubleshooting issues logging into Open Kaito? Anyone else facing technical problems or have solutions?"
+Feedback
+What are the users saying about their experience with Open Kaito so far?
+Casual Conversation
+"What are the funniest moments while working on Open Kaito shared in the Discord channel?"
+Planning
+"What planning has been discussed for upcoming events or activities related to the Open Kaito project?"
+Resources
+What useful resources or tools are available for understanding and developing with Open Kaito in this Discord channel?
+Humor
+"Any funny memes or jokes shared about Open Kaito on the channel?"
+Controversy
+"Controversy or debates surrounding key decisions in the Open Kaito project development?"
+Praise
+What are users saying positively about project Open Kaito in the developer and user discussions?
+Warnings
+"Any Warnings or critical Issues reported in using or deploying Project Open Kaito?"
+Introductions
+What introductions and welcome messages have been shared about new members in the Open Kaito project?
+Hack
+What are some innovative hacks or shortcuts for improving efficiency in the Open Kaito project?
+Exploit
+Have there been any known exploits or vulnerability issues in Project Open Kaito reported by developers or users?
+Off-Topic
+What's everyone's favorite game they're currently playing when not working on Open Kaito?
+"""
