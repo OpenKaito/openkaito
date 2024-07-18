@@ -337,7 +337,7 @@ def generate_discord_search_task(
 
 
 # discord channel semantic search tasks
-def generate_discord_semaintic_search_task(
+def generate_discord_semantic_search_task(
     llm_client=None,
     query_string: str = None,
     index_name: str = "discord",

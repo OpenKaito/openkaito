@@ -41,7 +41,7 @@ from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
-    generate_discord_semaintic_search_task,
+    generate_discord_semantic_search_task,
     generate_question_from_eth_denver_segments,
     generate_structured_search_task,
     random_eth_denver_segments,
@@ -141,10 +141,10 @@ class Validator(BaseValidatorNeuron):
             random_number = random.random()
 
             # 40% discord task
-            # among them, 20% discord semantic search(QA) tasks, 20% discord channel feeds tasks
-            if random_number < 0.2:
+            # among them, 30% discord semantic search(QA) tasks, 10% discord channel feeds tasks
+            if random_number < 0.3:
                 # generation logic is in openkaito/tasks
-                search_query = generate_discord_semaintic_search_task(
+                search_query = generate_discord_semantic_search_task(
                     llm_client=self.llm_client,
                     # earlier than 1 day messages to allow latency in validation groundtruth
                     earlier_than_timestamp=int(
@@ -157,7 +157,7 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
-            # 20% discord channel feeds task
+            # 10% discord channel feeds task
             elif random_number < 0.4:
                 search_query = generate_discord_search_task(
                     size=5,
