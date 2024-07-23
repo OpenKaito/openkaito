@@ -1,17 +1,17 @@
 import json
 import os
-from pathlib import Path
 import random
-from datetime import datetime, timezone, timedelta
-from dateutil import parser
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from traceback import print_exception
 
 import bittensor as bt
+import dateutil
 import dateutil.parser
 import openai
 import requests
 import torch
-import dateutil
+from dateutil import parser
 
 from openkaito.protocol import SortType
 from openkaito.tasks import BITTENSOR_DISCORD_CHANNEL_PROJECS
@@ -517,8 +517,8 @@ class Evaluator:
             f"avg_age_scores: {avg_age_scores}, rank_scores: {rank_scores}"
         )
 
-        # recency counts up to 40%
-        scores = avg_age_scores * 0.4 + rank_scores * 0.6
+        # recency counts up to 30%
+        scores = avg_age_scores * 0.3 + rank_scores * 0.7
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
@@ -870,11 +870,13 @@ relevant: Comprehensive, insightful content suitable for answering the given que
                 [
                     f"""ItemId: {i}
 Conversation:
-{newline.join(['[Channel: {}]  {}: {}'.format(
+<conversation>
+{newline.join(['[Channel: {}]  {}: <message> {} </message>'.format(
     channel_id_to_project_name.get(doc['channel_id'], "Channel not found, ignore the content and rate this as 'off topic'"), 
     doc['author_nickname'], 
     doc['text']) 
     for doc in conversation])}
+</conversation>
 """
                     for i, conversation in enumerate(docs)
                 ]
@@ -892,11 +894,19 @@ Conversation:
                         "content": """Below are the metrics and definitions:
 off topic: Superficial or unrelevant content that can not answer the given question.
 somewhat relevant: Offers partial insight to partially answer the given question.
-relevant: Comprehensive, insightful content suitable for answering the given question.""",
+relevant: Comprehensive, insightful content suitable for answering the given question. The conversation must contain multiple messages instead of a single message to be considered as relevant.
+""",
+                    },
+                    {
+                        "role": "system",
+                        "content": """You will be given a list of Discord conversations with id,
+and you have to rate them based on its information and relevance to the question. 
+Each conversation will be marked between <conversation></conversation> tags, and each message will be marked between <message></message> tags.
+""",
                     },
                     {
                         "role": "user",
-                        "content": "You will be given a list of conversations with id and you have to rate them based on its information and relevance to the question. The conversation messages are as follows:\n"
+                        "content": "The conversation messages are as follows:\n"
                         + prompt_docs,
                     },
                     {
@@ -961,7 +971,8 @@ relevant: Comprehensive, insightful content suitable for answering the given que
                 f"Querying LLM of discord message data with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                model="gpt-4o",
+                # model="gpt-4o",
+                model="kaito-gpt-4o" if os.environ.get("USE_AZURE") else "gpt-4o",
                 response_format={"type": "json_object"},
                 messages=[
                     {

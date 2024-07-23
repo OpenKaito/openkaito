@@ -42,9 +42,9 @@ from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
     generate_discord_semantic_search_task,
-    generate_question_from_eth_denver_segments,
+    generate_question_from_eth_conf_segments,
     generate_structured_search_task,
-    random_eth_denver_segments,
+    random_eth_conf_segments,
     random_query,
     generate_semantic_search_task,
 )
@@ -76,6 +76,7 @@ class Validator(BaseValidatorNeuron):
         self.twitter_usernames = twitter_usernames
 
         self.init_eth_denver_dataset()
+        self.init_eth_cc7_dataset()
 
         netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -121,6 +122,29 @@ class Validator(BaseValidatorNeuron):
             else:
                 tar.extractall(root_dir + "datasets")
                 bt.logging.info(f"Eth Denver data extracted to: {dataset_dir}")
+
+        bt.logging.info(
+            f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
+        )
+    
+    def init_eth_cc7_dataset(self):
+        root_dir = __file__.split("neurons")[0]
+        dataset_dir = root_dir + "datasets/eth_cc7_dataset"
+        self.eth_cc7_dataset_dir = dataset_dir
+        dataset_path = Path(dataset_dir)
+
+        with tarfile.open(
+            root_dir + "datasets/eth_cc7_dataset.tar.gz", "r:gz"
+        ) as tar:
+            original_file_list = tar.getnames()
+            original_file_list.remove("eth_cc7_dataset")
+            if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
+                bt.logging.info(
+                    f"Eth CC[7] data already extracted to: {dataset_dir}, no need to re-extract"
+                )
+            else:
+                tar.extractall(root_dir + "datasets")
+                bt.logging.info(f"Eth CC[7] data extracted to: {dataset_dir}")
 
         bt.logging.info(
             f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
@@ -172,16 +196,16 @@ class Validator(BaseValidatorNeuron):
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
 
-            # 50% chance to send ETH Denver semantic search task
-            elif random_number < 0.9:
-                segments = random_eth_denver_segments(
+            # 20% chance to send ETH Denver semantic search task
+            elif random_number < 0.6:
+                segments = random_eth_conf_segments(
                     self.eth_denver_dataset_dir, num_sources=3
                 )
                 bt.logging.debug(
                     f"{len(segments)} segments sampled from ETH Denver dataset."
                 )
                 bt.logging.trace(segments)
-                question = generate_question_from_eth_denver_segments(
+                question = generate_question_from_eth_conf_segments(
                     self.llm_client, segments
                 )
                 search_query = generate_semantic_search_task(
@@ -192,7 +216,30 @@ class Validator(BaseValidatorNeuron):
                 # should be quick
                 search_query.timeout = 15
                 bt.logging.info(
-                    f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                    f"Sending ETH Denver {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                )
+            # 30% chance to send ETH CC[7] semantic search task
+            elif random_number < 0.9:
+                segments = random_eth_conf_segments(
+                    self.eth_cc7_dataset_dir, num_sources=3
+                )
+                bt.logging.debug(
+                    f"{len(segments)} segments sampled from ETH CC[7] dataset."
+                )
+                bt.logging.trace(segments)
+                question = generate_question_from_eth_conf_segments(
+                    self.llm_client, segments
+                )
+                # must create a `eth_cc7` index in the miner
+                search_query = generate_semantic_search_task(
+                    query_string=question,
+                    index_name="eth_cc7",
+                    version=get_version(),
+                )
+                # should be quick
+                search_query.timeout = 15
+                bt.logging.info(
+                    f"Sending ETH CC[7] {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )
 
             # 10% chance to send index author data task with crawling and indexing

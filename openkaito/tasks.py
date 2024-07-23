@@ -103,11 +103,11 @@ def generate_structured_search_task(
     )
 
 
-def random_eth_denver_segments(
-    eth_denver_dataset_dir,
+def random_eth_conf_segments(
+    eth_conf_dataset_dir,
     num_sources=3,
 ):
-    dataset_path = Path(eth_denver_dataset_dir)
+    dataset_path = Path(eth_conf_dataset_dir)
 
     files = random.sample(list(dataset_path.glob("*.json")), num_sources)
     segments = []
@@ -118,7 +118,7 @@ def random_eth_denver_segments(
     return segments
 
 
-def generate_question_from_eth_denver_segments(llm_client, segments):
+def generate_question_from_eth_conf_segments(llm_client, segments):
     knowledge_text = ""
     for segment in segments:
         knowledge_text += (
