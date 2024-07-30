@@ -325,6 +325,12 @@ class Evaluator:
                             )
                             zero_score_mask[i] = 0
                             break
+                        if groundtruth["channel_id"] != doc["channel_id"]:
+                            bt.logging.warning(
+                                f"Document channel_id {doc['channel_id']} not match ground truth {groundtruth['channel_id']}"
+                            )
+                            zero_score_mask[i] = 0
+                            break
                         if dateutil.parser.isoparse(
                             groundtruth["created_at"]
                         ) != dateutil.parser.isoparse(doc["created_at"]):
