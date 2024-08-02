@@ -145,9 +145,14 @@
     "channel_name": "\u05d3\u30fbdalet\u30fb28"
   },
   {
-    "channel_id": "1207399745031770152",
+    "channel_id": "1263866060780605501",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05d4\u30fbhe\u30fb29"
+  },
+  {
+    "channel_id": "1255568373056671804",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05d5\u30fbvav\u30fb30"
   },
   {
     "channel_id": "1222990781577433232",
@@ -165,23 +170,53 @@
     "channel_name": "\u05d8\u30fbtet\u30fb33"
   },
   {
-    "channel_id": "1235677956081193122",
+    "channel_id": "1247680967225905273",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05d9\u30fbyod\u30fb34"
   },
   {
     "channel_id": "1204855126045753434",
     "channel_category": "[\u30fbSubnets\u30fb]",
-    "channel_name": "\u05db\u30fbkaf\u30fb35"
+    "channel_name": "\u05da\u30fbfinal-kaf\u30fb35"
   },
   {
     "channel_id": "1230499299197194260",
     "channel_category": "[\u30fbSubnets\u30fb]",
-    "channel_name": "\u05dc\u30fblamed\u30fb36"
+    "channel_name": "\u05db\u30fbkaf\u30fb36"
   },
   {
     "channel_id": "1253448873305964626",
     "channel_category": "[\u30fbSubnets\u30fb]",
-    "channel_name": "\u05de\u30fbmem\u30fb37"
+    "channel_name": "\u05dc\u30fblamed\u30fb37"
+  },
+  {
+    "channel_id": "1241046233800507482",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05de\u30fbmem\u30fb39"
+  },
+  {
+    "channel_id": "1245768323036217408",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05df\u30fbfinal-nun\u30fb40"
+  },
+  {
+    "channel_id": "1263142301786574889",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05e0\u30fbnun\u30fb41"
+  },
+  {
+    "channel_id": "1267511824601976935",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05e1\u30fbsamekh\u30fb42"
+  },
+  {
+    "channel_id": "1263507367405031434",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05e2\u30fbayin\u30fb43"
+  },
+  {
+    "channel_id": "1161765231953989712",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05e3\u30fbfinal-pe\u30fb44"
   }
 ]
