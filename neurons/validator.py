@@ -126,16 +126,14 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info(
             f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
         )
-    
+
     def init_eth_cc7_dataset(self):
         root_dir = __file__.split("neurons")[0]
         dataset_dir = root_dir + "datasets/eth_cc7_dataset"
         self.eth_cc7_dataset_dir = dataset_dir
         dataset_path = Path(dataset_dir)
 
-        with tarfile.open(
-            root_dir + "datasets/eth_cc7_dataset.tar.gz", "r:gz"
-        ) as tar:
+        with tarfile.open(root_dir + "datasets/eth_cc7_dataset.tar.gz", "r:gz") as tar:
             original_file_list = tar.getnames()
             original_file_list.remove("eth_cc7_dataset")
             if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
@@ -338,6 +336,10 @@ class Validator(BaseValidatorNeuron):
                     search_query.name + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
+                    },
+                    search_query.name + "_responses": {
+                        uid.item(): json.dumps(response)
+                        for uid, response in zip(miner_uids, responses)
                     },
                     search_query.name + "_avg_score": raw_scores.mean().item(),
                     "timestamp": int(datetime.now(timezone.utc).timestamp()),
