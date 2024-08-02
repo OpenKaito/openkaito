@@ -134,7 +134,7 @@ def generate_question_from_eth_conf_segments(llm_client, segments):
         )
 
     prompt = (
-        "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in ETH Denver 2024. "
+        "You are a crypto researcher, and you will be given a list of speaker transcript segments as your source of knowledge in an Ethereum conference. "
         "Your job is to look for a question about the speaker and text that can be answered by this segment"
         "Transcript segments:\n\n"
     )
