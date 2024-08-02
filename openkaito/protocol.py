@@ -128,7 +128,6 @@ class DiscordSearchSynapse(bt.Synapse):
     Attributes:
     - query_string: A string value representing the search request sent by the validator.
     - size: the maximal count size of results to return.
-    - sort_by: the type of sorting to use for the search results.
     - earlier_than_timestamp: A timestamp value representing the earliest time to search for.
     - later_than_timestamp: A timestamp value representing the latest time to search for.
     - version: A `Version` object representing the version of the protocol.
@@ -149,15 +148,12 @@ class DiscordSearchSynapse(bt.Synapse):
     earlier_than_timestamp: Optional[int] = pydantic.Field(None, ge=0)
     later_than_timestamp: Optional[int] = pydantic.Field(None, ge=0)
 
-    author_usernames: Optional[List[str]] = None
-
-    sort_by: Optional[SortType] = None
-
     custom_fields: Optional[Dict] = None
 
     version: Optional[Version] = None
 
-    results: Optional[List[Dict]] = None
+    # The results will be a list of list of dict, which is a ranked list of conversations(list of messages).
+    results: Optional[List[List[Dict]]] = None
 
-    def deserialize(self) -> List[Dict]:
+    def deserialize(self) -> List[List[Dict]]:
         return self.results

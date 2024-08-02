@@ -9,7 +9,7 @@ import bittensor as bt
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header
 from loguru import logger
-
+from .utils import discord_generate_answer
 from openkaito.protocol import (
     DiscordSearchSynapse,
     SemanticSearchSynapse,
@@ -31,7 +31,7 @@ validator_wallet_name = (
 validator_hotkey_name = (
     "default"  # The hotkey name of the validator, or os.environ.get("HOTKEY_NAME")
 )
-subtensor_network = "main"  # The subtensor network, "finney", "test", "local", or os.environ.get("SUBTENSOR_NETWORK"),
+subtensor_network = "test"  # The subtensor network, "finney", "test", "local", or os.environ.get("SUBTENSOR_NETWORK"),
 netuid = 88  # 88 for testnet and 5 for mainnet
 
 
@@ -108,10 +108,16 @@ async def send_synapse(
         timeout=synapse.timeout,
     )
 
-    return {
+    api_response = {
         "responses": {uid: response for uid, response in zip(miner_uids, responses)},
         "synapse": synapse.model_dump_json(),
     }
+    if synapse_type == "DiscordSearchSynapse":
+        generated_answer, flattend_msgs = discord_generate_answer(synapse, responses)
+        api_response["discord_generated_answer"] = generated_answer
+        api_response["discord_flattend_msgs"] = flattend_msgs
+
+    return api_response
 
 
 # the metagraph can be requested to sync with the network via a POST request to `/sync_metagraph` endpoint.

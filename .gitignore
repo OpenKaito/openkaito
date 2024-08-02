@@ -5,6 +5,7 @@ etc/
 .vscode/
 
 eth_denver_dataset/
+eth_cc7_dataset/
 
 channel_data/
 

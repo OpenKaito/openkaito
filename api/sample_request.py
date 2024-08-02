@@ -22,11 +22,11 @@ X_API_KEY = "key1"
 # print(r.json())
 
 
-search_query = SemanticSearchSynapse(
-    query_string="what is the future of Ethereum?",
-    size=5,
-    version=get_version(),
-)
+# search_query = SemanticSearchSynapse(
+#     query_string="what is the future of Ethereum?",
+#     size=5,
+#     version=get_version(),
+# )
 
 # search_query = StructuredSearchSynapse(
 #     query_string="TAO",
@@ -35,9 +35,15 @@ search_query = SemanticSearchSynapse(
 #     version=get_version(),
 # )
 
+search_query = DiscordSearchSynapse(
+    query_string="What is recent anouncement in project Open Kaito?",
+    size=5,
+    version=get_version(),
+)
+
 req = {
     "synapse_json": search_query.model_dump_json(),
-    # "miner_uids": "0,1,2",
+    "miner_uids": "0,1",
     # "miner_uids": "top",
     # "miner_uids": "random",
 }
