@@ -339,10 +339,6 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    search_query.name + "_responses": {
-                        uid.item(): json.dumps(response)
-                        for uid, response in zip(miner_uids, responses)
-                    },
                     search_query.name + "_avg_score": raw_scores.mean().item(),
                     "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 }
