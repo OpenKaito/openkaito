@@ -259,7 +259,7 @@ BITTENSOR_DISCORD_CHANNEL_PROJECS = {
     42: "Unknown",
     43: "Graphite",
     44: "Unknown",
-    45: "Unknown"
+    # 45: "Unknown"
 }
 
 
