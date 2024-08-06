@@ -394,6 +394,12 @@ class Evaluator:
                                 )
                                 zero_score_mask[i] = 0
                                 break
+                            if groundtruth["author_nickname"] != doc["author_nickname"]:
+                                bt.logging.warning(
+                                    f"Document author_nickname {doc['author_nickname']} not match ground truth {groundtruth['author_nickname']}"
+                                )
+                                zero_score_mask[i] = 0
+                                break
                             if groundtruth["channel_id"] != doc["channel_id"]:
                                 bt.logging.warning(
                                     f"Document channel_id {doc['channel_id']} not match ground truth {groundtruth['channel_id']}"
@@ -952,7 +958,7 @@ Each conversation will be marked between <conversation></conversation> tags, and
         except Exception as e:
             bt.logging.error(f"Error while parsing LLM result: {e}, retrying...")
             if retries > 0:
-                return self.llm_semantic_search_evaluation(
+                return self.llm_discord_semantic_search_conversation_evaluation(
                     query_string, docs, retries - 1
                 )
             else:
