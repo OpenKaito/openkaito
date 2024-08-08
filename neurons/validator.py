@@ -162,6 +162,8 @@ class Validator(BaseValidatorNeuron):
 
             random_number = random.random()
 
+            conf_dataset_dir = None
+
             # 40% discord task
             # among them, 30% discord semantic search(QA) tasks, 10% discord channel feeds tasks
             if random_number < 0.3:
@@ -175,7 +177,7 @@ class Validator(BaseValidatorNeuron):
                     size=2,
                     version=get_version(),
                 )
-                search_query.timeout = 15
+                search_query.timeout = 10
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
@@ -189,16 +191,15 @@ class Validator(BaseValidatorNeuron):
                     ),
                     version=get_version(),
                 )
-                search_query.timeout = 15
+                search_query.timeout = 10
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
 
             # 20% chance to send ETH Denver semantic search task
             elif random_number < 0.6:
-                segments = random_eth_conf_segments(
-                    self.eth_denver_dataset_dir, num_sources=3
-                )
+                conf_dataset_dir = self.eth_denver_dataset_dir
+                segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
                 bt.logging.debug(
                     f"{len(segments)} segments sampled from ETH Denver dataset."
                 )
@@ -212,15 +213,14 @@ class Validator(BaseValidatorNeuron):
                     version=get_version(),
                 )
                 # should be quick
-                search_query.timeout = 15
+                search_query.timeout = 10
                 bt.logging.info(
                     f"Sending ETH Denver {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )
             # 30% chance to send ETH CC[7] semantic search task
             elif random_number < 0.9:
-                segments = random_eth_conf_segments(
-                    self.eth_cc7_dataset_dir, num_sources=3
-                )
+                conf_dataset_dir = self.eth_cc7_dataset_dir
+                segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
                 bt.logging.debug(
                     f"{len(segments)} segments sampled from ETH CC[7] dataset."
                 )
@@ -235,7 +235,7 @@ class Validator(BaseValidatorNeuron):
                     version=get_version(),
                 )
                 # should be quick
-                search_query.timeout = 15
+                search_query.timeout = 10
                 bt.logging.info(
                     f"Sending ETH CC[7] {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )
@@ -294,7 +294,7 @@ class Validator(BaseValidatorNeuron):
 
             if search_query.name == "SemanticSearchSynapse":
                 rewards = self.evaluator.evaluate_semantic_search(
-                    search_query, responses, self.eth_denver_dataset_dir
+                    search_query, responses, conf_dataset_dir
                 )
             elif (
                 search_query.name == "StructuredSearchSynapse"
