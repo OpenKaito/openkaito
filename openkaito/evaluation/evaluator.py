@@ -449,18 +449,23 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
-
-                for conversation in response:
-                    conversation_channel_id = conversation[0]["channel_id"]
-                    if not all(
-                        doc["channel_id"] == conversation_channel_id
-                        for doc in conversation
-                    ):
-                        bt.logging.warning(
-                            f"Conversation channel id not consistent {conversation}"
-                        )
-                        zero_score_mask[i] = 0
-                        continue
+                else:
+                    # in discord QA tasks, check if all messages are in the same channel
+                    conversation_channel_id = None
+                    for conversation in response:
+                        conversation_channel_id = conversation[0]["channel_id"]
+                    
+                    if conversation_channel_id is not None:
+                        if not all(
+                            doc["channel_id"] == conversation_channel_id
+                            for conversation in response
+                            for doc in conversation
+                        ):
+                            bt.logging.warning(
+                                f"Conversation messages are not in the same channel"
+                            )
+                            zero_score_mask[i] = 0
+                            continue
 
                 # check if the response is within the time range filter
                 if query.earlier_than_timestamp is not None:
