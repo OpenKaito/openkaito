@@ -177,7 +177,7 @@ class Validator(BaseValidatorNeuron):
                     size=2,
                     version=get_version(),
                 )
-                search_query.timeout = 10
+                search_query.timeout = 15
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
@@ -191,7 +191,7 @@ class Validator(BaseValidatorNeuron):
                     ),
                     version=get_version(),
                 )
-                search_query.timeout = 10
+                search_query.timeout = 15
                 bt.logging.info(
                     f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
                 )
@@ -213,7 +213,7 @@ class Validator(BaseValidatorNeuron):
                     version=get_version(),
                 )
                 # should be quick
-                search_query.timeout = 10
+                search_query.timeout = 15
                 bt.logging.info(
                     f"Sending ETH Denver {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )
@@ -235,7 +235,7 @@ class Validator(BaseValidatorNeuron):
                     version=get_version(),
                 )
                 # should be quick
-                search_query.timeout = 10
+                search_query.timeout = 15
                 bt.logging.info(
                     f"Sending ETH CC[7] {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
                 )

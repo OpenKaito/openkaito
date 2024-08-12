@@ -450,6 +450,18 @@ class Evaluator:
                         zero_score_mask[i] = 0
                         continue
 
+                for conversation in response:
+                    conversation_channel_id = conversation[0]["channel_id"]
+                    if not all(
+                        doc["channel_id"] == conversation_channel_id
+                        for doc in conversation
+                    ):
+                        bt.logging.warning(
+                            f"Conversation channel id not consistent {conversation}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+
                 # check if the response is within the time range filter
                 if query.earlier_than_timestamp is not None:
                     if not all(
