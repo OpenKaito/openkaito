@@ -176,19 +176,16 @@ def generate_semantic_search_task(
     query_string: str,
     index_name: str = "eth_denver",
     size: int = 5,
-    version: str = None,
 ) -> SemanticSearchSynapse:
     """
     Generates a semantic search task for the validator to send to the miner.
     """
-    if version is None:
-        version = get_version()
 
     return SemanticSearchSynapse(
         query_string=query_string,
         index_name=index_name,
         size=size,
-        version=version,
+        version=get_version(),
     )
 
 

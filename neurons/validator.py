@@ -210,7 +210,6 @@ class Validator(BaseValidatorNeuron):
                 search_query = generate_semantic_search_task(
                     query_string=question,
                     index_name="eth_denver",
-                    version=get_version(),
                 )
                 # should be quick
                 search_query.timeout = 15
@@ -232,7 +231,6 @@ class Validator(BaseValidatorNeuron):
                 search_query = generate_semantic_search_task(
                     query_string=question,
                     index_name="eth_cc7",
-                    version=get_version(),
                 )
                 # should be quick
                 search_query.timeout = 15
@@ -329,15 +327,18 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    search_query.name + "_scores": {
+                    search_query.name
+                    + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    search_query.name + "_raw_scores": {
+                    search_query.name
+                    + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    search_query.name + "_responses": {
+                    search_query.name
+                    + "_responses": {
                         uid.item(): json.dumps(response)
                         for uid, response in zip(miner_uids, responses)
                     },
