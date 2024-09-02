@@ -388,6 +388,64 @@ def generate_discord_semantic_search_task(
     )
 
 
+# discord channel semantic search tasks
+def generate_discord_semantic_search_task_with_channel_id(
+    llm_client=None,
+    query_string: str = None,
+    index_name: str = "discord",
+    # channel_ids: list = None,
+    earlier_than_timestamp: int = None,
+    later_than_timestamp: int = None,
+    ## set the default size of conversations to be 2
+    size: int = 2,
+    version: str = None,
+) -> DiscordSearchSynapse:
+    """
+    Generates a semantic search task for the validator to send to the miner.
+    """
+    if not version:
+        version = get_version()
+
+    with open("bittensor_channels.json") as f:
+        channels = json.load(f)
+    # exclude the announcement channel
+    channel_info = random.choice(channels[1:])
+
+    # NOT explicitly set channel id in the request
+    # channel_ids = [channel_info["channel_id"]]
+    subnet_id = None
+    subnet_name = None
+
+    # subnet channel
+    if "Subnets" in channel_info["channel_category"]:
+        subnet_id = int(channel_info["channel_name"].split("\u30fb")[-1])
+        subnet_name = BITTENSOR_DISCORD_CHANNEL_PROJECS[subnet_id]
+        msg_category = random.choice(list(DISCORD_MSG_CATEGORIES.keys()))
+        query_string = generate_discord_query_string(
+            llm_client, subnet_name, msg_category, DISCORD_MSG_CATEGORIES[msg_category]
+        )
+        bt.logging.debug(
+            f"Channel ID: {channel_info['channel_id']}, Subnet ID: {subnet_id}, Subnet Name: {subnet_name}"
+        )
+    # actually no-op
+    else:
+        query_string = "What is the latest announcement in Bittensor discord server?"
+    bt.logging.debug(f"Generated query string: {query_string}")
+
+    return (
+        DiscordSearchSynapse(
+            query_string=query_string,
+            index_name=index_name,
+            channel_ids=None,
+            earlier_than_timestamp=earlier_than_timestamp,
+            later_than_timestamp=later_than_timestamp,
+            size=size,
+            version=version,
+        ),
+        channel_info["channel_id"],
+    )
+
+
 def find_repo(path):
     "Find repository root from the path's parents"
     for path in Path(path).parents:

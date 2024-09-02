@@ -41,7 +41,7 @@ from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
-    generate_discord_semantic_search_task,
+    generate_discord_semantic_search_task_with_channel_id,
     generate_question_from_eth_conf_segments,
     generate_structured_search_task,
     random_eth_conf_segments,
@@ -164,18 +164,21 @@ class Validator(BaseValidatorNeuron):
 
             conf_dataset_dir = None
 
+            discord_channel_id = None
             # 40% discord task
             # among them, 30% discord semantic search(QA) tasks, 10% discord channel feeds tasks
             if random_number < 0.3:
                 # generation logic is in openkaito/tasks
-                search_query = generate_discord_semantic_search_task(
-                    llm_client=self.llm_client,
-                    # earlier than 1 day messages to allow latency in validation groundtruth
-                    earlier_than_timestamp=int(
-                        (datetime.now() - timedelta(days=1)).timestamp() * 1000
-                    ),
-                    size=2,
-                    version=get_version(),
+                search_query, discord_channel_id = (
+                    generate_discord_semantic_search_task_with_channel_id(
+                        llm_client=self.llm_client,
+                        # earlier than 1 day messages to allow latency in validation groundtruth
+                        earlier_than_timestamp=int(
+                            (datetime.now() - timedelta(days=1)).timestamp() * 1000
+                        ),
+                        size=2,
+                        version=get_version(),
+                    )
                 )
                 search_query.timeout = 15
                 bt.logging.info(
@@ -301,7 +304,7 @@ class Validator(BaseValidatorNeuron):
                 rewards = self.evaluator.evaluate(search_query, responses)
             elif search_query.name == "DiscordSearchSynapse":
                 rewards = self.evaluator.evaluate_discord_query_search(
-                    search_query, responses
+                    search_query, responses, discord_channel_id
                 )
             else:
                 bt.logging.error(f"Unknown search query name: {search_query.name}")

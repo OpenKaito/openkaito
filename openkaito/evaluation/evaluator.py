@@ -292,7 +292,7 @@ class Evaluator:
     - within 24h time window
     """
 
-    def evaluate_discord_query_search(self, query, responses):
+    def evaluate_discord_query_search(self, query, responses, channel_id=None):
         # query_string = query.query_string
         size = query.size
 
@@ -350,7 +350,9 @@ class Evaluator:
                             conversation[-1]["created_at"]
                         ) - dateutil.parser.isoparse(
                             conversation[0]["created_at"]
-                        ) > timedelta(hours=24):
+                        ) > timedelta(
+                            hours=24
+                        ):
                             bt.logging.warning(
                                 "conversation time span is larger than 24h"
                             )
@@ -449,23 +451,30 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
-                else:
-                    # in discord QA tasks, check if all messages are in the same channel
-                    conversation_channel_id = None
-                    for conversation in response:
-                        conversation_channel_id = conversation[0]["channel_id"]
-                    
-                    if conversation_channel_id is not None:
-                        if not all(
-                            doc["channel_id"] == conversation_channel_id
-                            for conversation in response
-                            for doc in conversation
-                        ):
-                            bt.logging.warning(
-                                f"Conversation messages are not in the same channel"
-                            )
-                            zero_score_mask[i] = 0
-                            continue
+
+                for conversation in response:
+                    conversation_channel_id = conversation[0]["channel_id"]
+                    if not all(
+                        doc["channel_id"] == conversation_channel_id
+                        for doc in conversation
+                    ):
+                        bt.logging.warning(
+                            f"Conversation channel id not consistent {conversation}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+                
+                if channel_id is not None:
+                    if not all(
+                        doc["channel_id"] == channel_id
+                        for conversation in response
+                        for doc in conversation
+                    ):
+                        bt.logging.warning(
+                            f"Responses does not recall from the correct channel {channel_id}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
 
                 # check if the response is within the time range filter
                 if query.earlier_than_timestamp is not None:
