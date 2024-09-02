@@ -546,8 +546,8 @@ class Evaluator:
             f"avg_age_scores: {avg_age_scores}, rank_scores: {rank_scores}"
         )
 
-        # recency counts up to 30%
-        scores = avg_age_scores * 0.3 + rank_scores * 0.7
+        # recency counts up to 20%
+        scores = avg_age_scores * 0.2 + rank_scores * 0.8
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
