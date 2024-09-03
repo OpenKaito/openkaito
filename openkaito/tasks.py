@@ -225,8 +225,8 @@ BITTENSOR_DISCORD_CHANNEL_PROJECS = {
     11: "Dippy Roleplay",
     12: "Horde",
     13: "Dataverse",
-    14: "LLM Defender",
-    15: "Blockchain Insights",
+    14: "Palaidn",
+    15: "De-Val",
     16: "BitAds",
     17: "Three Gen",
     18: "Cortex.t",
@@ -244,19 +244,19 @@ BITTENSOR_DISCORD_CHANNEL_PROJECS = {
     30: "Bettensor",
     31: "NAS Chain",
     32: "It's AI",
-    33: "Conversation Genome",
+    33: "ReadyAI",
     34: "BitMind",
     35: "LogicNet",
     36: "Human Intelligence Primitive",
     37: "Finetuning",
-    38: "Unknown",
+    38: "Tatsu Identity",
     39: "EdgeMaxxing",
-    40: "Unknown",
+    40: "Chunking",
     41: "Sportstensor",
-    42: "Unknown",
+    42: "Masa",
     43: "Graphite",
-    44: "Unknown",
-    # 45: "Unknown"
+    44: "Score Predict",
+    45: "Gen42"
 }
 
 

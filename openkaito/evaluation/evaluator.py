@@ -930,7 +930,7 @@ Conversation:
                     {
                         "role": "system",
                         "content": """Below are the metrics and definitions:
-off topic: Superficial or unrelevant content that can not answer the given question, or is not from the channel of the project of the query.
+off topic: Superficial or unrelevant content that can not answer the given question, or is not from the channel of the project of the query, or only contains a single message in each conversation.
 somewhat relevant: Offers partial insight to partially answer the given question.
 relevant: Comprehensive, insightful content suitable for answering the given question. The conversation must contain multiple messages instead of a single message to be considered as relevant.
 """,
@@ -952,7 +952,7 @@ Each conversation will be marked between <conversation></conversation> tags, and
                         "content": (
                             f"Use the metric choices [off topic, somewhat relevant, relevant] to evaluate whether the text can answer the given question:\n"
                             f"{query_string}\n\n"
-                            "If the conversation is not from the channel of the project of the query, please rate it as 'off topic'."
+                            "If the conversation is not from the channel of the project of the query, or just contain a single message in it, rate it as 'off topic'."
                         ),
                     },
                     {
