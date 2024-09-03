@@ -70,12 +70,12 @@
     "channel_name": "\u03bd\u30fbnu\u30fb13"
   },
   {
-    "channel_id": "1182422353360195695",
+    "channel_id": "1270733850443513927",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u03be\u30fbxi\u30fb14"
   },
   {
-    "channel_id": "1166816300962693170",
+    "channel_id": "1272557411948957697",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u03bf\u30fbomicron\u30fb15"
   },
@@ -190,7 +190,7 @@
     "channel_name": "\u05dc\u30fblamed\u30fb37"
   },
   {
-    "channel_id": "1266784878003753107",
+    "channel_id": "1263858989800886302",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05dd\u30fbfinal-mem\u30fb38"
   },
@@ -210,7 +210,7 @@
     "channel_name": "\u05e0\u30fbnun\u30fb41"
   },
   {
-    "channel_id": "1267511824601976935",
+    "channel_id": "1275149537547391058",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05e1\u30fbsamekh\u30fb42"
   },
@@ -220,8 +220,13 @@
     "channel_name": "\u05e2\u30fbayin\u30fb43"
   },
   {
-    "channel_id": "1161765231953989712",
+    "channel_id": "1271486854830755981",
     "channel_category": "[\u30fbSubnets\u30fb]",
     "channel_name": "\u05e3\u30fbfinal-pe\u30fb44"
+  },
+  {
+    "channel_id": "1267511824601976935",
+    "channel_category": "[\u30fbSubnets\u30fb]",
+    "channel_name": "\u05e4\u30fbpe\u30fb45"
   }
 ]

@@ -292,7 +292,7 @@ class Evaluator:
     - within 24h time window
     """
 
-    def evaluate_discord_query_search(self, query, responses):
+    def evaluate_discord_query_search(self, query, responses, channel_id=None):
         # query_string = query.query_string
         size = query.size
 
@@ -350,7 +350,9 @@ class Evaluator:
                             conversation[-1]["created_at"]
                         ) - dateutil.parser.isoparse(
                             conversation[0]["created_at"]
-                        ) > timedelta(hours=24):
+                        ) > timedelta(
+                            hours=24
+                        ):
                             bt.logging.warning(
                                 "conversation time span is larger than 24h"
                             )
@@ -449,23 +451,30 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
-                else:
-                    # in discord QA tasks, check if all messages are in the same channel
-                    conversation_channel_id = None
-                    for conversation in response:
-                        conversation_channel_id = conversation[0]["channel_id"]
-                    
-                    if conversation_channel_id is not None:
-                        if not all(
-                            doc["channel_id"] == conversation_channel_id
-                            for conversation in response
-                            for doc in conversation
-                        ):
-                            bt.logging.warning(
-                                f"Conversation messages are not in the same channel"
-                            )
-                            zero_score_mask[i] = 0
-                            continue
+
+                for conversation in response:
+                    conversation_channel_id = conversation[0]["channel_id"]
+                    if not all(
+                        doc["channel_id"] == conversation_channel_id
+                        for doc in conversation
+                    ):
+                        bt.logging.warning(
+                            f"Conversation channel id not consistent {conversation}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
+                
+                if channel_id is not None:
+                    if not all(
+                        doc["channel_id"] == channel_id
+                        for conversation in response
+                        for doc in conversation
+                    ):
+                        bt.logging.warning(
+                            f"Responses does not recall from the correct channel {channel_id}"
+                        )
+                        zero_score_mask[i] = 0
+                        continue
 
                 # check if the response is within the time range filter
                 if query.earlier_than_timestamp is not None:
@@ -546,8 +555,8 @@ class Evaluator:
             f"avg_age_scores: {avg_age_scores}, rank_scores: {rank_scores}"
         )
 
-        # recency counts up to 30%
-        scores = avg_age_scores * 0.3 + rank_scores * 0.7
+        # recency counts up to 20%
+        scores = avg_age_scores * 0.2 + rank_scores * 0.8
         scores = scores * uniqueness_scores
 
         # relative scores in a batch
@@ -921,7 +930,7 @@ Conversation:
                     {
                         "role": "system",
                         "content": """Below are the metrics and definitions:
-off topic: Superficial or unrelevant content that can not answer the given question.
+off topic: Superficial or unrelevant content that can not answer the given question, or is not from the channel of the project of the query, or only contains a single message in each conversation.
 somewhat relevant: Offers partial insight to partially answer the given question.
 relevant: Comprehensive, insightful content suitable for answering the given question. The conversation must contain multiple messages instead of a single message to be considered as relevant.
 """,
@@ -942,7 +951,8 @@ Each conversation will be marked between <conversation></conversation> tags, and
                         "role": "user",
                         "content": (
                             f"Use the metric choices [off topic, somewhat relevant, relevant] to evaluate whether the text can answer the given question:\n"
-                            f"{query_string}"
+                            f"{query_string}\n\n"
+                            "If the conversation is not from the channel of the project of the query, or just contain a single message in it, rate it as 'off topic'."
                         ),
                     },
                     {
