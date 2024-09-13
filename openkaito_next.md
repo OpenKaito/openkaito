@@ -24,7 +24,9 @@ Miners will receive a batch of texts and embed them.
 
 For the text embeddings, validators have the pairwise relevance information to evaluate them via the contrastive learning loss:
 
- $\mathcal{L}_\text{InfoNCE} = - \mathbb{E} \Big[\log \frac{f(\mathbf{x}, \mathbf{c})}{\sum_{\mathbf{x}' \in X} f(\mathbf{x}', \mathbf{c})} \Big]$,
+$$
+\mathcal{L}_\text{InfoNCE} = - \mathbb{E} \Big[\log \frac{f(\mathbf{x}, \mathbf{c})}{\sum_{\mathbf{x}' \in X} f(\mathbf{x}', \mathbf{c})} \Big]
+$$,
 
 where $f(x,c) = \exp{(x \cdot c)}$ is an estimate of $\frac{p(x | c)}{p(x)}$, and $c$ is the target embedding, and $x$ is the positive sample, and $x'$ are negative samples.
 
