@@ -1,22 +1,28 @@
 # Bittensor Subnet 5: Text Embedding Model
 
+> This is a draft proposal for next version of Bittensor Subnet 5: Text Embedding Model.
+
 ## Abstract
 
-Bittensor Subnet 5's primary focus is the advancement of text embedding models through collaborative efforts among miners.
+Bittensor Subnet 5's primary focus is the development of the world’s best performing and most generalizable text embedding model. 
 
-Leveraging an extensive Large Language Model (LLM)-augmented corpus for evaluation, miners are empowered to develop and deploy text-embedding models that surpass current state-of-the-art (SOTA) performance.
+Leveraging an extensive Large Language Model (LLM)-augmented corpus for evaluation, miners are empowered to develop and deploy text-embedding models that surpass current state-of-the-art (SOTA) performance. 
 
 These models will be accessible to users via the subnet's API.
 
 ## Objectives & Contributions
 
-The primary objective of Subnet 5 is to train and serve the best and most robust generic text-embedding models. Such text-embedding models can empower plenty of downstream applications such as semantic search, natural language understanding, and so on.
+The primary objective of Subnet 5 is to train and serve the best and most generalizable text-embedding models. Such text-embedding models can empower plenty of downstream applications such as semantic search, natural language understanding, and so on.
+
 
 Miners will be responsible for training models using an extensive corpus of textual data and serving the model in a low-latency and high-throughput way. These models will be utilized to generate high-quality embeddings for diverse text inputs.
 
+
 Validators will conduct rigorous evaluations of the models using multiple benchmarks. Performance comparisons will be made against existing SOTA text embedding models to ensure continuous improvement and competitiveness.
 
-Subnet users will gain access to cutting-edge text embedding models that exceed SOTA performance. These models will be made publicly available through the validator API of Bittensor Subnet 5, facilitating widespread adoption and integration into various applications.
+
+Subnet users will gain access to cutting-edge text embedding models that are most generic and exceed SOTA performance. These models will be made publicly available through the validator API of Bittensor Subnet 5, facilitating widespread adoption and integration into various applications.
+
 
 ## Incentive Mechanism
 
@@ -24,9 +30,9 @@ Miners will receive a batch of texts and embed them.
 
 For the text embeddings, validators have the pairwise relevance information to evaluate them via the contrastive learning loss:
 
-$$
-\mathcal{L}_\text{InfoNCE} = - \mathbb{E} \Big[\log \frac{f(\mathbf{x}, \mathbf{c})}{\sum_{\mathbf{x}' \in X} f(\mathbf{x}', \mathbf{c})} \Big]
-$$,
+```math
+\mathcal{L}_\text{InfoNCE} = - \mathbb{E} \left[\log \frac{f(\mathbf{x}, \mathbf{c})}{\sum_{\mathbf{x}' \in X} f(\mathbf{x}', \mathbf{c})} \right]
+```
 
 where $f(x,c) = \exp{(x \cdot c)}$ is an estimate of $\frac{p(x | c)}{p(x)}$, and $c$ is the target embedding, and $x$ is the positive sample, and $x'$ are negative samples.
 
