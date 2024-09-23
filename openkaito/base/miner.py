@@ -30,8 +30,8 @@ from openkaito.protocol import (
     SearchSynapse,
     SemanticSearchSynapse,
     StructuredSearchSynapse,
+    TextEmbeddingSynapse,
 )
-from openkaito.utils.config import config
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -75,6 +75,10 @@ class BaseMinerNeuron(BaseNeuron):
             forward_fn=self.forward_discord_search,
             blacklist_fn=self.blacklist_discord_search,
             priority_fn=self.priority_discord_search,
+        ).attach(
+            forward_fn=self.forward_text_embedding,
+            blacklist_fn=self.blacklist_text_embedding,
+            priority_fn=self.priority_text_embedding,
         )
         bt.logging.info(f"Axon created: {self.axon}")
 
@@ -107,6 +111,11 @@ class BaseMinerNeuron(BaseNeuron):
         self, query: DiscordSearchSynapse
     ) -> DiscordSearchSynapse:
         bt.logging.warning("unimplemented: forward_discord_search()")
+
+    async def forward_text_embedding(
+        self, query: TextEmbeddingSynapse
+    ) -> TextEmbeddingSynapse:
+        bt.logging.warning("unimplemented: forward_text_embedding()")
 
     def run(self):
         """
@@ -269,6 +278,7 @@ class BaseMinerNeuron(BaseNeuron):
         """
         if not synapse.dendrite.hotkey:
             return True, "Hotkey not provided"
+
         registered = synapse.dendrite.hotkey in self.metagraph.hotkeys
         if self.config.blacklist.allow_non_registered and not registered:
             return False, "Allowing un-registered hotkey"
@@ -288,8 +298,13 @@ class BaseMinerNeuron(BaseNeuron):
                 return True, "Non-validator hotkey"
 
         stake = self.metagraph.S[uid].item()
-        if self.config.blacklist.validator_min_stake and stake < self.config.blacklist.validator_min_stake:
-            bt.logging.warning(f"Blacklisting request from {synapse.dendrite.hotkey} [uid={uid}], not enough stake -- {stake}")
+        if (
+            self.config.blacklist.validator_min_stake
+            and stake < self.config.blacklist.validator_min_stake
+        ):
+            bt.logging.warning(
+                f"Blacklisting request from {synapse.dendrite.hotkey} [uid={uid}], not enough stake -- {stake}"
+            )
             return True, "Stake below minimum"
 
         bt.logging.trace(
@@ -358,6 +373,14 @@ class BaseMinerNeuron(BaseNeuron):
         return await self.blacklist(synapse)
 
     async def priority_discord_search(self, synapse: DiscordSearchSynapse) -> float:
+        return await self.priority(synapse)
+
+    async def blacklist_text_embedding(
+        self, synapse: TextEmbeddingSynapse
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+
+    async def priority_text_embedding(self, synapse: TextEmbeddingSynapse) -> float:
         return await self.priority(synapse)
 
     def save_state(self):

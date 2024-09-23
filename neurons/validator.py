@@ -19,12 +19,11 @@
 import json
 import os
 import random
-import time
-import wandb
 import tarfile
+import time
 from datetime import datetime, timedelta, timezone
-from traceback import print_exception
 from pathlib import Path
+from traceback import print_exception
 
 # Bittensor
 import bittensor as bt
@@ -33,6 +32,8 @@ import torch
 from dotenv import load_dotenv
 
 import openkaito
+import wandb
+from datasets import load_dataset
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
@@ -43,13 +44,16 @@ from openkaito.tasks import (
     generate_discord_search_task,
     generate_discord_semantic_search_task_with_channel_id,
     generate_question_from_eth_conf_segments,
+    generate_relevant_pairs,
+    generate_semantic_search_task,
     generate_structured_search_task,
+    generate_text_embedding_synapse,
     random_eth_conf_segments,
     random_query,
-    generate_semantic_search_task,
 )
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
+from openkaito.utils.embeddings import openai_embeddings_tensor
 
 
 class Validator(BaseValidatorNeuron):
@@ -77,6 +81,11 @@ class Validator(BaseValidatorNeuron):
 
         self.init_eth_denver_dataset()
         self.init_eth_cc7_dataset()
+
+        bt.logging.info("Loading FineWeb dataset")
+        self.fineweb_dataset = load_dataset(
+            "HuggingFaceFW/fineweb", name="sample-10BT", split="train", streaming=True
+        )
 
         netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -162,14 +171,35 @@ class Validator(BaseValidatorNeuron):
 
             random_number = random.random()
 
-            conf_dataset_dir = None
+            query = None
 
+            conf_dataset_dir = None
             discord_channel_id = None
-            # 40% discord task
-            # among them, 30% discord semantic search(QA) tasks, 10% discord channel feeds tasks
-            if random_number < 0.3:
+            q_indices = None
+            a_indices = None
+
+            # 20% chance to send text-embedding task
+            # Note: This is a beta release of the text-embedding task, will increase the portion in the future.
+            if random_number < 0.2:
+                bt.logging.info("Generating text-embedding relevant pairs...")
+                pairs = generate_relevant_pairs(
+                    self.fineweb_dataset,
+                    num_articles=50,
+                    num_pairs_per_article=2,
+                    llm_client=self.llm_client,
+                )
+                bt.logging.info(f"Generated {len(pairs)} pairs")
+
+                query, q_indices, a_indices = generate_text_embedding_synapse(pairs)
+                bt.logging.info(
+                    f"Sending {query.name}: {query.texts} to miner uids: {miner_uids}"
+                )
+
+            # total 20% discord task
+            # among them, 15% discord semantic search(QA) tasks, 5% discord channel feeds tasks
+            elif random_number < 0.35:
                 # generation logic is in openkaito/tasks
-                search_query, discord_channel_id = (
+                query, discord_channel_id = (
                     generate_discord_semantic_search_task_with_channel_id(
                         llm_client=self.llm_client,
                         # earlier than 1 day messages to allow latency in validation groundtruth
@@ -180,13 +210,13 @@ class Validator(BaseValidatorNeuron):
                         version=get_version(),
                     )
                 )
-                search_query.timeout = 15
+                query.timeout = 15
                 bt.logging.info(
-                    f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
+                    f"Sending {query.name}: {query.model_dump_json()} to miner uids: {miner_uids}"
                 )
             # 10% discord channel feeds task
             elif random_number < 0.4:
-                search_query = generate_discord_search_task(
+                query = generate_discord_search_task(
                     size=5,
                     # earlier than 1 day messages to allow latency in validation groundtruth
                     earlier_than_timestamp=int(
@@ -194,9 +224,9 @@ class Validator(BaseValidatorNeuron):
                     ),
                     version=get_version(),
                 )
-                search_query.timeout = 15
+                query.timeout = 15
                 bt.logging.info(
-                    f"Sending {search_query.name}: {search_query.model_dump_json()} to miner uids: {miner_uids}"
+                    f"Sending {query.name}: {query.model_dump_json()} to miner uids: {miner_uids}"
                 )
 
             # 20% chance to send ETH Denver semantic search task
@@ -210,14 +240,14 @@ class Validator(BaseValidatorNeuron):
                 question = generate_question_from_eth_conf_segments(
                     self.llm_client, segments
                 )
-                search_query = generate_semantic_search_task(
+                query = generate_semantic_search_task(
                     query_string=question,
                     index_name="eth_denver",
                 )
                 # should be quick
-                search_query.timeout = 15
+                query.timeout = 15
                 bt.logging.info(
-                    f"Sending ETH Denver {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                    f"Sending ETH Denver {query.name}: {query.query_string} to miner uids: {miner_uids}"
                 )
             # 30% chance to send ETH CC[7] semantic search task
             elif random_number < 0.9:
@@ -231,52 +261,30 @@ class Validator(BaseValidatorNeuron):
                     self.llm_client, segments
                 )
                 # must create a `eth_cc7` index in the miner
-                search_query = generate_semantic_search_task(
+                query = generate_semantic_search_task(
                     query_string=question,
                     index_name="eth_cc7",
                 )
                 # should be quick
-                search_query.timeout = 15
+                query.timeout = 15
                 bt.logging.info(
-                    f"Sending ETH CC[7] {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
+                    f"Sending ETH CC[7] {query.name}: {query.query_string} to miner uids: {miner_uids}"
                 )
 
             # 10% chance to send index author data task with crawling and indexing
             elif random_number < 1:
-                search_query = generate_author_index_task(
+                query = generate_author_index_task(
                     size=10,  # author index data size
                     num_authors=2,
                 )
                 # this is a bootstrap task for users to crawl more data from the author list.
                 # miners may implement a more efficient way to crawl and index the author data in the background,
                 # instead of relying on the validator tasks
-                search_query.timeout = 90
+                query.timeout = 90
 
                 bt.logging.info(
-                    f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
+                    f"Sending {query.name}: author index data task, authors:{query.author_usernames} to miner uids: {miner_uids}"
                 )
-            # 10% chance to send author search task without crawling
-            # elif random_number < 1:
-            #    search_query = generate_author_index_task(
-            #        size=10,  # author index data size
-            #        num_authors=2,
-            #    )
-            #    search_query.timeout = 10
-
-            #   bt.logging.info(
-            #        f"Sending {search_query.name}: author index data task, authors:{search_query.author_usernames} to miner uids: {miner_uids}"
-            #    )
-            # 0% chance to send structured search task
-            # else:
-            #    search_query = generate_structured_search_task(
-            #        size=self.config.neuron.search_result_size,
-            #        author_usernames=random.sample(self.twitter_usernames, 100),
-            #    )
-            #    search_query.timeout = 90
-
-            #    bt.logging.info(
-            #        f"Sending {search_query.name}: {search_query.query_string} to miner uids: {miner_uids}"
-            #    )
             bt.logging.trace(
                 f"miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
             )
@@ -285,29 +293,46 @@ class Validator(BaseValidatorNeuron):
             responses = await self.dendrite(
                 # Send the query to selected miner axons in the network.
                 axons=[self.metagraph.axons[uid] for uid in miner_uids],
-                synapse=search_query,
+                synapse=query,
                 deserialize=True,
-                timeout=search_query.timeout,
+                timeout=query.timeout,
             )
 
             # Log the results for monitoring purposes.
             bt.logging.debug(f"Received responses: {responses}")
 
-            if search_query.name == "SemanticSearchSynapse":
+            if query.name == "SemanticSearchSynapse":
                 rewards = self.evaluator.evaluate_semantic_search(
-                    search_query, responses, conf_dataset_dir
+                    query, responses, conf_dataset_dir
                 )
             elif (
-                search_query.name == "StructuredSearchSynapse"
-                or search_query.name == "SearchSynapse"
+                query.name == "StructuredSearchSynapse" or query.name == "SearchSynapse"
             ):
-                rewards = self.evaluator.evaluate(search_query, responses)
-            elif search_query.name == "DiscordSearchSynapse":
+                rewards = self.evaluator.evaluate(query, responses)
+            elif query.name == "DiscordSearchSynapse":
                 rewards = self.evaluator.evaluate_discord_query_search(
-                    search_query, responses, discord_channel_id
+                    query, responses, discord_channel_id
                 )
+            elif query.name == "TextEmbeddingSynapse":
+                rewards, losses, top1_recalls, top3_recalls = (
+                    self.evaluator.evaluate_text_embedding(
+                        query, responses, q_indices, a_indices
+                    )
+                )
+                openai_embeddings = openai_embeddings_tensor(
+                    self.llm_client,
+                    query.texts,
+                    dimensions=query.dimensions,
+                    model="text-embedding-3-large",
+                )
+                openai_reward, openai_loss, openai_top1_recall, openai_top3_recall = (
+                    self.evaluator.evaluate_text_embedding(
+                        query, [openai_embeddings.tolist()], q_indices, a_indices
+                    )
+                )
+
             else:
-                bt.logging.error(f"Unknown search query name: {search_query.name}")
+                bt.logging.error(f"Unknown search query name: {query.name}")
                 rewards = torch.zeros(len(miner_uids))
 
             raw_scores = rewards.clone().detach()
@@ -321,7 +346,7 @@ class Validator(BaseValidatorNeuron):
 
             if not self.config.neuron.wandb_off:
                 wandb_log = {
-                    "synapse": search_query.model_dump_json(),
+                    "synapse": query.model_dump_json(),
                     "scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
@@ -330,25 +355,49 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    search_query.name
+                    query.name
                     + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    search_query.name
+                    query.name
                     + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    search_query.name
+                    query.name
                     + "_responses": {
                         uid.item(): json.dumps(response)
                         for uid, response in zip(miner_uids, responses)
                     },
-                    search_query.name + "_avg_score": raw_scores.mean().item(),
+                    query.name + "_avg_score": raw_scores.mean().item(),
                     "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 }
+                if query.name == "TextEmbeddingSynapse":
+                    wandb_log.update(
+                        {
+                            "TextEmbeddingSynapse_losses": {
+                                uid.item(): loss.item()
+                                for uid, loss in zip(miner_uids, losses)
+                            },
+                            "TextEmbeddingSynapse_top1_recalls": {
+                                uid.item(): top1_recall.item()
+                                for uid, top1_recall in zip(miner_uids, top1_recalls)
+                            },
+                            "TextEmbeddingSynapse_top3_recalls": {
+                                uid.item(): top3_recall.item()
+                                for uid, top3_recall in zip(miner_uids, top3_recalls)
+                            },
+                            "TextEmbeddingSynapse_openai_raw_score": openai_reward.item(),
+                            "TextEmbeddingSynapse_openai_loss": openai_loss.item(),
+                            "TextEmbeddingSynapse_openai_top1_recall": openai_top1_recall.item(),
+                            "TextEmbeddingSynapse_openai_top3_recall": openai_top3_recall.item(),
+                        }
+                    )
                 wandb.log(wandb_log)
+
+                # clearer logging
+                wandb_log.pop(query.name + "_responses")
                 bt.logging.debug("wandb_log", wandb_log)
             else:
                 bt.logging.warning(

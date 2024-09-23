@@ -157,3 +157,30 @@ class DiscordSearchSynapse(bt.Synapse):
 
     def deserialize(self) -> List[List[Dict]]:
         return self.results
+
+
+class TextEmbeddingSynapse(bt.Synapse):
+    """
+    Text embedding protocol representation for handling request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - texts: A list of string values representing the text to be embedded.
+    - dimensions: An integer value representing the dimension of the embedding.
+    - normalized: A boolean value representing whether to normalize the embedding to unit length.
+    - results: A 2d tensor in list type, [batch_size, embedding_size], when filled, represents the response from the miner.
+    - version: A `Version` object representing the version of the protocol.
+    """
+
+    texts: List[str]
+
+    dimensions: int = pydantic.Field(128, ge=1)
+
+    normalized: bool = pydantic.Field(True)
+
+    version: Optional[Version] = None
+
+    results: Optional[List[List[float]]] = None
+
+    def deserialize(self) -> List[Dict]:
+        return self.results
