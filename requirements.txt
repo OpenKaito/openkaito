@@ -6,9 +6,11 @@ apify-client
 elasticsearch
 python-dotenv
 pydantic
-wandb
+wandb>=0.18
 transformers
 tqdm
 requests
 python-dateutil
 numpy<2.0
+datasets>=3.0
+info-nce-pytorch>=0.1.4

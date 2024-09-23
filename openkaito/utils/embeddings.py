@@ -51,3 +51,17 @@ def text_embedding(text, model_name="bert-base-uncased"):
     # Note: miners are encouraged to explore more pooling strategies, finetune the model, etc.
 
     return embedding
+
+
+def openai_embeddings_tensor(
+    client, texts, dimensions=64, model="text-embedding-3-large"
+):
+
+    # replace newlines, which can negatively affect performance.
+    texts = [text.replace("\n", " ") for text in texts]
+
+    embeddings = client.embeddings.create(
+        input=texts, model=model, dimensions=dimensions
+    ).data
+
+    return torch.as_tensor([emb.embedding for emb in embeddings])

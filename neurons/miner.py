@@ -30,11 +30,13 @@ from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.protocol import (
     DiscordSearchSynapse,
     SearchSynapse,
-    StructuredSearchSynapse,
     SemanticSearchSynapse,
+    StructuredSearchSynapse,
+    TextEmbeddingSynapse,
 )
 from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
+from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.version import compare_version, get_version
 
 
@@ -184,6 +186,28 @@ class Miner(BaseMinerNeuron):
         bt.logging.info(
             f"processed DiscordSearchSynapse in {elapsed_time} seconds",
         )
+        return query
+
+    # Example of a text embedding function
+    async def forward_text_embedding(
+        self, query: TextEmbeddingSynapse
+    ) -> TextEmbeddingSynapse:
+        texts = query.texts
+        dimensions = query.dimensions
+
+        import openai
+
+        client = openai.OpenAI(
+            api_key=os.environ["OPENAI_API_KEY"],
+            organization=os.getenv("OPENAI_ORGANIZATION"),
+            project=os.getenv("OPENAI_PROJECT"),
+            max_retries=3,
+        )
+
+        embeddings = openai_embeddings_tensor(
+            client, texts, dimensions=dimensions, model="text-embedding-3-large"
+        )
+        query.results = embeddings.tolist()
         return query
 
     def print_info(self):

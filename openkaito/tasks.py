@@ -1,19 +1,23 @@
 import json
 import os
-from pathlib import Path
 import random
-import openai
 from datetime import datetime, timedelta
+from pathlib import Path
+import time
 from traceback import print_exception
-from dotenv import load_dotenv
 
 import bittensor as bt
+import openai
+from dotenv import load_dotenv
+
+from datasets import load_dataset
 
 from .protocol import (
     DiscordSearchSynapse,
+    SemanticSearchSynapse,
     SortType,
     StructuredSearchSynapse,
-    SemanticSearchSynapse,
+    TextEmbeddingSynapse,
 )
 from .utils.version import get_version
 
@@ -189,6 +193,136 @@ def generate_semantic_search_task(
     )
 
 
+# def batch_generate_question_and_answers(llm_client)
+
+
+def generate_relevant_pair(llm_client, text, max_retries=3):
+    prompt = (
+        "You will be given a text segment as your source of knowledge. "
+        "You need to understand the meaning of the text, and generate a question about the text that can be answered by this text segment. "
+        "Text segment:\n\n" + text
+    )
+
+    # bt.logging.debug(f"Prompt: {prompt}")
+
+    try:
+        output = llm_client.chat.completions.create(
+            model="gpt-4o-2024-08-06",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+                {
+                    "role": "user",
+                    "content": "Must respond with the following json format: "
+                    + "{'question': 'your generated question here'}",
+                    # + "{'question': 'your generated question here', 'answer': 'the text segment here'}",
+                },
+            ],
+            temperature=1.5,
+            timeout=60,
+        )
+
+        bt.logging.debug(
+            f"generation questions LLM response: {output.choices[0].message.content}"
+        )
+        bt.logging.debug(
+            f"LLM usage: {output.usage}, finish reason: {output.choices[0].finish_reason}"
+        )
+        try:
+            res = json.loads(output.choices[0].message.content)
+            return res["question"], text
+        except Exception as e:
+            bt.logging.error(
+                f"Error during json load llm response: {e}, remaining retries: {max_retries-1}"
+            )
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+            if max_retries <= 0:
+                return None, None
+            bt.logging.debug("Retrying in 10 seconds...")
+            time.sleep(10)
+            return generate_relevant_pair(llm_client, text, max_retries - 1)
+
+    except Exception as e:
+        bt.logging.error(f"Error during LLM completion: {e}")
+        bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+        return None, None
+
+
+# will generate `num_articles` * `num_pairs_per_article` relevant question-answer pairs
+def generate_relevant_pairs(dataset, num_articles, num_pairs_per_article, llm_client):
+    """
+    Generate relevant question-answer pairs from the dataset.
+    """
+    samples = list(dataset.shuffle().take(num_articles))
+    pairs = []
+    for sample in samples:
+        text = sample["text"]
+        # split each article to `num_pairs_per_article` chunks, to make the generated pairs have some cross-pair relevance
+
+        if not text.strip():
+            continue
+
+        # Note: can consider using a more sophisticated way to split the text
+        chunk_len = len(text) // num_pairs_per_article
+        for i in range(num_pairs_per_article):
+            text_chunk = text[i * chunk_len : (i + 1) * chunk_len]
+            try:
+                Q, A = generate_relevant_pair(llm_client, text_chunk)
+            except Exception as e:
+                bt.logging.error(f"Error during generating relevant pair: {e}")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                continue
+            if Q and A:
+                pairs.append((Q, A))
+    return pairs
+
+
+def generate_text_embedding_synapse(
+    pairs: list,
+    dimensions: int = 128,
+    normalized: bool = True,
+) -> TextEmbeddingSynapse:
+    """
+    Generates a text embedding task for the validator to send to the miner.
+    """
+    num_pairs = len(pairs)
+
+    q_indices = []
+    a_indices = []
+
+    text_indices = list(range(num_pairs * 2))
+    random.shuffle(text_indices)
+
+    texts = ["" for _ in range(2 * num_pairs)]
+
+    # shuffle the text pairs
+    # the reverse Q and A indices are used to shuffle the pairs back to the original order
+    for i in range(num_pairs):
+        q_indices.append(text_indices[2 * i])
+        a_indices.append(text_indices[2 * i + 1])
+
+        texts[q_indices[i]] = pairs[i][0]
+        texts[a_indices[i]] = pairs[i][1]
+
+    for i in range(num_pairs):
+        assert texts[q_indices[i]] == pairs[i][0]
+        assert texts[a_indices[i]] == pairs[i][1]
+
+    return (
+        TextEmbeddingSynapse(
+            texts=texts,
+            dimensions=dimensions,
+            normalized=normalized,
+            version=get_version(),
+        ),
+        q_indices,
+        a_indices,
+    )
+
+
 DISCORD_MSG_CATEGORIES = {
     "Announcements": "Official updates or important news",
     "Questions": "Inquiries seeking information or clarification",
@@ -256,7 +390,7 @@ BITTENSOR_DISCORD_CHANNEL_PROJECS = {
     42: "Masa",
     43: "Graphite",
     44: "Score Predict",
-    45: "Gen42"
+    45: "Gen42",
 }
 
 
@@ -460,11 +594,13 @@ if __name__ == "__main__":
     # task = generate_structured_search_task("BTC")
     # print(task)
     # print(task.name)
+    from loguru import logger
 
     load_dotenv()
     llm_client = openai.OpenAI(
         api_key=os.environ["OPENAI_API_KEY"],
         organization=os.getenv("OPENAI_ORGANIZATION"),
+        project=os.getenv("OPENAI_PROJECT"),
         max_retries=3,
     )
 
@@ -483,13 +619,40 @@ if __name__ == "__main__":
     # task = generate_discord_search_task(llm_client=llm_client, size=5)
 
     # print(task)
-    subnet_name = "Open Kaito"
-    for msg_category in DISCORD_MSG_CATEGORIES.keys():
-        question = generate_discord_query_string(
-            llm_client=llm_client,
-            subnet_name=subnet_name,
-            msg_category=msg_category,
-            category_info=DISCORD_MSG_CATEGORIES[msg_category],
-        )
-        print(msg_category)
-        print(question)
+    # subnet_name = "Open Kaito"
+    # for msg_category in DISCORD_MSG_CATEGORIES.keys():
+    #     question = generate_discord_query_string(
+    #         llm_client=llm_client,
+    #         subnet_name=subnet_name,
+    #         msg_category=msg_category,
+    #         category_info=DISCORD_MSG_CATEGORIES[msg_category],
+    #     )
+    #     print(msg_category)
+    #     print(question)
+
+    dataset = load_dataset(
+        "HuggingFaceFW/fineweb", name="sample-10BT", split="train", streaming=True
+    )
+
+    # samples = list(dataset.shuffle().take(10))
+
+    # for sample in samples:
+    #     print(sample["text"])
+    #     Q, A = generate_relevant_pair(llm_client, sample["text"])
+    #     print(Q)
+    #     print("===")
+
+    logger.info("Generating relevant pairs")
+    pairs = generate_relevant_pairs(
+        dataset, num_articles=10, num_pairs_per_article=2, llm_client=llm_client
+    )
+    logger.info(f"Generated {len(pairs)} pairs")
+    for Q, A in pairs:
+        logger.info(f"Q: {Q}")
+        logger.info(f"A: {A}")
+        logger.info("===")
+
+    text_embedding_task, q_indices, a_indices = generate_text_embedding_synapse(pairs)
+    print(text_embedding_task)
+    print(q_indices)
+    print(a_indices)

@@ -11,7 +11,9 @@ import dateutil.parser
 import openai
 import requests
 import torch
+import torch.nn.functional as F
 from dateutil import parser
+from info_nce import InfoNCE
 
 from openkaito.protocol import SortType
 from openkaito.tasks import BITTENSOR_DISCORD_CHANNEL_PROJECS
@@ -274,6 +276,88 @@ class Evaluator:
         # return raw scores for tracking
         return scores * zero_score_mask
 
+    def evaluate_text_embedding(
+        self, query: bt.Synapse, responses: list, q_indices: list, a_indices: list
+    ):
+        num_of_text = len(query.texts)
+        scores = torch.zeros(len(responses))
+        losses = torch.tensor([torch.nan] * len(responses), dtype=torch.float)
+        top1_recalls = torch.zeros(len(responses))
+        top3_recalls = torch.zeros(len(responses))
+        info_nce_loss = InfoNCE()
+
+        for i, response in enumerate(responses):
+            try:
+                bt.logging.trace(f"Processing {i}-th response")
+                if not response:
+                    bt.logging.warning(f"{i}-th response is empty, 0 score")
+                    losses[i] = torch.nan
+                    continue
+                try:
+                    embeddings = torch.FloatTensor(response)
+                except Exception as e:
+                    # need to be filtered out
+                    losses[i] = torch.nan
+                    bt.logging.error(f"Error while converting response to tensor: {e}")
+                    bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                    continue
+
+                if embeddings.shape[0] != num_of_text:
+                    bt.logging.warning(
+                        f"Embedding shape {embeddings.shape} not equal to query text length {num_of_text}"
+                    )
+                    losses[i] = torch.nan
+                    continue
+
+                if embeddings.shape[1] != query.dimensions:
+                    bt.logging.warning(
+                        f"Embedding dimension {embeddings.shape[1]} not equal to query embedding dimension {query.dimensions}"
+                    )
+                    # truncate to query embedding dimension
+                    embeddings = embeddings[:, : query.dimensions]
+
+                    # skip this response
+                    continue
+
+                if query.normalized:
+                    embeddings = F.normalize(embeddings, p=2, dim=1)
+
+                q_embeddings = embeddings[q_indices]
+                a_embeddings = embeddings[a_indices]
+                with torch.no_grad():
+                    loss = info_nce_loss(q_embeddings, a_embeddings)
+
+                distances = torch.matmul(q_embeddings, a_embeddings.T)
+                top1_recall_idx = torch.argmax(distances, dim=-1)
+                top1_recall = torch.mean(
+                    torch.eq(torch.arange(len(q_embeddings)), top1_recall_idx).float()
+                )
+
+                top3_recall_idx = torch.argsort(distances, descending=True, dim=-1)[
+                    :, :3
+                ]
+                top3_recall = torch.mean(
+                    torch.any(
+                        torch.eq(
+                            torch.arange(len(q_embeddings)).unsqueeze(-1),
+                            top3_recall_idx,
+                        ),
+                        dim=-1,
+                    ).float()
+                )
+
+                losses[i] = loss.item()
+                scores[i] = 1 / loss.item()
+                top1_recalls[i] = top1_recall.item()
+                top3_recalls[i] = top3_recall.item()
+
+                bt.logging.info(f"Text embedding quality loss: {loss.item()}")
+            except Exception as e:
+                bt.logging.error(f"Error while processing {i}-th response: {e}")
+                bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+
+        return scores, losses, top1_recalls, top3_recalls
+
     """
     Discord Evaluation Note:
     For each miner, the returned response is a list of conversations, 
@@ -463,7 +547,7 @@ class Evaluator:
                         )
                         zero_score_mask[i] = 0
                         continue
-                
+
                 if channel_id is not None:
                     if not all(
                         doc["channel_id"] == channel_id
