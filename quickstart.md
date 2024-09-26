@@ -23,6 +23,8 @@ pip install -e .
 
 ### Obtain Apify API Key
 
+> **_NOTE:_** `APIFY_API_KEY` is not required for either miner or validator since OpenKaito v0.7.0.
+
 To use the provided crawler, you need to obtain an API key from [Apify](https://console.apify.com/). After obtaining the API key, you can write it down in the `.env` file.
 
 ```

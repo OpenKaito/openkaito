@@ -58,6 +58,7 @@ class SortType(str, Enum):
     RECENCY = "recency"
 
 
+# Deprecated from v0.7.0
 class StructuredSearchSynapse(bt.Synapse):
     """
     Structured search protocol representation for handling request and response communication between
@@ -120,6 +121,7 @@ class SemanticSearchSynapse(bt.Synapse):
         return self.results
 
 
+# Deprecated from v0.7.0
 class DiscordSearchSynapse(bt.Synapse):
     """
     Discord search protocol representation for handling request and response communication between

@@ -1094,8 +1094,7 @@ Each conversation will be marked between <conversation></conversation> tags, and
                 f"Querying LLM of discord message data with docs:\n" + prompt_docs
             )
             output = self.llm_client.chat.completions.create(
-                # model="gpt-4o",
-                model="kaito-gpt-4o" if os.environ.get("USE_AZURE") else "gpt-4o",
+                model="gpt-4o",
                 response_format={"type": "json_object"},
                 messages=[
                     {
