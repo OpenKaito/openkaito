@@ -249,7 +249,7 @@ class Validator(BaseValidatorNeuron):
             )
 
             # Log the results for monitoring purposes.
-            bt.logging.debug(f"Received responses: {responses}")
+            bt.logging.trace(f"Received responses: {responses}")
 
             if query.name == "SemanticSearchSynapse":
                 rewards = self.evaluator.evaluate_semantic_search(
@@ -347,12 +347,27 @@ class Validator(BaseValidatorNeuron):
                             "TextEmbeddingSynapse_openai_top3_recall": openai_top3_recall.item(),
                         }
                     )
-                wandb.log(wandb_log)
-                log_size = len(json.dumps(wandb_log))
 
-                # clearer logging
-                wandb_log.pop(query.name + "_responses")
-                wandb_log.pop("synapse")
+                log_size = len(json.dumps(wandb_log))
+                bt.logging.debug(f"wandb_log original size: {log_size} bytes")
+
+                # avoid exceeding wandb log size limit
+                if log_size > 25_000_000:
+                    wandb_log.pop("synapse")
+                    log_size = len(json.dumps(wandb_log))
+                if log_size > 25_000_000:
+                    wandb_log.pop(query.name + "_responses")
+                    log_size = len(json.dumps(wandb_log))
+
+                wandb.log(wandb_log)
+
+                # clearer printing
+                if query.name + "_responses" in wandb_log:
+                    wandb_log.pop(query.name + "_responses")
+                if "synapse" in wandb_log:
+                    wandb_log.pop("synapse")
+
+                log_size = len(json.dumps(wandb_log))
                 bt.logging.debug("wandb_log", f"size: {log_size} bytes", wandb_log)
             else:
                 bt.logging.warning(
