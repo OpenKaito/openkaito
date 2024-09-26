@@ -338,13 +338,9 @@ class Validator(BaseValidatorNeuron):
                                 uid.item(): top3_recall.item()
                                 for uid, top3_recall in zip(miner_uids, top3_recalls)
                             },
-                            "TextEmbeddingSynapse_avg_loss": {losses.nanmean().item()},
-                            "TextEmbeddingSynapse_avg_top1_recall": {
-                                top1_recalls.nanmean().item()
-                            },
-                            "TextEmbeddingSynapse_avg_top3_recall": {
-                                top3_recalls.nanmean().item()
-                            },
+                            "TextEmbeddingSynapse_avg_loss": losses.nanmean().item(),
+                            "TextEmbeddingSynapse_avg_top1_recall": top1_recalls.nanmean().item(),
+                            "TextEmbeddingSynapse_avg_top3_recall": top3_recalls.nanmean().item(),
                             "TextEmbeddingSynapse_openai_raw_score": openai_reward.item(),
                             "TextEmbeddingSynapse_openai_loss": openai_loss.item(),
                             "TextEmbeddingSynapse_openai_top1_recall": openai_top1_recall.item(),
@@ -352,10 +348,12 @@ class Validator(BaseValidatorNeuron):
                         }
                     )
                 wandb.log(wandb_log)
+                log_size = len(json.dumps(wandb_log))
 
                 # clearer logging
                 wandb_log.pop(query.name + "_responses")
-                bt.logging.debug("wandb_log", wandb_log)
+                wandb_log.pop("synapse")
+                bt.logging.debug("wandb_log", f"size: {log_size} bytes", wandb_log)
             else:
                 bt.logging.warning(
                     "!!! WANDB is not enabled. You are strongly recommended to obtain and set WANDB_API_KEY or run `wandb login`. We may enforce to make it required in the future."
