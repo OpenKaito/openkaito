@@ -207,7 +207,7 @@ def generate_relevant_pair(llm_client, text, max_retries=3):
 
     try:
         output = llm_client.chat.completions.create(
-            model="gpt-4o-2024-08-06",
+            model="gpt-4o",
             response_format={"type": "json_object"},
             messages=[
                 {
