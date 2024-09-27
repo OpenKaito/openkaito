@@ -65,6 +65,7 @@ class Validator(BaseValidatorNeuron):
         llm_client = openai.OpenAI(
             api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
+            project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,
         )
         self.llm_client = llm_client
@@ -193,7 +194,7 @@ class Validator(BaseValidatorNeuron):
 
                 query, q_indices, a_indices = generate_text_embedding_synapse(pairs)
                 # the payload might be large, need sometime for network transfer
-                query.timeout = 40
+                query.timeout = 60
 
                 bt.logging.info(
                     f"Sending {query.name}: {query.texts} to miner uids: {miner_uids}"
@@ -356,11 +357,16 @@ class Validator(BaseValidatorNeuron):
                 if log_size > 25_000_000:
                     wandb_log.pop("synapse")
                     log_size = len(json.dumps(wandb_log))
-                if log_size > 25_000_000:
-                    wandb_log.pop(query.name + "_responses")
-                    log_size = len(json.dumps(wandb_log))
+                    if log_size > 25_000_000:
+                        wandb_log.pop(query.name + "_responses")
+                        log_size = len(json.dumps(wandb_log))
 
-                wandb.log(wandb_log)
+                if log_size > 25_000_000:
+                    bt.logging.warning(
+                        f"wandb_log size exceeds the limit: {log_size} bytes"
+                    )
+                else:
+                    wandb.log(wandb_log)
 
                 # clearer printing
                 if query.name + "_responses" in wandb_log:
