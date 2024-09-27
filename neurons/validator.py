@@ -185,14 +185,15 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info("Generating text-embedding relevant pairs...")
                 pairs = generate_relevant_pairs(
                     self.fineweb_dataset,
-                    num_articles=50,
+                    num_articles=32,
                     num_pairs_per_article=2,
                     llm_client=self.llm_client,
                 )
                 bt.logging.info(f"Generated {len(pairs)} pairs")
 
                 query, q_indices, a_indices = generate_text_embedding_synapse(pairs)
-                query.timeout = 20
+                # the payload might be large, need sometime for network transfer
+                query.timeout = 40
 
                 bt.logging.info(
                     f"Sending {query.name}: {query.texts} to miner uids: {miner_uids}"
