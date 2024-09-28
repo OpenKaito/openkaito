@@ -30,6 +30,7 @@ import bittensor as bt
 import openai
 import torch
 from dotenv import load_dotenv
+import zlib
 
 import openkaito
 import wandb
@@ -109,7 +110,7 @@ class Validator(BaseValidatorNeuron):
                     "hotkey": self.wallet.hotkey.ss58_address,
                 },
                 name=f"validator-{self.uid}-{__version__}",
-                resume="auto",
+                # resume="auto",
                 dir=self.config.neuron.full_path,
                 reinit=True,
             )
@@ -298,7 +299,7 @@ class Validator(BaseValidatorNeuron):
 
             if not self.config.neuron.wandb_off:
                 wandb_log = {
-                    "synapse": query.model_dump_json(),
+                    "synapse": zlib.compress(query.model_dump_json().encode()).hex(),
                     "scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
@@ -319,8 +320,14 @@ class Validator(BaseValidatorNeuron):
                     },
                     query.name
                     + "_responses": {
-                        uid.item(): json.dumps(response)
-                        for uid, response in zip(miner_uids, responses)
+                        uid.item(): (
+                            zlib.compress(json.dumps(response).encode()).hex()
+                            if raw_score > 1e-5
+                            else None
+                        )
+                        for uid, response, raw_score in zip(
+                            miner_uids, responses, raw_scores
+                        )
                     },
                     query.name + "_avg_score": raw_scores.mean().item(),
                     "timestamp": int(datetime.now(timezone.utc).timestamp()),
@@ -354,14 +361,14 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.debug(f"wandb_log original size: {log_size} bytes")
 
                 # avoid exceeding wandb log size limit
-                if log_size > 25_000_000:
+                if log_size > 20_000_000:
                     wandb_log.pop("synapse")
                     log_size = len(json.dumps(wandb_log))
-                    if log_size > 25_000_000:
+                    if log_size > 20_000_000:
                         wandb_log.pop(query.name + "_responses")
                         log_size = len(json.dumps(wandb_log))
 
-                if log_size > 25_000_000:
+                if log_size > 20_000_000:
                     bt.logging.warning(
                         f"wandb_log size exceeds the limit: {log_size} bytes"
                     )
