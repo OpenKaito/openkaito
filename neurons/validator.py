@@ -370,12 +370,7 @@ class Validator(BaseValidatorNeuron):
                         wandb_log.pop(query.name + "_responses")
                         log_size = len(json.dumps(wandb_log))
 
-                if log_size > 10_000_000:
-                    bt.logging.warning(
-                        f"wandb_log size exceeds the limit: {log_size} bytes"
-                    )
-                else:
-                    wandb.log(wandb_log)
+                wandb.log(wandb_log)
 
                 # clearer printing
                 if query.name + "_responses" in wandb_log:
