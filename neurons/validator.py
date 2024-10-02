@@ -73,7 +73,9 @@ class Validator(BaseValidatorNeuron):
 
         # for integrity check
         # twitter_crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
-        twitter_crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
+        # twitter_crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
+        # deprecated since v0.7.0
+        twitter_crawler = None
 
         self.evaluator = Evaluator(llm_client, twitter_crawler)
 
@@ -105,7 +107,7 @@ class Validator(BaseValidatorNeuron):
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
                 project=f"sn{self.config.netuid}-validators",
-                entity="openkaito",
+                entity="sn-openkaito-openkaito",
                 config={
                     "hotkey": self.wallet.hotkey.ss58_address,
                 },
@@ -361,14 +363,14 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.debug(f"wandb_log original size: {log_size} bytes")
 
                 # avoid exceeding wandb log size limit
-                if log_size > 20_000_000:
+                if log_size > 10_000_000:
                     wandb_log.pop("synapse")
                     log_size = len(json.dumps(wandb_log))
-                    if log_size > 20_000_000:
+                    if log_size > 10_000_000:
                         wandb_log.pop(query.name + "_responses")
                         log_size = len(json.dumps(wandb_log))
 
-                if log_size > 20_000_000:
+                if log_size > 10_000_000:
                     bt.logging.warning(
                         f"wandb_log size exceeds the limit: {log_size} bytes"
                     )
