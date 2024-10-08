@@ -110,6 +110,7 @@ class Validator(BaseValidatorNeuron):
                 entity="sn-openkaito-openkaito",
                 config={
                     "hotkey": self.wallet.hotkey.ss58_address,
+                    "spec_version": openkaito.__spec_version__,
                 },
                 name=f"validator-{self.uid}-{__version__}",
                 # resume="auto",
@@ -184,8 +185,8 @@ class Validator(BaseValidatorNeuron):
 
             # Note: Currently, the active synapses are `SemanticSearchSynapse` and `TextEmbeddingSynapse`.
 
-            # 80% chance to send text-embedding task
-            if random_number < 0.8:
+            # 96% chance to send text-embedding task
+            if random_number < 0.96:
                 bt.logging.info("Generating text-embedding relevant pairs...")
                 pairs = generate_relevant_pairs(
                     self.fineweb_dataset,
@@ -195,15 +196,17 @@ class Validator(BaseValidatorNeuron):
                 )
                 bt.logging.info(f"Generated {len(pairs)} pairs")
 
-                query, q_indices, a_indices = generate_text_embedding_synapse(pairs)
+                query, q_indices, a_indices = generate_text_embedding_synapse(
+                    pairs, dimensions=512
+                )
                 # the payload might be large, need sometime for network transfer
                 query.timeout = 60
 
                 bt.logging.info(
                     f"Sending {query.name}: {query.texts} to miner uids: {miner_uids}"
                 )
-            # 10% chance to send ETH Denver semantic search task
-            elif random_number < 0.9:
+            # 2% chance to send ETH Denver semantic search task
+            elif random_number < 0.98:
                 conf_dataset_dir = self.eth_denver_dataset_dir
                 segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
                 bt.logging.debug(
@@ -222,7 +225,7 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(
                     f"Sending ETH Denver {query.name}: {query.query_string} to miner uids: {miner_uids}"
                 )
-            # 10% chance to send ETH CC[7] semantic search task
+            # 2% chance to send ETH CC[7] semantic search task
             else:
                 conf_dataset_dir = self.eth_cc7_dataset_dir
                 segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)

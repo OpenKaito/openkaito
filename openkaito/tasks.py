@@ -283,7 +283,7 @@ def generate_relevant_pairs(dataset, num_articles, num_pairs_per_article, llm_cl
 
 def generate_text_embedding_synapse(
     pairs: list,
-    dimensions: int = 128,
+    dimensions: int = 512,
     normalized: bool = True,
 ) -> TextEmbeddingSynapse:
     """
