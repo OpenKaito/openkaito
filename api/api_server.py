@@ -9,31 +9,44 @@ import bittensor as bt
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header
 from loguru import logger
-from .utils import discord_generate_answer
+from pydantic import BaseModel
+from argparse import ArgumentParser
+
 from openkaito.protocol import (
     DiscordSearchSynapse,
     SemanticSearchSynapse,
     StructuredSearchSynapse,
+    TextEmbeddingSynapse,
 )
+from openkaito.utils.version import get_version
+
+from .utils import discord_generate_answer
 
 load_dotenv()
 
 
-app = FastAPI()
+# FILL IN THE FOLLOWING in `.env` file
+try:
+    # The wallet name of the validator
+    validator_wallet_name = os.environ["VALIDATOR_API_WALLET_NAME"]
+    # The hotkey name of the validator
+    validator_hotkey_name = os.environ["VALIDATOR_API_HOTKEY_NAME"]
+    subtensor_network = os.environ["SUBTENSOR_NETWORK"]  # "finney" or "test" or "local"
+    netuid = int(os.environ["NETUID"])  # 88 for testnet and 5 for mainnet
 
-api_keys = set(os.environ.get("OPENKAITO_VALIDATOR_API_KEYS", "").split(","))
-logger.info(f"API keys: {api_keys}")
-
-# FILL IN THE FOLLOWING
-validator_wallet_name = (
-    "validator"  # The wallet name of the validator, or os.environ.get("WALLET_NAME")
-)
-validator_hotkey_name = (
-    "default"  # The hotkey name of the validator, or os.environ.get("HOTKEY_NAME")
-)
-subtensor_network = "test"  # The subtensor network, "finney", "test", "local", or os.environ.get("SUBTENSOR_NETWORK"),
-netuid = 88  # 88 for testnet and 5 for mainnet
-
+    # export OPENKAITO_VALIDATOR_API_KEYS="sn5_xxxxxxxxxxxxxxx,sn5_yyyyyyyyyyyyyyyy"
+    api_keys = set(
+        [
+            key.strip()
+            for key in os.environ.get["OPENKAITO_VALIDATOR_API_KEYS"].split(",")
+        ]
+    )
+    logger.info(f"Authorized API keys: {api_keys}")
+except KeyError as e:
+    logger.error(f"Error: {e}")
+    raise Exception(
+        "Please fill in the required environment variables in the `.env` file. Refer to the README.md for more information."
+    )
 
 subtensor = bt.subtensor(network=subtensor_network)
 wallet = bt.wallet(name=validator_wallet_name, hotkey=validator_hotkey_name)
@@ -43,10 +56,14 @@ dendrite = bt.dendrite(wallet=wallet)
 
 
 available_synapses = {
-    "StructuredSearchSynapse": StructuredSearchSynapse,
+    # "StructuredSearchSynapse": StructuredSearchSynapse,
     "SemanticSearchSynapse": SemanticSearchSynapse,
-    "DiscordSearchSynapse": DiscordSearchSynapse,
+    # "DiscordSearchSynapse": DiscordSearchSynapse,
+    "TextEmbeddingSynapse": TextEmbeddingSynapse,
 }
+
+
+app = FastAPI()
 
 
 ## Authentication
@@ -62,6 +79,47 @@ async def read_root(x_api_key: Annotated[str | None, Header()] = None):
     if not validate_api_key(x_api_key):
         return {"message": "Invalid API Key in header x-api-key."}
     return {"message": "This is bittensor OpenKaito API server."}
+
+
+class TextEmbeddingRequest(BaseModel):
+    texts: List[str]
+    dimensions: int = 512
+    miner_uid: int = 0
+    timeout: int = 12
+
+
+@app.post("/text_embeddings")
+async def text_embeddings(
+    request: TextEmbeddingRequest,
+    x_api_key: Annotated[str | None, Header()] = None,
+):
+    if not validate_api_key(x_api_key):
+        return {"message": "Invalid API Key in header x-api-key."}
+
+    logger.info(f"received text embedding request: {request}")
+
+    miner_uid = request.miner_uid
+
+    synapse = TextEmbeddingSynapse(
+        texts=request.texts,
+        dimensions=request.dimensions,
+        normalized=True,
+        timeout=request.timeout,
+        version=get_version(),
+    )
+
+    embeddings = []
+    # send to the selected miner
+    responses = await dendrite(
+        axons=[metagraph.axons[miner_uid]],
+        synapse=synapse,
+        deserialize=True,
+        timeout=synapse.timeout,
+    )
+    if responses:
+        embeddings = responses[0]
+
+    return {"embeddings": embeddings}
 
 
 # accept a json string of a synapse and send it to the network
@@ -127,9 +185,10 @@ async def sync_metagraph(x_api_key: Annotated[str | None, Header()] = None):
         return {"message": "Invalid API Key in header x-api-key."}
     try:
         metagraph.sync(subtensor=subtensor)
+        logger.info("Metagraph sync completed.")
         return {"message": "Metagraph sync completed."}
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Failed to sync metagraph: {e}")
         return {"message": f"Failed to sync metagraph: {e}"}
 
 
