@@ -1,5 +1,3 @@
-# Refer to https://github.com/OpenKaito/openkaito?tab=readme-ov-file#Validator-API-Server for documentation
-
 import json
 import os
 import random
@@ -10,7 +8,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Header
 from loguru import logger
 from pydantic import BaseModel
-from argparse import ArgumentParser
 
 from openkaito.protocol import (
     DiscordSearchSynapse,
@@ -36,10 +33,7 @@ try:
 
     # export OPENKAITO_VALIDATOR_API_KEYS="sn5_xxxxxxxxxxxxxxx,sn5_yyyyyyyyyyyyyyyy"
     api_keys = set(
-        [
-            key.strip()
-            for key in os.environ.get["OPENKAITO_VALIDATOR_API_KEYS"].split(",")
-        ]
+        [key.strip() for key in os.environ["OPENKAITO_VALIDATOR_API_KEYS"].split(",")]
     )
     logger.info(f"Authorized API keys: {api_keys}")
 except KeyError as e:
@@ -116,6 +110,7 @@ async def text_embeddings(
         deserialize=True,
         timeout=synapse.timeout,
     )
+    logger.info(f"received response from miner {miner_uid}: {responses}")
     if responses:
         embeddings = responses[0]
 
