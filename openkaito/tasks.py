@@ -277,7 +277,7 @@ def generate_relevant_pairs(dataset, num_articles, num_pairs_per_article, llm_cl
                 bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 continue
             if Q and A:
-                pairs.append((Q, A))
+                pairs.append((Q.strip().strip('?'), A.strip().strip('?')))
     return pairs
 
 
