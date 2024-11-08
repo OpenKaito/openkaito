@@ -33,6 +33,14 @@ from openkaito.protocol import (
     TextEmbeddingSynapse,
 )
 
+# Fiber
+from fiber.chain.chain_utils import load_hotkey_keypair
+from fiber.chain.interface import get_substrate
+from fiber.logging_utils import get_logger
+
+
+
+logger = get_logger(__name__)
 
 class BaseMinerNeuron(BaseNeuron):
     """
@@ -43,6 +51,18 @@ class BaseMinerNeuron(BaseNeuron):
 
     def __init__(self):
         super().__init__(config=self.config())
+
+        # Get the substrate instance in fiber
+        self.substrate = get_substrate(
+            subtensor_network=self.config["subtensor.network"],
+            subtensor_address=self.config["subtensor.chain_endpoint"]
+        )
+
+        # Load the hotkey keypair in fiber
+        self.keypair = load_hotkey_keypair(
+            wallet_name=self.config["wallet.name"],
+            hotkey_name=self.config["wallet.hotkey"],
+        )
 
         # Warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:
