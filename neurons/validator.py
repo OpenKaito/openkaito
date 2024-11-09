@@ -88,7 +88,7 @@ class Validator(BaseValidatorNeuron):
 
         bt.logging.info("Loading FineWeb dataset")
         self.fineweb_dataset = load_dataset(
-            "HuggingFaceFW/fineweb", name="sample-10BT", split="train", streaming=True
+            "HuggingFaceFW/fineweb", name="sample-100BT", split="train", streaming=True
         )
 
         netrc_path = Path.home() / ".netrc"
@@ -197,13 +197,14 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(f"Generated {len(pairs)} pairs")
 
                 query, q_indices, a_indices = generate_text_embedding_synapse(
-                    pairs, dimensions=512
+                    pairs, dimensions=1024
                 )
                 # the payload might be large, need sometime for network transfer
                 query.timeout = 60
 
+                seperator = "\n---\n"
                 bt.logging.info(
-                    f"Sending {query.name}: {query.texts} to miner uids: {miner_uids}"
+                    f"Sending {query.name}: {seperator.join(query.texts)} to miner uids: {miner_uids}"
                 )
             # 2% chance to send ETH Denver semantic search task
             elif random_number < 0.98:
@@ -313,18 +314,15 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name
-                    + "_scores": {
+                    query.name + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    query.name
-                    + "_raw_scores": {
+                    query.name + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name
-                    + "_responses": {
+                    query.name + "_responses": {
                         uid.item(): (
                             zlib.compress(json.dumps(response).encode()).hex()
                             if raw_score > 1e-5
