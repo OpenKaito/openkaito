@@ -5,7 +5,7 @@ loguru
 apify-client
 elasticsearch
 python-dotenv
-pydantic
+pydantic==2.9.2
 wandb>=0.18
 transformers
 tqdm
