@@ -22,6 +22,9 @@ import argparse
 import bittensor as bt
 from loguru import logger
 
+# Fiber
+from fiber.constants import FINNEY_NETWORK
+
 
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
@@ -104,6 +107,13 @@ def add_args(cls, parser):
         action="store_true",
         help="If set, we dont use wandb.",
         default=False,
+    )
+
+    parser.add_argument(
+        "--subtensor.network",
+        type=str,
+        help="Subtensor network",
+        default=FINNEY_NETWORK,
     )
 
     if neuron_type == "validator":

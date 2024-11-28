@@ -39,6 +39,10 @@ from openkaito.search.structured_search_engine import StructuredSearchEngine
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.version import compare_version, get_version
 
+# Fiber
+from fiber.miner import server
+from fiber.miner.middleware import configure_extra_logging_middleware
+
 
 class Miner(BaseMinerNeuron):
     """
@@ -244,6 +248,11 @@ class Miner(BaseMinerNeuron):
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
     with Miner() as miner:
+        # Configure extra logging middleware    
+        configure_extra_logging_middleware(miner)
+        # Run the miner
+        server.run(miner)
+        # Print the miner info
         while True:
             miner.print_info()
             time.sleep(30)
