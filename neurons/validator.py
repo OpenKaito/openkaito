@@ -185,8 +185,8 @@ class Validator(BaseValidatorNeuron):
 
             # Note: Currently, the active synapses are `SemanticSearchSynapse` and `TextEmbeddingSynapse`.
 
-            # 96% chance to send text-embedding task
-            if random_number < 0.96:
+            # 100% chance to send text-embedding task
+            if random_number < 1 + 1e-5:
                 bt.logging.info("Generating text-embedding relevant pairs...")
                 pairs = generate_relevant_pairs(
                     self.fineweb_dataset,
@@ -207,46 +207,46 @@ class Validator(BaseValidatorNeuron):
                     f"Sending {query.name}: {seperator.join(query.texts)} to miner uids: {miner_uids}"
                 )
             # 2% chance to send ETH Denver semantic search task
-            elif random_number < 0.98:
-                conf_dataset_dir = self.eth_denver_dataset_dir
-                segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
-                bt.logging.debug(
-                    f"{len(segments)} segments sampled from ETH Denver dataset."
-                )
-                bt.logging.trace(segments)
-                question = generate_question_from_eth_conf_segments(
-                    self.llm_client, segments
-                )
-                query = generate_semantic_search_task(
-                    query_string=question,
-                    index_name="eth_denver",
-                )
-                # should be quick
-                query.timeout = 15
-                bt.logging.info(
-                    f"Sending ETH Denver {query.name}: {query.query_string} to miner uids: {miner_uids}"
-                )
-            # 2% chance to send ETH CC[7] semantic search task
-            else:
-                conf_dataset_dir = self.eth_cc7_dataset_dir
-                segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
-                bt.logging.debug(
-                    f"{len(segments)} segments sampled from ETH CC[7] dataset."
-                )
-                bt.logging.trace(segments)
-                question = generate_question_from_eth_conf_segments(
-                    self.llm_client, segments
-                )
-                # must create a `eth_cc7` index in the miner
-                query = generate_semantic_search_task(
-                    query_string=question,
-                    index_name="eth_cc7",
-                )
-                # should be quick
-                query.timeout = 15
-                bt.logging.info(
-                    f"Sending ETH CC[7] {query.name}: {query.query_string} to miner uids: {miner_uids}"
-                )
+            # elif random_number < 0.98:
+            #     conf_dataset_dir = self.eth_denver_dataset_dir
+            #     segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
+            #     bt.logging.debug(
+            #         f"{len(segments)} segments sampled from ETH Denver dataset."
+            #     )
+            #     bt.logging.trace(segments)
+            #     question = generate_question_from_eth_conf_segments(
+            #         self.llm_client, segments
+            #     )
+            #     query = generate_semantic_search_task(
+            #         query_string=question,
+            #         index_name="eth_denver",
+            #     )
+            #     # should be quick
+            #     query.timeout = 15
+            #     bt.logging.info(
+            #         f"Sending ETH Denver {query.name}: {query.query_string} to miner uids: {miner_uids}"
+            #     )
+            # # 2% chance to send ETH CC[7] semantic search task
+            # else:
+            #     conf_dataset_dir = self.eth_cc7_dataset_dir
+            #     segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
+            #     bt.logging.debug(
+            #         f"{len(segments)} segments sampled from ETH CC[7] dataset."
+            #     )
+            #     bt.logging.trace(segments)
+            #     question = generate_question_from_eth_conf_segments(
+            #         self.llm_client, segments
+            #     )
+            #     # must create a `eth_cc7` index in the miner
+            #     query = generate_semantic_search_task(
+            #         query_string=question,
+            #         index_name="eth_cc7",
+            #     )
+            #     # should be quick
+            #     query.timeout = 15
+            #     bt.logging.info(
+            #         f"Sending ETH CC[7] {query.name}: {query.query_string} to miner uids: {miner_uids}"
+            #     )
 
             # The dendrite client queries the network.
             responses = await self.dendrite(
