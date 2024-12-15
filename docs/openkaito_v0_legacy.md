@@ -25,7 +25,7 @@ Please see [Miner Setup](https://github.com/MetaSearch-IO/decentralized-search/b
 
 ### The Problem
 The internet is becoming more closed than open -
-- **Paradigm Shift**: Data is increasingly generated and hosted on closed platforms rathen than the open web.
+- **Paradigm Shift**: Data is increasingly generated and hosted on closed platforms rather than the open web.
 - **Data Restrictions**: More platforms are imposing greater restrictions on public user data (eg X, Reddit).
 - **The Consequence**: A less open internet and greater centralization of power to platforms.
 
@@ -125,7 +125,7 @@ Rewards are based on the following criteria:
 
 ### Validator API Server
 
-Validtor can setup an API server to issue search queries to the network, for building Apps on OpenKaito subnet, interacting with other subnets, etc. The API server will be responsible for issuing search queries to the network and receiving ranked results from miners.
+Validator can setup an API server to issue search queries to the network, for building Apps on OpenKaito subnet, interacting with other subnets, etc. The API server will be responsible for issuing search queries to the network and receiving ranked results from miners.
 
 To setup the API server, you can set some api keys in `.env` file separated by comma,
 

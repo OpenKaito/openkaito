@@ -1,6 +1,6 @@
 # OpenKaito Validator API
 
-Validtor can setup an API server to issue search queries to the network, for building Apps on OpenKaito subnet, interacting with other subnets, etc. The API server will be responsible for issuing search queries to the network and receiving ranked results from miners.
+Validator can setup an API server to issue search queries to the network, for building Apps on OpenKaito subnet, interacting with other subnets, etc. The API server will be responsible for issuing search queries to the network and receiving ranked results from miners.
 
 To setup the API server, you need to config via the `.env` file,
 
