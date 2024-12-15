@@ -45,7 +45,7 @@ cp .env.example .env
 
 ### Setup Elasticsearch
 
-To be a miner of openkaito, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes intalling [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
+To be a miner of openkaito, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes installing [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
 
 #### Install Docker
 
@@ -251,7 +251,7 @@ To obtain better miner performance, you can consider the following options:
   - adjust the apify crawler running parameters, e.g., increase the size of on search crawling
   - implement a continuous crawler, instead of or in addition to the on search crawling, to crawl data and ingest into the Elasticsearch instance
 - build better ranking model
-  - customize the provied ranking model, e.g., tune the parameters for `length_weight` and `age_weight`
+  - customize the provided ranking model, e.g., tune the parameters for `length_weight` and `age_weight`
   - implement a better ranking model, e.g., integrating LLM
 - improve the recall stage
   - tune the parameters for the search query, e.g., adjust the `size` parameter via `MINER_SEARCH_RECALL_SIZE` in `.env`
