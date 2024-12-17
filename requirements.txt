@@ -14,3 +14,4 @@ python-dateutil
 numpy<2.0
 datasets>=3.0
 info-nce-pytorch>=0.1.4
+cachetools
