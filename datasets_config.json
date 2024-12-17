@@ -1,0 +1,10 @@
+{
+    "text_embedding_datasets": [
+        {
+            "path": "HuggingFaceFW/fineweb",
+            "name": "sample-100BT",
+            "split": "train",
+            "streaming": true
+        }
+    ]
+}
