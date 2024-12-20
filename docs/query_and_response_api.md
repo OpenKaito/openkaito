@@ -77,7 +77,7 @@ The miner’s response is a list of ranked documents.
 [
   {
     "id": "1769458523031892221",
-    "text": "You're witnessing the single largest transfer of wealth in human history\n\nThis will be written about in history books\n\nYour grandchildren will never question the validity of crypto\n\nBut you psych yourself out and sell to early every single time",
+    "text": "You're witnessing the single largest transfer of wealth in human history\n\nThis will be written about in history books\n\nYour grandchildren will never question the validity of crypto\n\nBut you psych yourself out and sell too early every single time",
     "created_at": "2024-03-17T20:19:21+00:00",
     "username": "ozarknft",
     "url": "https://x.com/ozarknft/status/1769458523031892221",
