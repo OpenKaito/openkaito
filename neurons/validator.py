@@ -57,6 +57,10 @@ from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 
 
+# Fiber
+from fiber.validator import server
+from fiber.validator.middleware import configure_extra_logging_middleware
+
 class Validator(BaseValidatorNeuron):
     def __init__(self):
         super(Validator, self).__init__()
@@ -448,6 +452,12 @@ class Validator(BaseValidatorNeuron):
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     with Validator() as validator:
+        # Configure extra logging middleware
+        configure_extra_logging_middleware(validator)
+
+        # Run the validator
+        server.run(validator)
+        
         while True:
             validator.print_info()
             if validator.should_exit:

@@ -27,8 +27,17 @@ from typing import List
 import bittensor as bt
 import torch
 
+# Fiber 
+from fiber.chain.metagraph import Metagraph
+from fiber.chain.weights import set_node_weights
+from fiber.chain.interface import get_substrate
+from fiber.chain.chain_utils import load_hotkey_keypair
+from fiber.logging_utils import get_logger
+
 from openkaito.base.neuron import BaseNeuron
 
+
+logger = get_logger(__name__)
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -39,6 +48,28 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __init__(self):
         super().__init__(config=self.config())
+
+         # Load the hotkey keypair in fiber
+        self.keypair = load_hotkey_keypair(
+            wallet_name=self.config["wallet.name"],
+            hotkey_name=self.config["wallet.hotkey"],
+        )
+
+        # Get the substrate instance in fiber
+        self.substrate = get_substrate(
+            subtensor_network=self.config["subtensor.network"],
+            subtensor_address=self.config["subtensor.chain_endpoint"]
+        )
+
+        # Get the metagraph instance in fiber
+        self.metagraph = Metagraph(
+            self.substrate,
+            netuid=self.config["netuid"],
+            load_old_nodes=False,
+        )
+
+        # Sync the nodes in the metagraph
+        self.metagraph.sync_nodes() 
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
@@ -137,7 +168,8 @@ class BaseValidatorNeuron(BaseNeuron):
                 if self.should_exit:
                     break
 
-                # Sync metagraph and potentially set weights.
+                # Sync metagraph and potentially set weights (fiber)
+                self.substrate = get_substrate(subtensor_address=self.substrate.url)
                 self.sync()
 
                 self.step += 1
@@ -243,7 +275,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("uint_uids", uint_uids)
 
         # Set the weights on chain via our subtensor connection.
-        result = self.subtensor.set_weights(
+        set_node_weights(
             wallet=self.wallet,
             netuid=self.config.netuid,
             uids=uint_uids,
@@ -252,7 +284,8 @@ class BaseValidatorNeuron(BaseNeuron):
             wait_for_inclusion=False,
             version_key=self.spec_version,
         )
-        bt.logging.info(f"Set weights: {result}")
+        bt.logging.info("Set weights")
+        self.metagraph.sync_nodes()
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
