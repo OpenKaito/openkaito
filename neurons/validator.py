@@ -55,6 +55,7 @@ from openkaito.tasks import (
 from openkaito.utils.uids import get_random_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
+from openkaito.utils.datasets_config import cached_datasets_from_config
 
 
 class Validator(BaseValidatorNeuron):
@@ -86,10 +87,10 @@ class Validator(BaseValidatorNeuron):
         self.init_eth_denver_dataset()
         self.init_eth_cc7_dataset()
 
-        bt.logging.info("Loading FineWeb dataset")
-        self.fineweb_dataset = load_dataset(
-            "HuggingFaceFW/fineweb", name="sample-100BT", split="train", streaming=True
-        )
+        # bt.logging.info("Initial Loading Text-Embedding datasets")
+        # self.text_embedding_datasets = load_dataset_from_config(
+        #     fetch_datasets_config(branch="dataset_rotation")["text_embedding_datasets"]
+        # )
 
         netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -188,11 +189,23 @@ class Validator(BaseValidatorNeuron):
             # 100% chance to send text-embedding task
             if random_number < 1 + 1e-5:
                 bt.logging.info("Generating text-embedding relevant pairs...")
+
+                text_embedding_datasets = cached_datasets_from_config(branch="main")[
+                    "text_embedding_datasets"
+                ]
+
+                selected_dataset = random.choice(list(text_embedding_datasets.items()))
+                bt.logging.info(f"Selected dataset: {selected_dataset[0]}")
+
+                num_articles = random.randint(16, 64)
+                bt.logging.info(f"Number of articles: {num_articles}")
+
                 pairs = generate_relevant_pairs(
-                    self.fineweb_dataset,
-                    num_articles=32,
+                    dataset=selected_dataset[1]["dataset"],
+                    num_articles=num_articles,
                     num_pairs_per_article=2,
                     llm_client=self.llm_client,
+                    text_field_name=selected_dataset[1]["text_field_name"],
                 )
                 bt.logging.info(f"Generated {len(pairs)} pairs")
 

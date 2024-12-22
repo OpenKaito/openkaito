@@ -253,14 +253,16 @@ def generate_relevant_pair(llm_client, text, max_retries=3):
 
 
 # will generate `num_articles` * `num_pairs_per_article` relevant question-answer pairs
-def generate_relevant_pairs(dataset, num_articles, num_pairs_per_article, llm_client):
+def generate_relevant_pairs(
+    dataset, num_articles, num_pairs_per_article, llm_client, text_field_name="text"
+):
     """
     Generate relevant question-answer pairs from the dataset.
     """
     samples = list(dataset.shuffle().take(num_articles))
     pairs = []
     for sample in samples:
-        text = sample["text"]
+        text = sample[text_field_name]
         # split each article to `num_pairs_per_article` chunks, to make the generated pairs have some cross-pair relevance
 
         if not text.strip():
@@ -277,7 +279,7 @@ def generate_relevant_pairs(dataset, num_articles, num_pairs_per_article, llm_cl
                 bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 continue
             if Q and A:
-                pairs.append((Q.strip().strip('?'), A.strip().strip('?')))
+                pairs.append((Q.strip().strip("?"), A.strip().strip("?")))
     return pairs
 
 
