@@ -1,13 +1,5 @@
 {
   "text_embedding_prompts": [
-    "You will be given a text segment as your source of knowledge. You need to understand the meaning of the text, and generate a question about the text that can be answered by this text segment. ",
-
-    "You will be given a text segment as your source of knowledge. Select a key detail and formulate a question about its significance, that can be answered by this text segment. ",
-
-    "You will be given a text segment as your source of knowledge. Choose a term or concept and create a question asking for its explanation, that can be answered by this text segment. ",
-
-    "You will be given a text segment as your source of knowledge. Find an implication or consequence and ask how it is supported by the text, that can be answered by this text segment. ",
-
-    "You will be given a text segment as your source of knowledge. Locate an argument and generate a question about the evidence provided, that can be answered by this text segment. "
+    "You will be given a text segment as your source of knowledge. You need to understand the meaning of the text, and generate a question about the text that can be answered by this text segment. "
   ]
 }
