@@ -1,4 +1,5 @@
 import requests
+import random
 from cachetools import TTLCache, cached
 
 
@@ -18,6 +19,11 @@ def cached_prompts_from_config(branch="main"):
     return prompts_config
 
 
+def random_dynamic_prompt(prompt_type):
+    prompts_config = cached_prompts_from_config(branch="main")
+    return random.choice(prompts_config[prompt_type])
+
+
 if __name__ == "__main__":
     import random
 
@@ -27,3 +33,7 @@ if __name__ == "__main__":
 
     base_prompt = random.choice(prompts_config["text_embedding_prompts"])
     print(base_prompt)
+
+    print("--------")
+    for i in range(10):
+        print(random_dynamic_prompt("text_embedding_prompts"))
