@@ -1,9 +1,9 @@
 import json
 import os
 import random
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
-import time
 from traceback import print_exception
 
 import bittensor as bt
@@ -11,6 +11,7 @@ import openai
 from dotenv import load_dotenv
 
 from datasets import load_dataset
+from openkaito.utils.prompts_config import random_dynamic_prompt
 
 from .protocol import (
     DiscordSearchSynapse,
@@ -199,10 +200,12 @@ def generate_semantic_search_task(
 def generate_relevant_pair(llm_client, text, max_retries=3):
     text = text.strip()[:8000]
 
-    base_prompt = (
-        "You will be given a text segment as your source of knowledge. "
-        "You need to understand the meaning of the text, and generate a question about the text that can be answered by this text segment. "
-    )
+    # base_prompt = (
+    #     "You will be given a text segment as your source of knowledge. "
+    #     "You need to understand the meaning of the text, and generate a question about the text that can be answered by this text segment. "
+    # )
+
+    base_prompt = random_dynamic_prompt("text_embedding_prompts")
     context = "Text segment:\n\n" + text
 
     prompt = base_prompt + "\n" + context
