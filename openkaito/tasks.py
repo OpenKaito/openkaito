@@ -198,11 +198,14 @@ def generate_semantic_search_task(
 
 def generate_relevant_pair(llm_client, text, max_retries=3):
     text = text.strip()[:8000]
-    prompt = (
+
+    base_prompt = (
         "You will be given a text segment as your source of knowledge. "
         "You need to understand the meaning of the text, and generate a question about the text that can be answered by this text segment. "
-        "Text segment:\n\n" + text
     )
+    context = "Text segment:\n\n" + text
+
+    prompt = base_prompt + "\n" + context
 
     # bt.logging.debug(f"Prompt: {prompt}")
 
