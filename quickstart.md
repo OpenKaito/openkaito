@@ -21,21 +21,9 @@ In the root folder of this repository, run the following command to install open
 pip install -e .
 ```
 
-### Obtain Apify API Key
-
-> **_NOTE:_** `APIFY_API_KEY` is not required for either miner or validator since OpenKaito v0.7.0.
-
-To use the provided crawler, you need to obtain an API key from [Apify](https://console.apify.com/). After obtaining the API key, you can write it down in the `.env` file.
-
-```
-APIFY_API_KEY='apify_api_xxxxxx'
-```
-
-The key is for both the miner and the validator. For miner, it is used to search and crawl the data needed. For validator, it is used to get the ground truth data for evaluation.
-
-> **_NOTE:_** You can also create your own crawler to crawl the data you need. But you need to be aware that the data you crawl should be able to pass the integrity check of the validator.
-
 ## Miner Setup
+
+### Obtain OpenAI API Key
 
 Then you can prepare your dotenv file by:
 
@@ -43,122 +31,9 @@ Then you can prepare your dotenv file by:
 cp .env.example .env
 ```
 
-### Setup Elasticsearch
-
-To be a miner of openkaito, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes installing [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
-
-#### Install Docker
-
-You can refer to the [docker official guide](https://docs.docker.com/engine/install/) to install docker.
-
-In short, you can run the following command to install docker:
-
-**Ubuntu**
-
-```bash
-# Uninstall old versions
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
-
-# Add Docker's official GPG key:
-sudo apt-get update
-sudo apt-get install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-
-# Install Docker
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Verify that the Docker Engine installation is successful by running the hello-world image
-sudo docker run hello-world
-```
-
-Then you have successfully installed and started Docker Engine.
-
-**CentOS**
-
-```bash
-# Uninstall old versions
-sudo yum remove docker \
-                  docker-client \
-                  docker-client-latest \
-                  docker-common \
-                  docker-latest \
-                  docker-latest-logrotate \
-                  docker-logrotate \
-                  docker-engine
-
-# Install the yum-utils package (which provides the yum-config-manager utility) and set up the repository
-sudo yum install -y yum-utils
-sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-
-# Install Docker
-sudo yum install docker
-
-# Start Docker
-sudo systemctl start docker
-
-# Verify that the Docker Engine installation is successful by running the hello-world image
-sudo docker run hello-world
-```
-
-Then you have successfully installed and started Docker Engine.
-
-#### Run Elasticsearch with Docker
-
-If you have [docker](https://docs.docker.com/engine/install/) installed, you can run the following command to start an Elasticsearch instance:
-
-```bash
-sudo docker network create elastic
-sudo docker pull docker.elastic.co/elasticsearch/elasticsearch:8.12.1
-sudo docker run --name elasticsearch --net elastic -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -t docker.elastic.co/elasticsearch/elasticsearch:8.12.1
-```
-
-After running the above command, you will be prompted the password for the built-in user `elastic`. You can write it down in the `.env` file.
-
-```
-ELASTICSEARCH_HOST="https://localhost:9200"
-ELASTICSEARCH_USERNAME="elastic"
-ELASTICSEARCH_PASSWORD="your_password"
-```
-
-#### Useful Commands
-
-If you forget the password, you can reset it by running the following command:
-
-```bash
-sudo docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
-```
-
-If the Elasticsearch instance exited unexpectedly, you can start it by running the following command:
-
-```bash
-sudo docker start elasticsearch
-```
-
-### Setup Semantic Search Dataset & Indexing
-
-You may refer to and run `scripts/vector_index_eth_denver_dataset.py` to index the ETH Denver 2024 dataset for semantic search.
-
-This script extracts the Eth Denver dataset (open-sourced by [Kaito AI](https://portal.kaito.ai/events/ETHDenver2024)), indexes the documents in Elasticsearch, and indexes the embeddings of the documents in Elasticsearch.
-It also provides a test query to retrieve the top-k similar documents to the query.
-
-This script is intentionally kept transparent and hackable, and miners may do their own customizations.
-
-```bash
-python scripts/vector_index_eth_denver_dataset.py
-```
-
 ### Start the Miner
 
-After setting up the Elasticsearch and obtaining the API key, you can start the miner by running the following command:
+After setting up the OpenAI APIs, you can start the miner by running the following command:
 
 ```bash
 python neurons/miner.py --netuid 5 --subtensor.network finney --wallet.name miner --wallet.hotkey default --logging.debug --blacklist.force_validator_permit --axon.port 8091
@@ -405,4 +280,137 @@ To monitor your validator process, use the following pm2 commands to monitor the
 ```bash
 pm2 status
 pm2 logs <id>
+```
+
+
+## Other Setup (Reference Only in This Version):
+
+This part includes some historical and valuable usages on this project.
+
+
+### Setup Semantic Search Dataset & Indexing
+
+You may refer to and run `scripts/vector_index_eth_denver_dataset.py` to index the ETH Denver 2024 dataset for semantic search.
+
+This script extracts the Eth Denver dataset (open-sourced by [Kaito AI](https://portal.kaito.ai/events/ETHDenver2024)), indexes the documents in Elasticsearch, and indexes the embeddings of the documents in Elasticsearch.
+It also provides a test query to retrieve the top-k similar documents to the query.
+
+This script is intentionally kept transparent and hackable, and miners may do their own customizations.
+
+```bash
+python scripts/vector_index_eth_denver_dataset.py
+```
+
+### Setup Elasticsearch
+
+To be a miner of openkaito, you need to have an Elasticsearch instance running. You can install Elasticsearch by following the instructions [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html). That includes installing [docker](https://docs.docker.com/engine/install/) and run the Elasticsearch docker image.
+
+### Obtain Apify API Key
+
+> **_NOTE:_** `APIFY_API_KEY` is not required for either miner or validator since OpenKaito v0.7.0.
+
+To use the provided crawler, you need to obtain an API key from [Apify](https://console.apify.com/). After obtaining the API key, you can write it down in the `.env` file.
+
+```
+APIFY_API_KEY='apify_api_xxxxxx'
+```
+
+The key is for both the miner and the validator. For miner, it is used to search and crawl the data needed. For validator, it is used to get the ground truth data for evaluation.
+
+> **_NOTE:_** You can also create your own crawler to crawl the data you need. But you need to be aware that the data you crawl should be able to pass the integrity check of the validator.
+
+#### Install Docker
+
+You can refer to the [docker official guide](https://docs.docker.com/engine/install/) to install docker.
+
+In short, you can run the following command to install docker:
+
+**Ubuntu**
+
+```bash
+# Uninstall old versions
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
+
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+# Install Docker
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Verify that the Docker Engine installation is successful by running the hello-world image
+sudo docker run hello-world
+```
+
+Then you have successfully installed and started Docker Engine.
+
+**CentOS**
+
+```bash
+# Uninstall old versions
+sudo yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+
+# Install the yum-utils package (which provides the yum-config-manager utility) and set up the repository
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# Install Docker
+sudo yum install docker
+
+# Start Docker
+sudo systemctl start docker
+
+# Verify that the Docker Engine installation is successful by running the hello-world image
+sudo docker run hello-world
+```
+
+Then you have successfully installed and started Docker Engine.
+
+#### Run Elasticsearch with Docker
+
+If you have [docker](https://docs.docker.com/engine/install/) installed, you can run the following command to start an Elasticsearch instance:
+
+```bash
+sudo docker network create elastic
+sudo docker pull docker.elastic.co/elasticsearch/elasticsearch:8.12.1
+sudo docker run --name elasticsearch --net elastic -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -t docker.elastic.co/elasticsearch/elasticsearch:8.12.1
+```
+
+After running the above command, you will be prompted the password for the built-in user `elastic`. You can write it down in the `.env` file.
+
+```
+ELASTICSEARCH_HOST="https://localhost:9200"
+ELASTICSEARCH_USERNAME="elastic"
+ELASTICSEARCH_PASSWORD="your_password"
+```
+
+#### Useful Commands
+
+If you forget the password, you can reset it by running the following command:
+
+```bash
+sudo docker exec -it elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
+```
+
+If the Elasticsearch instance exited unexpectedly, you can start it by running the following command:
+
+```bash
+sudo docker start elasticsearch
 ```
