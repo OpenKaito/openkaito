@@ -51,19 +51,23 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__()
         # skip intialization and wallet check when in debug mode, which only unit tests its forward methods
 
+    # DEPRECATED: delete the function as no longer used
     async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
         pass
 
+    # DEPRECATED: delete the function as no longer used
     async def forward_structured_search(
         self, query: StructuredSearchSynapse
     ) -> StructuredSearchSynapse:
         pass
 
+    # DEPRECATED: delete the function as no longer used
     async def forward_semantic_search(
         self, query: SemanticSearchSynapse
     ) -> SemanticSearchSynapse:
         pass
 
+    # DEPRECATED: delete the function as no longer used
     async def forward_discord_search(
         self, query: DiscordSearchSynapse
     ) -> DiscordSearchSynapse:

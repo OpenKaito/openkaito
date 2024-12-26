@@ -283,7 +283,9 @@ pm2 logs <id>
 ```
 
 
-## Other Setup (Reference Only in This Version):
+## Other Setup:
+
+**NOTED:** the following part is not necessary for running the miner and validator in current version.
 
 This part includes some historical and valuable usages on this project.
 
