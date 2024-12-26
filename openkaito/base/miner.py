@@ -289,6 +289,7 @@ class BaseMinerNeuron(BaseNeuron):
             return True, f"Unrecognized hotkey {synapse.dendrite.hotkey}"
 
         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+
         if self.config.blacklist.force_validator_permit:
             # If the config is set to force validator permit, then we should only allow requests from validators.
             if not self.metagraph.validator_permit[uid]:
