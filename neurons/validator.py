@@ -197,13 +197,13 @@ class Validator(BaseValidatorNeuron):
                 selected_dataset = random.choice(list(text_embedding_datasets.items()))
                 bt.logging.info(f"Selected dataset: {selected_dataset[0]}")
 
-                num_articles = random.randint(16, 64)
+                num_articles = random.randint(8, 32)
                 bt.logging.info(f"Number of articles: {num_articles}")
 
                 pairs = generate_relevant_pairs(
                     dataset=selected_dataset[1]["dataset"],
                     num_articles=num_articles,
-                    num_pairs_per_article=2,
+                    num_pairs_per_article=4,
                     llm_client=self.llm_client,
                     text_field_name=selected_dataset[1]["text_field_name"],
                 )
