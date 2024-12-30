@@ -21,7 +21,10 @@ from .protocol import (
     TextEmbeddingSynapse,
 )
 from .utils.version import get_version
-
+import nltk
+from nltk.tokenize import sent_tokenize
+import random
+import math
 
 def random_query(input_file="queries.txt"):
     if not os.path.exists(input_file):
@@ -258,36 +261,64 @@ def generate_relevant_pair(llm_client, text, max_retries=3):
         return None, None
 
 
-# will generate `num_articles` * `num_pairs_per_article` relevant question-answer pairs
 def generate_relevant_pairs(
     dataset, num_articles, num_pairs_per_article, llm_client, text_field_name="text"
 ):
     """
     Generate relevant question-answer pairs from the dataset.
+
+    This version uses a more sophisticated chunking algorithm:
+    1. Randomly samples a sentence from the article.
+    2. Creates a chunk around the sampled sentence using a Gaussian distribution.
+    3. Repeats this process for the desired number of pairs.
     """
+
+    # check if nltk dependency is downloaded
+    nltk.download('punkt_tab')
+
     samples = list(dataset.shuffle().take(num_articles))
     pairs = []
+
+    def create_chunk_around_sentence(sentences, num_sentences):
+        """
+        Creates a chunk of text around a randomly sampled sentence.
+
+        Args:
+            sentences: A list of sentences in the article.
+            num_sentences: The desired number of sentences in the chunk.
+
+        Returns:
+            A string containing the text within the chunk.
+        """
+        num_total_sentences = len(sentences)
+        center_index = random.randint(0, num_total_sentences - 1)
+        start_index = max(0, center_index - math.floor(num_sentences / 2))
+        end_index = min(num_total_sentences, center_index + math.ceil(num_sentences / 2))
+        return " ".join(sentences[start_index:end_index])
+
     for sample in samples:
         text = sample[text_field_name]
-        # split each article to `num_pairs_per_article` chunks, to make the generated pairs have some cross-pair relevance
-
         if not text.strip():
             continue
-
-        # Note: can consider using a more sophisticated way to split the text
-        chunk_len = len(text) // num_pairs_per_article
-        for i in range(num_pairs_per_article):
-            text_chunk = text[i * chunk_len : (i + 1) * chunk_len]
+        sentences = sent_tokenize(text)
+        num_sentences = len(sentences)
+        sizes = []
+        for _ in range(num_pairs_per_article):
             try:
+                # Determine the desired number of sentences in the chunk
+                chunk_size = max(1, int(random.gauss(num_sentences / 8, num_sentences / 4)))
+                chunk_size = 1 + min(chunk_size, num_sentences)
+                text_chunk = create_chunk_around_sentence(sentences, chunk_size)
                 Q, A = generate_relevant_pair(llm_client, text_chunk)
+                sizes.append((num_sentences, chunk_size))
             except Exception as e:
                 bt.logging.error(f"Error during generating relevant pair: {e}")
                 bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                 continue
             if Q and A:
                 pairs.append((Q.strip().strip("?"), A.strip().strip("?")))
-    return pairs
 
+    return pairs
 
 def generate_text_embedding_synapse(
     pairs: list,
