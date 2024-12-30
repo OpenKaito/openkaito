@@ -333,18 +333,15 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name
-                    + "_scores": {
+                    query.name + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    query.name
-                    + "_raw_scores": {
+                    query.name + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name
-                    + "_responses": {
+                    query.name + "_responses": {
                         uid.item(): (
                             zlib.compress(json.dumps(response).encode()).hex()
                             if raw_score > 1e-5
@@ -469,11 +466,17 @@ class Validator(BaseValidatorNeuron):
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
+    intialization = True
     with Validator() as validator:
         while True:
-            validator.print_info()
             if validator.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
 
-            time.sleep(30)
+            # wait before the first print_info, to avoid websocket connection race condition
+            if intialization:
+                time.sleep(60 * 5)
+                intialization = False
+
+            time.sleep(60)
+            validator.print_info()
