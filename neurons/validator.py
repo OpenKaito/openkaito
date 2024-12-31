@@ -21,7 +21,7 @@ import os
 import random
 import tarfile
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from traceback import print_exception
 
@@ -34,10 +34,8 @@ import zlib
 
 import openkaito
 import wandb
-from datasets import load_dataset
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
-from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
 from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
@@ -207,6 +205,7 @@ class Validator(BaseValidatorNeuron):
                     num_pairs_per_article=4,
                     llm_client=self.llm_client,
                     text_field_name=selected_dataset[1]["text_field_name"],
+                    min_sentences=10,
                 )
                 bt.logging.info(f"Generated {len(pairs)} pairs")
 
@@ -334,15 +333,18 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name + "_scores": {
+                    query.name
+                    + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    query.name + "_raw_scores": {
+                    query.name
+                    + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name + "_responses": {
+                    query.name
+                    + "_responses": {
                         uid.item(): (
                             zlib.compress(json.dumps(response).encode()).hex()
                             if raw_score > 1e-5

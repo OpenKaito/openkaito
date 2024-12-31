@@ -21,10 +21,12 @@ from .protocol import (
     TextEmbeddingSynapse,
 )
 from .utils.version import get_version
+
 import nltk
 from nltk.tokenize import sent_tokenize
 import random
 import math
+
 
 def random_query(input_file="queries.txt"):
     if not os.path.exists(input_file):
@@ -262,7 +264,12 @@ def generate_relevant_pair(llm_client, text, max_retries=3):
 
 
 def generate_relevant_pairs(
-    dataset, num_articles, num_pairs_per_article, llm_client, text_field_name="text"
+    dataset,
+    num_articles,
+    num_pairs_per_article,
+    llm_client,
+    text_field_name="text",
+    min_sentences=10,
 ):
     """
     Generate relevant question-answer pairs from the dataset.
@@ -302,6 +309,8 @@ def generate_relevant_pairs(
             continue
         sentences = sent_tokenize(text)
         num_sentences = len(sentences)
+        if num_sentences < min_sentences:
+            continue
         sizes = []
         for _ in range(num_pairs_per_article):
             try:
@@ -684,7 +693,11 @@ if __name__ == "__main__":
 
     logger.info("Generating relevant pairs")
     pairs = generate_relevant_pairs(
-        dataset, num_articles=10, num_pairs_per_article=2, llm_client=llm_client
+        dataset,
+        num_articles=10,
+        num_pairs_per_article=2,
+        llm_client=llm_client,
+        min_sentences=10,
     )
     logger.info(f"Generated {len(pairs)} pairs")
     for Q, A in pairs:
