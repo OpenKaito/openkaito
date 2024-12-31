@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 __version__ = "0.8.1"
+
 version_split = __version__.split(".")
 __spec_version__ = (
     (10000 * int(version_split[0]))

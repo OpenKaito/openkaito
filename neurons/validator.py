@@ -21,7 +21,7 @@ import os
 import random
 import tarfile
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from traceback import print_exception
 
@@ -34,26 +34,14 @@ import zlib
 
 import openkaito
 import wandb
-from datasets import load_dataset
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
-from openkaito.crawlers.twitter.apidojo import ApiDojoTwitterCrawler
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
 from openkaito.tasks import (
-    generate_author_index_task,
-    generate_discord_search_task,
-    generate_discord_semantic_search_task_with_channel_id,
-    generate_question_from_eth_conf_segments,
     generate_relevant_pairs,
-    generate_semantic_search_task,
-    generate_structured_search_task,
     generate_text_embedding_synapse,
-    random_eth_conf_segments,
-    random_query,
 )
 from openkaito.utils.uids import get_random_uids
-from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
 
