@@ -347,7 +347,7 @@ class Evaluator:
                 )
 
                 losses[i] = loss.item()
-                scores[i] = 1 / loss.item()
+                scores[i] = min(100.0, 1 / loss.item())
                 top1_recalls[i] = top1_recall.item()
                 top3_recalls[i] = top3_recall.item()
 

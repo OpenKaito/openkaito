@@ -309,10 +309,11 @@ def generate_relevant_pairs(
             continue
         sentences = sent_tokenize(text)
         num_sentences = len(sentences)
+        cur_num_pairs_per_article = num_pairs_per_article
         if num_sentences < min_sentences:
-            continue
+            cur_num_pairs_per_article = 1
         sizes = []
-        for _ in range(num_pairs_per_article):
+        for _ in range(cur_num_pairs_per_article):
             try:
                 # Determine the desired number of sentences in the chunk
                 chunk_size = max(1, int(random.gauss(num_sentences / 8, num_sentences / 4)))
