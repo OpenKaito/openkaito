@@ -17,7 +17,7 @@
 
 import os
 import time
-import typing
+import openai
 from datetime import datetime
 
 import bittensor as bt
@@ -43,150 +43,35 @@ from openkaito.utils.version import compare_version, get_version
 class Miner(BaseMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
-
     This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
-
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
     """
 
     def __init__(self):
         super(Miner, self).__init__()
+        # skip intialization and wallet check when in debug mode, which only unit tests its forward methods
 
-        load_dotenv()
-
-        search_client = Elasticsearch(
-            os.environ["ELASTICSEARCH_HOST"],
-            basic_auth=(
-                os.environ["ELASTICSEARCH_USERNAME"],
-                os.environ["ELASTICSEARCH_PASSWORD"],
-            ),
-            verify_certs=False,
-            ssl_show_warn=False,
-        )
-
-        # for ranking recalled results
-        ranking_model = HeuristicRankingModel(length_weight=0.8, age_weight=0.2)
-
-        # optional, for crawling data
-        twitter_crawler = (
-            # MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
-            ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
-            if os.environ.get("APIFY_API_KEY")
-            else None
-        )
-
-        self.structured_search_engine = StructuredSearchEngine(
-            search_client=search_client,
-            relevance_ranking_model=ranking_model,
-            twitter_crawler=twitter_crawler,
-            recall_size=self.config.neuron.search_recall_size,
-        )
-
+    # DEPRECATED: delete the function as no longer used
     async def forward_search(self, query: SearchSynapse) -> SearchSynapse:
-        """
-        Processes the incoming Search synapse by performing a search operation on the crawled data.
+        pass
 
-        Args:
-            query (SearchSynapse): The synapse object containing the query information.
-
-        Returns:
-            SearchSynapse: The synapse object with the 'results' field set to list of the 'Document'.
-        """
-        start_time = datetime.now()
-        bt.logging.info(f"received SearchSynapse: ", query)
-        self.check_version(query)
-
-        if not self.config.neuron.disable_crawling:
-            crawl_size = max(self.config.neuron.crawl_size, query.size)
-            self.structured_search_engine.crawl_and_index_data(
-                query_string=query.query_string,
-                author_usernames=None,
-                # crawl and index more data than needed to ensure we have enough to rank
-                max_size=crawl_size,
-            )
-
-        ranked_docs = self.structured_search_engine.search(query)
-
-        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
-        query.results = ranked_docs
-        end_time = datetime.now()
-        elapsed_time = (end_time - start_time).total_seconds()
-        bt.logging.info(
-            f"processed SearchSynapse in {elapsed_time} seconds",
-        )
-        return query
-
+    # DEPRECATED: delete the function as no longer used
     async def forward_structured_search(
         self, query: StructuredSearchSynapse
     ) -> StructuredSearchSynapse:
+        pass
 
-        start_time = datetime.now()
-        bt.logging.info(
-            f"received StructuredSearchSynapse... timeout:{query.timeout}s ", query
-        )
-        self.check_version(query)
-
-        # miners may adjust this timeout config by themselves according to their own crawler speed and latency
-        if query.timeout > 12:
-            # do crawling and indexing, otherwise search from the existing index directly
-            crawl_size = max(self.config.neuron.crawl_size, query.size)
-            self.structured_search_engine.crawl_and_index_data(
-                query_string=query.query_string,
-                author_usernames=query.author_usernames,
-                # crawl and index more data than needed to ensure we have enough to rank
-                max_size=crawl_size,
-            )
-
-        # disable crawling for structured search by default
-        ranked_docs = self.structured_search_engine.search(query)
-        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
-        query.results = ranked_docs
-        end_time = datetime.now()
-        elapsed_time = (end_time - start_time).total_seconds()
-        bt.logging.info(
-            f"processed StructuredSearchSynapse in {elapsed_time} seconds",
-        )
-        return query
-
+    # DEPRECATED: delete the function as no longer used
     async def forward_semantic_search(
         self, query: SemanticSearchSynapse
     ) -> SemanticSearchSynapse:
+        pass
 
-        start_time = datetime.now()
-        bt.logging.info(
-            f"received SemanticSearchSynapse... timeout:{query.timeout}s ", query
-        )
-        self.check_version(query)
-
-        ranked_docs = self.structured_search_engine.vector_search(query)
-        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
-        query.results = ranked_docs
-        end_time = datetime.now()
-        elapsed_time = (end_time - start_time).total_seconds()
-        bt.logging.info(
-            f"processed SemanticSearchSynapse in {elapsed_time} seconds",
-        )
-        return query
-
+    # DEPRECATED: delete the function as no longer used
     async def forward_discord_search(
         self, query: DiscordSearchSynapse
     ) -> DiscordSearchSynapse:
-
-        start_time = datetime.now()
-        bt.logging.info(
-            f"received DiscordSearchSynapse... timeout:{query.timeout}s ", query
-        )
-        self.check_version(query)
-
-        ranked_docs = self.structured_search_engine.discord_search(query)
-        bt.logging.debug(f"{len(ranked_docs)} ranked_docs", ranked_docs)
-        query.results = ranked_docs
-        end_time = datetime.now()
-        elapsed_time = (end_time - start_time).total_seconds()
-        bt.logging.info(
-            f"processed DiscordSearchSynapse in {elapsed_time} seconds",
-        )
-        return query
+        pass
 
     # Example of a text embedding function
     async def forward_text_embedding(
@@ -194,7 +79,6 @@ class Miner(BaseMinerNeuron):
     ) -> TextEmbeddingSynapse:
         texts = query.texts
         dimensions = query.dimensions
-
         import openai
 
         client = openai.OpenAI(

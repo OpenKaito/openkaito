@@ -183,6 +183,7 @@ class Validator(BaseValidatorNeuron):
             discord_channel_id = None
             q_indices = None
             a_indices = None
+            selected_dataset = None
 
             # Note: Currently, the active synapses are `SemanticSearchSynapse` and `TextEmbeddingSynapse`.
 
@@ -197,13 +198,13 @@ class Validator(BaseValidatorNeuron):
                 selected_dataset = random.choice(list(text_embedding_datasets.items()))
                 bt.logging.info(f"Selected dataset: {selected_dataset[0]}")
 
-                num_articles = random.randint(16, 64)
+                num_articles = random.randint(8, 32)
                 bt.logging.info(f"Number of articles: {num_articles}")
 
                 pairs = generate_relevant_pairs(
                     dataset=selected_dataset[1]["dataset"],
                     num_articles=num_articles,
-                    num_pairs_per_article=2,
+                    num_pairs_per_article=4,
                     llm_client=self.llm_client,
                     text_field_name=selected_dataset[1]["text_field_name"],
                     min_sentences=10,
@@ -361,6 +362,7 @@ class Validator(BaseValidatorNeuron):
                 if query.name == "TextEmbeddingSynapse":
                     wandb_log.update(
                         {
+                            "TextEmbeddingSynapse_dataset": selected_dataset[0],
                             "TextEmbeddingSynapse_losses": {
                                 uid.item(): loss.item()
                                 for uid, loss in zip(miner_uids, losses)
@@ -373,13 +375,32 @@ class Validator(BaseValidatorNeuron):
                                 uid.item(): top3_recall.item()
                                 for uid, top3_recall in zip(miner_uids, top3_recalls)
                             },
+                            f"TextEmbeddingSynapse_{selected_dataset[0]}_losses": {
+                                uid.item(): loss.item()
+                                for uid, loss in zip(miner_uids, losses)
+                            },
+                            f"TextEmbeddingSynapse_{selected_dataset[0]}_top1_recalls": {
+                                uid.item(): top1_recall.item()
+                                for uid, top1_recall in zip(miner_uids, top1_recalls)
+                            },
+                            f"TextEmbeddingSynapse_{selected_dataset[0]}_top3_recalls": {
+                                uid.item(): top3_recall.item()
+                                for uid, top3_recall in zip(miner_uids, top3_recalls)
+                            },
                             "TextEmbeddingSynapse_avg_loss": losses.nanmean().item(),
                             "TextEmbeddingSynapse_avg_top1_recall": top1_recalls.nanmean().item(),
                             "TextEmbeddingSynapse_avg_top3_recall": top3_recalls.nanmean().item(),
+                            f"TextEmbeddingSynapse_{selected_dataset[0]}_avg_loss": losses.nanmean().item(),
+                            f"TextEmbeddingSynapse_{selected_dataset[0]}_avg_top1_recall": top1_recalls.nanmean().item(),
+                            f"TextEmbeddingSynapse_{selected_dataset[0]}_avg_top3_recall": top3_recalls.nanmean().item(),
                             "TextEmbeddingSynapse_openai_raw_score": openai_reward.item(),
                             "TextEmbeddingSynapse_openai_loss": openai_loss.item(),
                             "TextEmbeddingSynapse_openai_top1_recall": openai_top1_recall.item(),
                             "TextEmbeddingSynapse_openai_top3_recall": openai_top3_recall.item(),
+                            f"TextEmbeddingSynapse_openai_{selected_dataset[0]}_raw_score": openai_reward.item(),
+                            f"TextEmbeddingSynapse_openai_{selected_dataset[0]}_loss": openai_loss.item(),
+                            f"TextEmbeddingSynapse_openai_{selected_dataset[0]}_top1_recall": openai_top1_recall.item(),
+                            f"TextEmbeddingSynapse_openai_{selected_dataset[0]}_top3_recall": openai_top3_recall.item(),
                         }
                     )
 
@@ -470,11 +491,17 @@ class Validator(BaseValidatorNeuron):
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
+    intialization = True
     with Validator() as validator:
         while True:
-            validator.print_info()
             if validator.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
 
-            time.sleep(30)
+            # wait before the first print_info, to avoid websocket connection race condition
+            if intialization:
+                time.sleep(60 * 5)
+                intialization = False
+
+            time.sleep(60)
+            validator.print_info()

@@ -6,6 +6,13 @@
       "split": "train",
       "streaming": true,
       "text_field_name": "text"
+    },
+    {
+      "path": "wikimedia/wikipedia",
+      "name": "20231101.en",
+      "split": "train",
+      "streaming": true,
+      "text_field_name": "text"
     }
   ]
 }
