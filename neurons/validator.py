@@ -206,6 +206,7 @@ class Validator(BaseValidatorNeuron):
                     num_pairs_per_article=2,
                     llm_client=self.llm_client,
                     text_field_name=selected_dataset[1]["text_field_name"],
+                    min_sentences=10,
                 )
                 bt.logging.info(f"Generated {len(pairs)} pairs")
 
@@ -286,10 +287,13 @@ class Validator(BaseValidatorNeuron):
                     query, responses, discord_channel_id
                 )
             elif query.name == "TextEmbeddingSynapse":
-                rewards, losses, top1_recalls, top3_recalls = (
-                    self.evaluator.evaluate_text_embedding(
-                        query, responses, q_indices, a_indices
-                    )
+                (
+                    rewards,
+                    losses,
+                    top1_recalls,
+                    top3_recalls,
+                ) = self.evaluator.evaluate_text_embedding(
+                    query, responses, q_indices, a_indices
                 )
                 openai_embeddings = openai_embeddings_tensor(
                     self.llm_client,
@@ -297,10 +301,13 @@ class Validator(BaseValidatorNeuron):
                     dimensions=query.dimensions,
                     model="text-embedding-3-large",
                 )
-                openai_reward, openai_loss, openai_top1_recall, openai_top3_recall = (
-                    self.evaluator.evaluate_text_embedding(
-                        query, [openai_embeddings.tolist()], q_indices, a_indices
-                    )
+                (
+                    openai_reward,
+                    openai_loss,
+                    openai_top1_recall,
+                    openai_top3_recall,
+                ) = self.evaluator.evaluate_text_embedding(
+                    query, [openai_embeddings.tolist()], q_indices, a_indices
                 )
 
             else:
@@ -327,15 +334,18 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name + "_scores": {
+                    query.name
+                    + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    query.name + "_raw_scores": {
+                    query.name
+                    + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name + "_responses": {
+                    query.name
+                    + "_responses": {
                         uid.item(): (
                             zlib.compress(json.dumps(response).encode()).hex()
                             if raw_score > 1e-5

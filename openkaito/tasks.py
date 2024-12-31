@@ -22,6 +22,9 @@ from .protocol import (
 )
 from .utils.version import get_version
 
+import nltk
+from nltk.tokenize import sent_tokenize
+
 
 def random_query(input_file="queries.txt"):
     if not os.path.exists(input_file):
@@ -260,18 +263,32 @@ def generate_relevant_pair(llm_client, text, max_retries=3):
 
 # will generate `num_articles` * `num_pairs_per_article` relevant question-answer pairs
 def generate_relevant_pairs(
-    dataset, num_articles, num_pairs_per_article, llm_client, text_field_name="text"
+    dataset,
+    num_articles,
+    num_pairs_per_article,
+    llm_client,
+    text_field_name="text",
+    min_sentences=10,
 ):
     """
     Generate relevant question-answer pairs from the dataset.
     """
     samples = list(dataset.shuffle().take(num_articles))
     pairs = []
+    nltk.download('punkt_tab')
+
+
     for sample in samples:
         text = sample[text_field_name]
         # split each article to `num_pairs_per_article` chunks, to make the generated pairs have some cross-pair relevance
 
         if not text.strip():
+            continue
+
+        sentences = sent_tokenize(text)
+        num_sentences = len(sentences)
+
+        if num_sentences < min_sentences:
             continue
 
         # Note: can consider using a more sophisticated way to split the text
@@ -653,7 +670,11 @@ if __name__ == "__main__":
 
     logger.info("Generating relevant pairs")
     pairs = generate_relevant_pairs(
-        dataset, num_articles=10, num_pairs_per_article=2, llm_client=llm_client
+        dataset,
+        num_articles=10,
+        num_pairs_per_article=2,
+        llm_client=llm_client,
+        min_sentences=10,
     )
     logger.info(f"Generated {len(pairs)} pairs")
     for Q, A in pairs:
