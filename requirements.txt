@@ -18,4 +18,3 @@ info-nce-pytorch>=0.1.4
 cachetools
 nltk>=3.9.1
 scikit-learn>=1.6.0
-
