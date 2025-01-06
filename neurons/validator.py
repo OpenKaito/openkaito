@@ -31,13 +31,14 @@ import openai
 import torch
 from dotenv import load_dotenv
 import zlib
+from typing import Tuple
 
 import openkaito
 import wandb
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import SearchSynapse, SemanticSearchSynapse
+from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, OfficialSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
@@ -102,6 +103,8 @@ class Validator(BaseValidatorNeuron):
             )
             self.config.neuron.wandb_off = True
 
+        # TODO: delete this line before merge
+        self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -116,6 +119,22 @@ class Validator(BaseValidatorNeuron):
                 dir=self.config.neuron.full_path,
                 reinit=True,
             )
+
+        whitelist_env = os.getenv("WHITELIST_HOTKEYS", "")
+        self.allowed_hotkeys = [
+            hk.strip()
+            for hk in whitelist_env.split(",")
+            if hk.strip()
+        ]
+        bt.logging.info(f"Validator 'allowed_hotkeys': {self.allowed_hotkeys}")
+
+        if not self.config.neuron.axon_off:
+            self.axon.attach(
+                forward_fn=self.forward_official,
+                blacklist_fn=self.blacklist_official,
+                priority_fn=self.priority_official,
+            )
+
 
     def init_eth_denver_dataset(self):
         root_dir = __file__.split("neurons")[0]
@@ -160,6 +179,25 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info(
             f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
         )
+
+    async def forward_official(self, synapse: OfficialSynapse) -> OfficialSynapse:
+        bt.logging.info(f"[Message from Official] forward_official() got query: {synapse.query_string}")
+        synapse.results = [
+            f"Validator echo from forward_official: {synapse.query_string}"
+        ]
+        return synapse
+
+    async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
+        if not synapse.dendrite.hotkey:
+            return True, "Not a valid hotkey in `synapse.dendrite.hotkey`"
+        if synapse.dendrite.hotkey in self.allowed_hotkeys:
+            return False, f"Hotkey {synapse.dendrite.hotkey} in whitelist"
+        else:
+            return True, f"Hotkey {synapse.dendrite.hotkey} not in whitelist"
+
+    async def priority_official(self, synapse: OfficialSynapse) -> float:
+        return 1.0
+
 
     async def forward(self):
         """
@@ -322,6 +360,8 @@ class Validator(BaseValidatorNeuron):
 
             self.update_scores(rewards, miner_uids)
 
+            # TODO: remove this line before merge
+            self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),

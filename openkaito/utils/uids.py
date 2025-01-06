@@ -53,3 +53,13 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
     k = min(k, len(candidate_uids))
     uids = torch.tensor(random.sample(candidate_uids, k))
     return uids
+
+
+def get_validator_uids(metagraph: "bt.metagraph.Metagraph") -> torch.LongTensor:
+    """
+    Returns all validator UIDs from the given metagraph, i.e. all UIDs
+    where metagraph.validator_permit[uid] == True.
+    """
+
+    validator_uids = torch.where(metagraph.validator_permit == True)[0]
+    return validator_uids

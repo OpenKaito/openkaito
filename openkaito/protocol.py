@@ -186,3 +186,15 @@ class TextEmbeddingSynapse(bt.Synapse):
 
     def deserialize(self) -> List[Dict]:
         return self.results
+
+
+class OfficialSynapse(bt.Synapse):
+
+    texts: List[str]
+
+    version: Optional[Version] = None
+
+    results: Optional[List[List[float]]] = None
+
+    def deserialize(self) -> List[Dict]:
+        return self.results

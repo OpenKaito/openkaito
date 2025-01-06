@@ -31,6 +31,7 @@ from openkaito.protocol import (
     SemanticSearchSynapse,
     StructuredSearchSynapse,
     TextEmbeddingSynapse,
+    OfficialSynapse,
 )
 
 
@@ -205,6 +206,7 @@ class BaseMinerNeuron(BaseNeuron):
             self.thread.join(5)
             self.is_running = False
             bt.logging.debug("Stopped")
+
 
     def __enter__(self):
         """
