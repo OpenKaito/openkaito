@@ -128,12 +128,12 @@ class Validator(BaseValidatorNeuron):
         ]
         bt.logging.info(f"Validator 'allowed_hotkeys': {self.allowed_hotkeys}")
 
-        if not self.config.neuron.axon_off:
-            self.axon.attach(
-                forward_fn=self.forward_official,
-                blacklist_fn=self.blacklist_official,
-                priority_fn=self.priority_official,
-            )
+        #if not self.config.neuron.axon_off:
+        self.axon.attach(
+            forward_fn=self.forward_official,
+            blacklist_fn=self.blacklist_official,
+            priority_fn=self.priority_official,
+        )
 
 
     def init_eth_denver_dataset(self):
@@ -186,6 +186,21 @@ class Validator(BaseValidatorNeuron):
             f"Validator echo from forward_official: {synapse.query_string}"
         ]
         return synapse
+    
+    async def forward_official(self, synapse: OfficialSynapse) -> OfficialSynapse:
+
+        try:
+            bt.logging.info(f"[Validator] Received OfficialSynapse query: {synapse.query_string}")
+            response = f"Validator received: {synapse.query_string}"
+            synapse.results = [response]
+
+            bt.logging.info(f"[Validator] Responding with: {response}")
+            return synapse
+
+        except Exception as e:
+            bt.logging.error(f"[Validator] Error processing OfficialSynapse: {e}")
+            raise
+
 
     async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
         if not synapse.dendrite.hotkey:
@@ -477,6 +492,8 @@ class Validator(BaseValidatorNeuron):
         self.sync()
 
         bt.logging.info(f"Validator starting at block: {self.block}")
+        self.axon.start()
+        bt.logging.info("Axon started and ready to handle OfficialSynapse requests.")
 
         # This loop maintains the validator's operations until intentionally stopped.
         try:

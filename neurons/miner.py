@@ -132,7 +132,7 @@ class Miner(BaseMinerNeuron):
     # TODO: Remove the function after testing
     async def test_send_official_synapse(self, validator_uid: int):
         query = OfficialSynapse(
-            texts=["Greetings from miner!"]
+            query_string=["Greetings from miner!"]
         )
 
         if validator_uid < 0 or validator_uid >= len(self.metagraph.axons):
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         miner_hotkey = miner.wallet.hotkey.ss58_address
         print(f"My Miner hotkey: {miner_hotkey}")
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(miner.test_send_official_synapse(142))
+        loop.run_until_complete(miner.test_send_official_synapse(144))
 
         time.sleep(120)
 
@@ -175,4 +175,4 @@ if __name__ == "__main__":
             time.sleep(30)
             # TODO: Remove the following block before merging
             loop = asyncio.get_event_loop()
-            loop.run_until_complete(miner.test_send_official_synapse(142))
+            loop.run_until_complete(miner.test_send_official_synapse(144))

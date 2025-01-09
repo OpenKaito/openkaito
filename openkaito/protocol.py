@@ -190,11 +190,11 @@ class TextEmbeddingSynapse(bt.Synapse):
 
 class OfficialSynapse(bt.Synapse):
 
-    texts: List[str]
+    query_string: List[str]
 
     version: Optional[Version] = None
 
-    results: Optional[List[List[float]]] = None
+    results: Optional[List[str]] = None
 
     def deserialize(self) -> List[Dict]:
         return self.results
