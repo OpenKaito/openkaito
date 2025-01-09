@@ -104,7 +104,7 @@ class Validator(BaseValidatorNeuron):
             self.config.neuron.wandb_off = True
 
         # TODO: delete this line before merge
-        self.config.neuron.wandb_off = True
+        # self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -376,7 +376,7 @@ class Validator(BaseValidatorNeuron):
             self.update_scores(rewards, miner_uids)
 
             # TODO: remove this line before merge
-            self.config.neuron.wandb_off = True
+            #self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),

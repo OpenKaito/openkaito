@@ -165,8 +165,8 @@ if __name__ == "__main__":
         # TODO: Remove the following block before merging
         miner_hotkey = miner.wallet.hotkey.ss58_address
         print(f"My Miner hotkey: {miner_hotkey}")
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(miner.test_send_official_synapse(144))
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(miner.test_send_official_synapse(144))
 
         time.sleep(120)
 
@@ -174,5 +174,5 @@ if __name__ == "__main__":
             miner.print_info()
             time.sleep(30)
             # TODO: Remove the following block before merging
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(miner.test_send_official_synapse(144))
+            # loop = asyncio.get_event_loop()
+            # loop.run_until_complete(miner.test_send_official_synapse(144))
