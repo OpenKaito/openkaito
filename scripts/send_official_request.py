@@ -51,7 +51,7 @@ from openkaito.tasks import (
     random_eth_conf_segments,
     random_query,
 )
-from openkaito.utils.uids import get_random_uids
+from openkaito.utils.uids import get_random_uids, get_validator_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
@@ -124,6 +124,7 @@ class Validator(BaseValidatorNeuron):
 
     async def test_send_official_synapse(self, validator_uid: int):
 
+        validator_ids = get_validator_uids(self)
         # TODO: add prepare task logic
         # ...
 
