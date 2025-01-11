@@ -31,7 +31,6 @@ from openkaito.protocol import (
     SemanticSearchSynapse,
     StructuredSearchSynapse,
     TextEmbeddingSynapse,
-    OfficialSynapse,
 )
 
 
