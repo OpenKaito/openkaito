@@ -182,7 +182,12 @@ class Validator(BaseValidatorNeuron):
 
     async def forward_official(self, synapse: OfficialSynapse) -> OfficialSynapse:
 
+
+
         try:
+            # TODO: add deliver tasks to miners logic
+            # ...
+
             bt.logging.info(f"[Validator] Received OfficialSynapse query: {synapse.query_string}")
             response = f"Validator received: {synapse.query_string}"
             synapse.results = [response]

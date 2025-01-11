@@ -87,6 +87,8 @@ class Validator(BaseValidatorNeuron):
             self.config.neuron.wandb_off = True
 
 
+        # TODO: remove this line before merge
+        #self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -121,8 +123,13 @@ class Validator(BaseValidatorNeuron):
         return 1.0
 
     async def test_send_official_synapse(self, validator_uid: int):
+
+        # TODO: add prepare task logic
+        # ...
+
+        # TODO: change to TextEmbeddingSynapse-related task
         query = OfficialSynapse(
-            query_string=["Greetings from miner!"]
+            query_string=["Greetings from official validator!"]
         )
 
         if validator_uid < 0 or validator_uid >= len(self.metagraph.axons):
@@ -142,10 +149,10 @@ class Validator(BaseValidatorNeuron):
                 deserialize=True,
                 timeout=timeout_secs,
             )
-            bt.logging.info(f"[Miner] OfficialSynapse responses: {responses}")
+            bt.logging.info(f"[Official Validator] OfficialSynapse responses: {responses}")
 
         except Exception as e:
-            bt.logging.error(f"[Miner] Error sending OfficialSynapse: {e}")
+            bt.logging.error(f"[Official Validator] Error sending OfficialSynapse: {e}")
 
     async def forward(self):
         """
