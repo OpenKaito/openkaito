@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
 import json
 import os
 import random
@@ -24,6 +23,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from traceback import print_exception
+import asyncio
 
 # Bittensor
 import bittensor as bt
@@ -57,10 +57,13 @@ from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
 
 
+
 class Validator(BaseValidatorNeuron):
     def __init__(self):
         super(Validator, self).__init__()
         load_dotenv()
+
+        self.dendrite = bt.dendrite(wallet=self.wallet)
 
         # for ranking results evaluation
         llm_client = openai.OpenAI(
@@ -70,26 +73,6 @@ class Validator(BaseValidatorNeuron):
             max_retries=3,
         )
         self.llm_client = llm_client
-
-        # for integrity check
-        # twitter_crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
-        # twitter_crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
-        # deprecated since v0.7.0
-        twitter_crawler = None
-
-        self.evaluator = Evaluator(llm_client, twitter_crawler)
-
-        with open("twitter_usernames.txt") as f:
-            twitter_usernames = f.read().strip().splitlines()
-        self.twitter_usernames = twitter_usernames
-
-        self.init_eth_denver_dataset()
-        self.init_eth_cc7_dataset()
-
-        # bt.logging.info("Initial Loading Text-Embedding datasets")
-        # self.text_embedding_datasets = load_dataset_from_config(
-        #     fetch_datasets_config(branch="dataset_rotation")["text_embedding_datasets"]
-        # )
 
         netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -119,81 +102,12 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-        whitelist_env = os.getenv("WHITELIST_HOTKEYS", "")
-        self.allowed_hotkeys = [
-            hk.strip()
-            for hk in whitelist_env.split(",")
-            if hk.strip()
-        ]
-        bt.logging.info(f"Validator 'allowed_hotkeys': {self.allowed_hotkeys}")
-
-        #if not self.config.neuron.axon_off:
-        self.axon.attach(
-            forward_fn=self.forward_official,
-            blacklist_fn=self.blacklist_official,
-            priority_fn=self.priority_official,
-        )
-
-
-    def init_eth_denver_dataset(self):
-        root_dir = __file__.split("neurons")[0]
-        dataset_dir = root_dir + "datasets/eth_denver_dataset"
-        self.eth_denver_dataset_dir = dataset_dir
-        dataset_path = Path(dataset_dir)
-
-        with tarfile.open(
-            root_dir + "datasets/eth_denver_dataset.tar.gz", "r:gz"
-        ) as tar:
-            original_file_list = tar.getnames()
-            original_file_list.remove("eth_denver_dataset")
-            if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
-                bt.logging.info(
-                    f"Eth Denver data already extracted to: {dataset_dir}, no need to re-extract"
-                )
-            else:
-                tar.extractall(root_dir + "datasets")
-                bt.logging.info(f"Eth Denver data extracted to: {dataset_dir}")
-
-        bt.logging.info(
-            f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
-        )
-
-    def init_eth_cc7_dataset(self):
-        root_dir = __file__.split("neurons")[0]
-        dataset_dir = root_dir + "datasets/eth_cc7_dataset"
-        self.eth_cc7_dataset_dir = dataset_dir
-        dataset_path = Path(dataset_dir)
-
-        with tarfile.open(root_dir + "datasets/eth_cc7_dataset.tar.gz", "r:gz") as tar:
-            original_file_list = tar.getnames()
-            original_file_list.remove("eth_cc7_dataset")
-            if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
-                bt.logging.info(
-                    f"Eth CC[7] data already extracted to: {dataset_dir}, no need to re-extract"
-                )
-            else:
-                tar.extractall(root_dir + "datasets")
-                bt.logging.info(f"Eth CC[7] data extracted to: {dataset_dir}")
-
-        bt.logging.info(
-            f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
-        )
-
-
     async def forward_official(self, synapse: OfficialSynapse) -> OfficialSynapse:
-
-        try:
-            bt.logging.info(f"[Validator] Received OfficialSynapse query: {synapse.query_string}")
-            response = f"Validator received: {synapse.query_string}"
-            synapse.results = [response]
-
-            bt.logging.info(f"[Validator] Responding with: {response}")
-            return synapse
-
-        except Exception as e:
-            bt.logging.error(f"[Validator] Error processing OfficialSynapse: {e}")
-            raise
-
+        bt.logging.info(f"[Message from Official] forward_official() got query: {synapse.query_string}")
+        synapse.results = [
+            f"Validator echo from forward_official: {synapse.query_string}"
+        ]
+        return synapse
 
     async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
         if not synapse.dendrite.hotkey:
@@ -206,6 +120,32 @@ class Validator(BaseValidatorNeuron):
     async def priority_official(self, synapse: OfficialSynapse) -> float:
         return 1.0
 
+    async def test_send_official_synapse(self, validator_uid: int):
+        query = OfficialSynapse(
+            query_string=["Greetings from miner!"]
+        )
+
+        if validator_uid < 0 or validator_uid >= len(self.metagraph.axons):
+            bt.logging.error(f"Invalid validator_uid: {validator_uid}")
+            return
+        validator_axon_endpoint = self.metagraph.axons[validator_uid]
+
+        if not validator_axon_endpoint.is_serving:
+            bt.logging.error(f"Validator at UID {validator_uid} is not serving.")
+            return
+
+        try:
+            timeout_secs = 30
+            responses = await self.dendrite(
+                axons=[validator_axon_endpoint],
+                synapse=query,
+                deserialize=True,
+                timeout=timeout_secs,
+            )
+            bt.logging.info(f"[Miner] OfficialSynapse responses: {responses}")
+
+        except Exception as e:
+            bt.logging.error(f"[Miner] Error sending OfficialSynapse: {e}")
 
     async def forward(self):
         """
@@ -265,47 +205,6 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(
                     f"Sending {query.name}: {seperator.join(query.texts)} to miner uids: {miner_uids}"
                 )
-            # 2% chance to send ETH Denver semantic search task
-            # elif random_number < 0.98:
-            #     conf_dataset_dir = self.eth_denver_dataset_dir
-            #     segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
-            #     bt.logging.debug(
-            #         f"{len(segments)} segments sampled from ETH Denver dataset."
-            #     )
-            #     bt.logging.trace(segments)
-            #     question = generate_question_from_eth_conf_segments(
-            #         self.llm_client, segments
-            #     )
-            #     query = generate_semantic_search_task(
-            #         query_string=question,
-            #         index_name="eth_denver",
-            #     )
-            #     # should be quick
-            #     query.timeout = 15
-            #     bt.logging.info(
-            #         f"Sending ETH Denver {query.name}: {query.query_string} to miner uids: {miner_uids}"
-            #     )
-            # # 2% chance to send ETH CC[7] semantic search task
-            # else:
-            #     conf_dataset_dir = self.eth_cc7_dataset_dir
-            #     segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
-            #     bt.logging.debug(
-            #         f"{len(segments)} segments sampled from ETH CC[7] dataset."
-            #     )
-            #     bt.logging.trace(segments)
-            #     question = generate_question_from_eth_conf_segments(
-            #         self.llm_client, segments
-            #     )
-            #     # must create a `eth_cc7` index in the miner
-            #     query = generate_semantic_search_task(
-            #         query_string=question,
-            #         index_name="eth_cc7",
-            #     )
-            #     # should be quick
-            #     query.timeout = 15
-            #     bt.logging.info(
-            #         f"Sending ETH CC[7] {query.name}: {query.query_string} to miner uids: {miner_uids}"
-            #     )
 
             # The dendrite client queries the network.
             responses = await self.dendrite(
@@ -368,6 +267,8 @@ class Validator(BaseValidatorNeuron):
 
             self.update_scores(rewards, miner_uids)
 
+            # TODO: remove this line before merge
+            #self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),
@@ -538,16 +439,26 @@ class Validator(BaseValidatorNeuron):
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     intialization = True
+
     with Validator() as validator:
+
+        miner_hotkey = validator.wallet.hotkey.ss58_address
+        print(f"My Miner hotkey: {miner_hotkey}")
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(validator.test_send_official_synapse(144))
+
         while True:
             if validator.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-
             # wait before the first print_info, to avoid websocket connection race condition
             if intialization:
                 time.sleep(60 * 5)
                 intialization = False
+
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(validator.test_send_official_synapse(144))
 
             time.sleep(60)
             validator.print_info()

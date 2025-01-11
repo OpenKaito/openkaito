@@ -34,7 +34,6 @@ from openkaito.protocol import (
     SemanticSearchSynapse,
     StructuredSearchSynapse,
     TextEmbeddingSynapse,
-    OfficialSynapse
 )
 from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
@@ -52,8 +51,6 @@ class Miner(BaseMinerNeuron):
     def __init__(self):
         super(Miner, self).__init__()
 
-        # TODO: remove this before merging
-        self.dendrite = bt.dendrite(wallet=self.wallet)
         # skip intialization and wallet check when in debug mode, which only unit tests its forward methods
 
     # DEPRECATED: delete the function as no longer used
@@ -129,50 +126,15 @@ class Miner(BaseMinerNeuron):
                 f"Received request with version {query.version}, is newer than miner running version {get_version()}. You may updating the repo and restart the miner."
             )
 
-    # TODO: Remove the function after testing
-    async def test_send_official_synapse(self, validator_uid: int):
-        query = OfficialSynapse(
-            query_string=["Greetings from miner!"]
-        )
-
-        if validator_uid < 0 or validator_uid >= len(self.metagraph.axons):
-            bt.logging.error(f"Invalid validator_uid: {validator_uid}")
-            return
-        validator_axon_endpoint = self.metagraph.axons[validator_uid]
-
-        if not validator_axon_endpoint.is_serving:
-            bt.logging.error(f"Validator at UID {validator_uid} is not serving.")
-            return
-
-        try:
-            timeout_secs = 30
-            responses = await self.dendrite(
-                axons=[validator_axon_endpoint],
-                synapse=query,
-                deserialize=True,
-                timeout=timeout_secs,
-            )
-            bt.logging.info(f"[Miner] OfficialSynapse responses: {responses}")
-
-        except Exception as e:
-            bt.logging.error(f"[Miner] Error sending OfficialSynapse: {e}")
-
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
     with Miner() as miner:
 
-        # TODO: Remove the following block before merging
         miner_hotkey = miner.wallet.hotkey.ss58_address
         print(f"My Miner hotkey: {miner_hotkey}")
-        # loop = asyncio.get_event_loop()
-        # loop.run_until_complete(miner.test_send_official_synapse(144))
-
         time.sleep(120)
-
         while True:
             miner.print_info()
             time.sleep(30)
-            # TODO: Remove the following block before merging
-            # loop = asyncio.get_event_loop()
-            # loop.run_until_complete(miner.test_send_official_synapse(144))
+

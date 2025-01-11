@@ -189,12 +189,21 @@ class TextEmbeddingSynapse(bt.Synapse):
 
 
 class OfficialSynapse(bt.Synapse):
+    """
+    Official Synapse means the synapse that is officially sent by the SN5 team.
+    We will design further reward if the miners can handle the official synapse successfully.
+    """
 
-    query_string: List[str]
+    texts: List[str]
+
+    dimensions: int = pydantic.Field(128, ge=1)
+
+    normalized: bool = pydantic.Field(True)
 
     version: Optional[Version] = None
 
-    results: Optional[List[str]] = None
+    results: Optional[List[List[float]]] = None
+
 
     def deserialize(self) -> List[Dict]:
         return self.results
