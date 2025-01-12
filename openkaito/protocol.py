@@ -204,6 +204,5 @@ class OfficialSynapse(bt.Synapse):
 
     results: Optional[List[List[float]]] = None
 
-
     def deserialize(self) -> List[Dict]:
         return self.results

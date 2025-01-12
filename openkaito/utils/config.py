@@ -207,7 +207,9 @@ def add_args(cls, parser):
             "--blacklist.validator_min_stake",
             type=int,
             help="If set, miners will blacklist requests from validators with stake less than this value.",
-            default=1000,
+            # TODO: change to 1000
+            #default=1000,
+            default=0.0,
         )
 
 

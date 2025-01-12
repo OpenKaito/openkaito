@@ -23,7 +23,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from traceback import print_exception
-import asyncio
+import nest_asyncio
 
 # Bittensor
 import bittensor as bt
@@ -56,7 +56,7 @@ from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
 
-
+nest_asyncio.apply()
 
 class Validator(BaseValidatorNeuron):
     def __init__(self):
@@ -106,12 +106,6 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-    async def forward_official(self, synapse: OfficialSynapse) -> OfficialSynapse:
-        bt.logging.info(f"[Message from Official] forward_official() got query: {synapse.query_string}")
-        synapse.results = [
-            f"Validator echo from forward_official: {synapse.query_string}"
-        ]
-        return synapse
 
     async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
         if not synapse.dendrite.hotkey:
