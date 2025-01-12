@@ -38,7 +38,7 @@ import wandb
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, OfficialSynapse
+from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, TextEmbeddingSynapse, OfficialSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
@@ -64,7 +64,7 @@ class Validator(BaseValidatorNeuron):
 
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=os.getenv("OPENAI_API_KEY"),
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,
@@ -103,7 +103,8 @@ class Validator(BaseValidatorNeuron):
             )
             self.config.neuron.wandb_off = True
 
-
+        # TODO: remove this line before merge
+        self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -180,27 +181,39 @@ class Validator(BaseValidatorNeuron):
         )
 
 
-    async def forward_official(self, synapse: OfficialSynapse) -> OfficialSynapse:
+    async def forward_official(self, official_synapse: TextEmbeddingSynapse) -> TextEmbeddingSynapse:
+
+        #try:
+        bt.logging.info(f"[Validator] Received OfficialSynapse with texts={official_synapse.texts}")
+        #miner_uids = get_random_uids(self, k=2)
+        # TODO: Remove this line before merge, will refine in the next PR
+        miner_uids = get_random_uids(self, k=1, specified_miners=[142])
+        bt.logging.info(f"[Validator] Forwarding these texts to miner UIDs: {miner_uids}...")
+
+        # text_synapse = TextEmbeddingSynapse(
+        #     texts=synapse.texts,
+        #     dimensions=synapse.dimensions,
+        #     normalized=synapse.normalized
+        # )
+        official_synapse.timeout = 60
+
+        responses = await self.dendrite(
+            axons=[self.metagraph.axons[uid] for uid in miner_uids],
+            synapse=official_synapse,
+            deserialize=True,
+            timeout=official_synapse.timeout,
+        )
+
+        bt.logging.info(f"[Validator] Got {len(responses)} miner response(s):\n\n {responses}\n\n.")
+        official_synapse.results = responses
+        return official_synapse
+
+        # except Exception as e:
+        #     bt.logging.error(f"[Validator] Error processing OfficialSynapse: {e}")
+        #     raise
 
 
-
-        try:
-            # TODO: add deliver tasks to miners logic
-            # ...
-
-            bt.logging.info(f"[Validator] Received OfficialSynapse query: {synapse.query_string}")
-            response = f"Validator received: {synapse.query_string}"
-            synapse.results = [response]
-
-            bt.logging.info(f"[Validator] Responding with: {response}")
-            return synapse
-
-        except Exception as e:
-            bt.logging.error(f"[Validator] Error processing OfficialSynapse: {e}")
-            raise
-
-
-    async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
+    async def blacklist_official(self, synapse: TextEmbeddingSynapse) -> Tuple[bool, str]:
         if not synapse.dendrite.hotkey:
             return True, "Not a valid hotkey in `synapse.dendrite.hotkey`"
         if synapse.dendrite.hotkey in self.allowed_hotkeys:
@@ -208,7 +221,7 @@ class Validator(BaseValidatorNeuron):
         else:
             return True, f"Hotkey {synapse.dendrite.hotkey} not in whitelist"
 
-    async def priority_official(self, synapse: OfficialSynapse) -> float:
+    async def priority_official(self, synapse: TextEmbeddingSynapse) -> float:
         return 1.0
 
 
@@ -373,6 +386,8 @@ class Validator(BaseValidatorNeuron):
 
             self.update_scores(rewards, miner_uids)
 
+            # TODO: remove this line before merge
+            self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),

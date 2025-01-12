@@ -31,14 +31,14 @@ import openai
 import torch
 from dotenv import load_dotenv
 import zlib
-from typing import Tuple
+from typing import Tuple, List
 
 import openkaito
 import wandb
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, OfficialSynapse
+from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, TextEmbeddingSynapse, OfficialSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
@@ -67,12 +67,14 @@ class Validator(BaseValidatorNeuron):
 
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=os.getenv("OPENAI_API_KEY"),
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,
         )
         self.llm_client = llm_client
+        twitter_crawler = None
+        self.evaluator = Evaluator(llm_client, twitter_crawler)
 
         netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -88,7 +90,7 @@ class Validator(BaseValidatorNeuron):
 
 
         # TODO: remove this line before merge
-        #self.config.neuron.wandb_off = True
+        self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -122,38 +124,63 @@ class Validator(BaseValidatorNeuron):
     async def priority_official(self, synapse: OfficialSynapse) -> float:
         return 1.0
 
-    async def test_send_official_synapse(self, validator_uid: int):
+    async def send_official_synapse(self, specified_validator_uids: List[int]):
 
-        validator_ids = get_validator_uids(self)
-        # TODO: add prepare task logic
-        # ...
+        if specified_validator_uids:
+            validator_uids = specified_validator_uids
+        else:
+            # NOTE: broadcast to all validators
+            validator_uids = get_validator_uids(self, remove_self=True)
+            bt.logging.info(f"Validator IDs: {validator_uids}")
 
-        # TODO: change to TextEmbeddingSynapse-related task
-        query = OfficialSynapse(
-            query_string=["Greetings from official validator!"]
+        text_embedding_datasets = cached_datasets_from_config(branch="main")[
+            "text_embedding_datasets"
+        ]
+        selected_dataset = random.choice(list(text_embedding_datasets.items()))
+
+        pairs = generate_relevant_pairs(
+            dataset=selected_dataset[1]["dataset"],
+            num_articles=1, #TODO: change to random
+            num_pairs_per_article=2, 
+            llm_client=self.llm_client,
+            text_field_name=selected_dataset[1]["text_field_name"],
+            min_sentences=10,
         )
 
-        if validator_uid < 0 or validator_uid >= len(self.metagraph.axons):
-            bt.logging.error(f"Invalid validator_uid: {validator_uid}")
-            return
-        validator_axon_endpoint = self.metagraph.axons[validator_uid]
+        embedding_synapse, _, _ = generate_text_embedding_synapse(
+            pairs, dimensions=128
+        )
+        embedding_synapse.timeout = 30
 
-        if not validator_axon_endpoint.is_serving:
-            bt.logging.error(f"Validator at UID {validator_uid} is not serving.")
-            return
+        official_synapse = OfficialSynapse(
+            texts=embedding_synapse.texts,
+            dimensions=embedding_synapse.dimensions,
+            normalized=embedding_synapse.normalized
+        )
+        official_synapse.timeout = 30
 
-        try:
-            timeout_secs = 30
-            responses = await self.dendrite(
-                axons=[validator_axon_endpoint],
-                synapse=query,
-                deserialize=True,
-                timeout=timeout_secs,
-            )
-            bt.logging.info(f"[Official Validator] OfficialSynapse responses: {responses}")
+        for vuid in validator_uids:
+  
+            if vuid < 0 or vuid >= len(self.metagraph.axons):
+                bt.logging.error(f"Invalid validator_uid: {vuid}")
+                continue
 
-        except Exception as e:
-            bt.logging.error(f"[Official Validator] Error sending OfficialSynapse: {e}")
+            validator_axon = self.metagraph.axons[vuid]
+
+            try:
+                bt.logging.info(f"Sending OfficialSynapse to validator UID: {vuid}")
+                responses = await self.dendrite(
+                    axons=[validator_axon],
+                    synapse=official_synapse,
+                    deserialize=True,
+                    timeout=official_synapse.timeout,
+                )
+                bt.logging.info(
+                    f"Got {len(responses)} response(s) from validator {vuid}, result: {responses}"
+                )
+            except Exception as e:
+                bt.logging.error(f"Error sending OfficialSynapse to validator {vuid}: {e}")
+
 
     async def forward(self):
         """
@@ -163,6 +190,65 @@ class Validator(BaseValidatorNeuron):
         - Getting the responses
         - Rewarding the miners
         - Updating the scores
+        """
+        # TODO: delete this when merge
+        specified_validator_uids = [144]
+
+        if specified_validator_uids:
+            validator_uids = specified_validator_uids
+        else:
+            # NOTE: broadcast to all validators
+            validator_uids = get_validator_uids(self, remove_self=True)
+            bt.logging.info(f"Validator IDs: {validator_uids}")
+
+        text_embedding_datasets = cached_datasets_from_config(branch="main")[
+            "text_embedding_datasets"
+        ]
+        selected_dataset = random.choice(list(text_embedding_datasets.items()))
+
+        pairs = generate_relevant_pairs(
+            dataset=selected_dataset[1]["dataset"],
+            num_articles=1, #TODO: change to random
+            num_pairs_per_article=2, 
+            llm_client=self.llm_client,
+            text_field_name=selected_dataset[1]["text_field_name"],
+            min_sentences=10,
+        )
+
+        embedding_synapse, _, _ = generate_text_embedding_synapse(
+            pairs, dimensions=128
+        )
+        embedding_synapse.timeout = 30
+
+        official_synapse = OfficialSynapse(
+            texts=embedding_synapse.texts,
+            dimensions=embedding_synapse.dimensions,
+            normalized=embedding_synapse.normalized
+        )
+        official_synapse.timeout = 60
+
+        for vuid in validator_uids:
+  
+            if vuid < 0 or vuid >= len(self.metagraph.axons):
+                bt.logging.error(f"Invalid validator_uid: {vuid}")
+                continue
+
+            validator_axon = self.metagraph.axons[vuid]
+
+            try:
+                bt.logging.info(f"Sending OfficialSynapse to validator UID: {vuid}")
+                responses = await self.dendrite(
+                    axons=[validator_axon],
+                    synapse=official_synapse,
+                    deserialize=True,
+                    timeout=official_synapse.timeout,
+                )
+                bt.logging.info(
+                    f"Got {len(responses)} response(s) from validator {vuid}, result: {responses}"
+                )
+            except Exception as e:
+                bt.logging.error(f"Error sending OfficialSynapse to validator {vuid}: {e}")
+        # TODO: turn back this when merge
         """
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
@@ -276,7 +362,7 @@ class Validator(BaseValidatorNeuron):
             self.update_scores(rewards, miner_uids)
 
             # TODO: remove this line before merge
-            #self.config.neuron.wandb_off = True
+            self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),
@@ -386,6 +472,8 @@ class Validator(BaseValidatorNeuron):
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+        """
+            
 
     def run(self):
         # Check that validator is registered on the network.
@@ -453,8 +541,8 @@ if __name__ == "__main__":
         miner_hotkey = validator.wallet.hotkey.ss58_address
         print(f"My Miner hotkey: {miner_hotkey}")
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(validator.test_send_official_synapse(144))
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(validator.send_official_synapse([144]))
 
         while True:
             if validator.should_exit:
@@ -465,8 +553,8 @@ if __name__ == "__main__":
                 time.sleep(60 * 5)
                 intialization = False
 
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(validator.test_send_official_synapse(144))
+            # loop = asyncio.get_event_loop()
+            # loop.run_until_complete(validator.send_official_synapse([144]))
 
             time.sleep(60)
             validator.print_info()

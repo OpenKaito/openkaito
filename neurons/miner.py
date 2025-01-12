@@ -39,7 +39,9 @@ from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.version import compare_version, get_version
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class Miner(BaseMinerNeuron):
     """
@@ -84,7 +86,7 @@ class Miner(BaseMinerNeuron):
         import openai
 
         client = openai.OpenAI(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=os.getenv("OPENAI_API_KEY"),
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,
