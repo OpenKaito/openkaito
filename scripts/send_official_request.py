@@ -90,7 +90,7 @@ class Validator(BaseValidatorNeuron):
 
 
         # TODO: remove this line before merge
-        self.config.neuron.wandb_off = True
+        # DEBUG MARK: self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -185,7 +185,7 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
-        # TODO: delete this when merge
+        # TODO: delete this when merge; and use random validator or all validators
         specified_validator_uids = [144]
 
         if specified_validator_uids:
