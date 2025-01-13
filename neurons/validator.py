@@ -549,9 +549,6 @@ class Validator(BaseValidatorNeuron):
         try:
             while True:
                 bt.logging.info(f"step({self.step}) block({self.block})")
-
-                # （原先写 self.loop.run_until_complete(self.concurrent_forward()) ）
-                # 改成直接 await，因为现在 run_async 就是协程
                 await self.concurrent_forward()
 
                 if self.should_exit:
@@ -559,15 +556,10 @@ class Validator(BaseValidatorNeuron):
 
                 # Sync metagraph and potentially set weights.
                 self.sync()
-
                 self.step += 1
-
-                # 用 asyncio.sleep() 取代 time.sleep()
-                # 避免阻塞 event loop
                 await asyncio.sleep(self.config.neuron.search_request_interval)
 
         except asyncio.CancelledError:
-            # 这是协程中常见的停止异常
             self.axon.stop()
             bt.logging.success("Validator cancelled.")
         except KeyboardInterrupt:
