@@ -23,6 +23,7 @@ from datetime import datetime
 import bittensor as bt
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
+import asyncio
 
 import openkaito
 from openkaito.base.miner import BaseMinerNeuron
@@ -38,7 +39,9 @@ from openkaito.search.ranking import HeuristicRankingModel
 from openkaito.search.structured_search_engine import StructuredSearchEngine
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.version import compare_version, get_version
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class Miner(BaseMinerNeuron):
     """
@@ -49,6 +52,7 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self):
         super(Miner, self).__init__()
+
         # skip intialization and wallet check when in debug mode, which only unit tests its forward methods
 
     # DEPRECATED: delete the function as no longer used
@@ -82,6 +86,7 @@ class Miner(BaseMinerNeuron):
         import openai
 
         client = openai.OpenAI(
+            #api_key=os.getenv("OPENAI_API_KEY"),
             api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
@@ -128,6 +133,11 @@ class Miner(BaseMinerNeuron):
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
     with Miner() as miner:
+
+        miner_hotkey = miner.wallet.hotkey.ss58_address
+        print(f"My Miner hotkey: {miner_hotkey}")
+        time.sleep(120)
         while True:
             miner.print_info()
             time.sleep(30)
+
