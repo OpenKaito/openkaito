@@ -39,25 +39,27 @@ def get_random_uids(self, k: int, exclude: List[int] = None, specified_miners: L
     candidate_uids = []
     avail_uids = []
 
-    # NOTE: in official setting, sometimes we need to receive really high-quality embeddings continuously
+    # NOTE: Sometimes, we need to receive high-quality embeddings continuously. We will design further incentive mechanisms here. 
     if specified_miners is not None:
         specified_miners_set = set(specified_miners)  # Use set for faster lookup
     else:
         specified_miners_set = None
 
-    # for uid in range(self.metagraph.n.item()):
-    #     uid_is_available = check_uid_availability(
-    #         self.metagraph, uid, self.config.neuron.vpermit_tao_limit
-    #     )
-    #     uid_is_not_excluded = exclude is None or uid not in exclude
-    #     uid_is_in_specified = specified_miners_set is None or uid in specified_miners_set
+    # NOTE: remove when debug
+    for uid in range(self.metagraph.n.item()):
+        uid_is_available = check_uid_availability(
+            self.metagraph, uid, self.config.neuron.vpermit_tao_limit
+        )
+        uid_is_not_excluded = exclude is None or uid not in exclude
+        uid_is_in_specified = specified_miners_set is None or uid in specified_miners_set
 
-    #     if uid_is_available:
-    #         avail_uids.append(uid)
-    #         if uid_is_not_excluded and uid_is_in_specified:
-    #             candidate_uids.append(uid)
+        if uid_is_available:
+            avail_uids.append(uid)
+            if uid_is_not_excluded and uid_is_in_specified:
+                candidate_uids.append(uid)
 
-    candidate_uids.append(142)
+    # NOTE: for testnet debugging
+    # candidate_uids.append(142)
 
     k = min(k, len(candidate_uids))
     uids = torch.tensor(random.sample(candidate_uids, k))

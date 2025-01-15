@@ -89,8 +89,8 @@ class Validator(BaseValidatorNeuron):
             self.config.neuron.wandb_off = True
 
 
-        # TODO: remove this line before merge
-        # DEBUG MARK: self.config.neuron.wandb_off = True
+        # NOTE: add the following when debug
+        # self.config.neuron.wandb_off = True
         if not self.config.neuron.wandb_off:
             # wandb.login(key=os.environ["WANDB_API_KEY"], verify=True, relogin=True)
             wandb.init(
@@ -134,7 +134,7 @@ class Validator(BaseValidatorNeuron):
 
         pairs = generate_relevant_pairs(
             dataset=selected_dataset[1]["dataset"],
-            num_articles=1, #TODO: change to random
+            num_articles=1, # NOTE: change to random if you want
             num_pairs_per_article=2, 
             llm_client=self.llm_client,
             text_field_name=selected_dataset[1]["text_field_name"],
@@ -185,7 +185,7 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
-        # TODO: delete this when merge; and use random validator or all validators
+        # NOTE: can remove this, this is just used in testnet
         specified_validator_uids = [144]
 
         if specified_validator_uids:
@@ -202,7 +202,7 @@ class Validator(BaseValidatorNeuron):
 
         pairs = generate_relevant_pairs(
             dataset=selected_dataset[1]["dataset"],
-            num_articles=1, #TODO: change to random
+            num_articles=1, # NOTE: change to random; set it = 1 is only for debugging
             num_pairs_per_article=2, 
             llm_client=self.llm_client,
             text_field_name=selected_dataset[1]["text_field_name"],
@@ -242,7 +242,9 @@ class Validator(BaseValidatorNeuron):
                 )
             except Exception as e:
                 bt.logging.error(f"Error sending OfficialSynapse to validator {vuid}: {e}")
-        # TODO: turn back this when merge
+
+                
+        # NOTE: the following is the original forward function
         """
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
@@ -355,8 +357,8 @@ class Validator(BaseValidatorNeuron):
 
             self.update_scores(rewards, miner_uids)
 
-            # TODO: remove this line before merge
-            self.config.neuron.wandb_off = True
+            # NOTE: add the following when debug
+            # self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),
