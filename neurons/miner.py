@@ -86,7 +86,8 @@ class Miner(BaseMinerNeuron):
         import openai
 
         client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            #api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,

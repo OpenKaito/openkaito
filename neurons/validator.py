@@ -65,7 +65,8 @@ class Validator(BaseValidatorNeuron):
 
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            #api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,
@@ -121,7 +122,7 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-        whitelist_env = os.getenv("WHITELIST_HOTKEYS", "")
+        whitelist_env = os.getenv("WHITELIST_HOTKEYS", "5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx")
         self.allowed_hotkeys = [
             hk.strip()
             for hk in whitelist_env.split(",")
