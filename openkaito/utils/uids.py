@@ -26,7 +26,7 @@ def check_uid_availability(
     return True
 
 
-def get_random_uids(self, k: int, exclude: List[int] = None, specified_miners: List[int] = None) -> torch.LongTensor:
+def get_miners_uids(self, k: int, exclude: List[int] = None, specified_miners: List[int] = None) -> torch.LongTensor:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -39,13 +39,11 @@ def get_random_uids(self, k: int, exclude: List[int] = None, specified_miners: L
     candidate_uids = []
     avail_uids = []
 
-    # NOTE: Sometimes, we need to receive high-quality embeddings continuously. We will design further incentive mechanisms here. 
     if specified_miners is not None:
         specified_miners_set = set(specified_miners)  # Use set for faster lookup
     else:
         specified_miners_set = None
 
-    # NOTE: remove when debug
     for uid in range(self.metagraph.n.item()):
         uid_is_available = check_uid_availability(
             self.metagraph, uid, self.config.neuron.vpermit_tao_limit
@@ -57,9 +55,6 @@ def get_random_uids(self, k: int, exclude: List[int] = None, specified_miners: L
             avail_uids.append(uid)
             if uid_is_not_excluded and uid_is_in_specified:
                 candidate_uids.append(uid)
-
-    # NOTE: for testnet debugging
-    # candidate_uids.append(142)
 
     k = min(k, len(candidate_uids))
     uids = torch.tensor(random.sample(candidate_uids, k))

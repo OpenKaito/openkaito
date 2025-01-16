@@ -51,7 +51,7 @@ from openkaito.tasks import (
     random_eth_conf_segments,
     random_query,
 )
-from openkaito.utils.uids import get_random_uids, get_validator_uids
+from openkaito.utils.uids import get_miners_uids, get_validator_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
@@ -247,7 +247,7 @@ class Validator(BaseValidatorNeuron):
         # NOTE: the following is the original forward function
         """
         try:
-            miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
+            miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
 
             random_number = random.random()
 
