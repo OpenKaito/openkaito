@@ -29,7 +29,7 @@ def check_config(cls, config: "bt.Config"):
 
     full_path = os.path.expanduser(
         "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,  # TODO: change from ~/.bittensor/miners to ~/.bittensor/neurons
+            config.logging.logging_dir,  # Changed path from miners to neurons
             config.wallet.name,
             config.wallet.hotkey,
             config.netuid,
