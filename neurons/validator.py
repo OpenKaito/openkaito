@@ -127,13 +127,9 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-        whitelisted_hotkeys = (
-            os.getenv("WHITELISTED_HOTKEYS", "").split(",").map(lambda x: x.strip())
-        )
+        whitelisted_hotkeys = os.getenv("WHITELISTED_HOTKEYS", "").split(",")
 
-        self.allowed_hotkeys = [
-            hk.strip() for hk in whitelisted_hotkeys.split(",") if hk.strip()
-        ]
+        self.allowed_hotkeys = [hk.strip() for hk in whitelisted_hotkeys if hk.strip()]
         # OpenKaito Validator Hotkey
         self.allowed_hotkeys.append("5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx")
 
