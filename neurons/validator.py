@@ -39,7 +39,12 @@ import wandb
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, TextEmbeddingSynapse, OfficialSynapse
+from openkaito.protocol import (
+    SearchSynapse,
+    SemanticSearchSynapse,
+    TextEmbeddingSynapse,
+    OfficialSynapse,
+)
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
@@ -65,7 +70,7 @@ class Validator(BaseValidatorNeuron):
 
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            #api_key=os.getenv("OPENAI_API_KEY"),
+            # api_key=os.getenv("OPENAI_API_KEY"),
             api_key=os.environ["OPENAI_API_KEY"],
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
@@ -122,22 +127,20 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-        whitelist_env = self.config.official_validator
+        whitelisted_hotkeys = os.getenv("WHITELISTED_HOTKEYS", "").split(",")
 
-        self.allowed_hotkeys = [
-            hk.strip()
-            for hk in whitelist_env.split(",")
-            if hk.strip()
-        ]
+        self.allowed_hotkeys = [hk.strip() for hk in whitelisted_hotkeys if hk.strip()]
+        # OpenKaito Validator Hotkey
+        self.allowed_hotkeys.append("5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx")
+
         bt.logging.info(f"Validator 'allowed_hotkeys': {self.allowed_hotkeys}")
 
-        #if not self.config.neuron.axon_off:
+        # if not self.config.neuron.axon_off:
         self.axon.attach(
             forward_fn=self.forward_official,
             blacklist_fn=self.blacklist_official,
             priority_fn=self.priority_official,
         )
-
 
     def init_eth_denver_dataset(self):
         root_dir = __file__.split("neurons")[0]
@@ -183,12 +186,14 @@ class Validator(BaseValidatorNeuron):
             f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
         )
 
-
     async def forward_official(self, official_synapse: OfficialSynapse):
-
-        bt.logging.info(f"[Official Request -> Validator] Received OfficialSynapse with texts={official_synapse.texts}")
+        bt.logging.info(
+            f"[Official Request -> Validator] Received OfficialSynapse with texts={official_synapse.texts}"
+        )
         miner_uids = official_synapse.miner_uids
-        bt.logging.info(f"[Official Request -> Validator -> Miner] Forwarding these texts to miner UIDs: {miner_uids}...")
+        bt.logging.info(
+            f"[Official Request -> Validator -> Miner] Forwarding these texts to miner UIDs: {miner_uids}..."
+        )
 
         text_synapse = TextEmbeddingSynapse(
             texts=official_synapse.texts,
@@ -204,14 +209,16 @@ class Validator(BaseValidatorNeuron):
             deserialize=True,
             timeout=text_synapse.timeout,
         )
-        bt.logging.info(f"[Validator] Got {len(responsed_embeddings)} miner response(s):\n\n {responsed_embeddings}\n\n.")
-        official_synapse.results = responsed_embeddings[0] # TODO: revise here in the future; need all embeddings rather than single
+        bt.logging.info(
+            f"[Validator] Got {len(responsed_embeddings)} miner response(s):\n\n {responsed_embeddings}\n\n."
+        )
+        official_synapse.results = responsed_embeddings[
+            0
+        ]  # TODO: revise here in the future; need all embeddings rather than single
 
         return official_synapse
 
-
     async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
-
         if not synapse.dendrite.hotkey:
             return True, "Not a valid hotkey in `synapse.dendrite.hotkey`"
         if synapse.dendrite.hotkey in self.allowed_hotkeys:
@@ -221,7 +228,6 @@ class Validator(BaseValidatorNeuron):
 
     async def priority_official(self, synapse: OfficialSynapse) -> float:
         return 1.0
-
 
     async def forward(self):
         """
@@ -233,7 +239,6 @@ class Validator(BaseValidatorNeuron):
         - Updating the scores
         """
         try:
- 
             miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
             random_number = random.random()
             query = None
@@ -261,7 +266,7 @@ class Validator(BaseValidatorNeuron):
 
                 pairs = generate_relevant_pairs(
                     dataset=selected_dataset[1]["dataset"],
-                    num_articles=num_articles, # NOTE: suggest to set = 2 for debugging
+                    num_articles=num_articles,  # NOTE: suggest to set = 2 for debugging
                     num_pairs_per_article=4,
                     llm_client=self.llm_client,
                     text_field_name=selected_dataset[1]["text_field_name"],
@@ -346,7 +351,6 @@ class Validator(BaseValidatorNeuron):
                     query, responses, discord_channel_id
                 )
             elif query.name == "TextEmbeddingSynapse":
-                
                 (
                     rewards,
                     losses,
@@ -394,18 +398,15 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name
-                    + "_scores": {
+                    query.name + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    query.name
-                    + "_raw_scores": {
+                    query.name + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name
-                    + "_responses": {
+                    query.name + "_responses": {
                         uid.item(): (
                             zlib.compress(json.dumps(response).encode()).hex()
                             if raw_score > 1e-5

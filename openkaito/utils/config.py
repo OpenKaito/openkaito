@@ -166,14 +166,6 @@ def add_args(cls, parser):
             default=4096,
         )
 
-        parser.add_argument(
-            "--official_validator",
-            action="store_true",
-            help="If set, we will use the official validator.",
-            default="5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx",
-            # NOTE: change the following when in testnet
-            #default="5G1BMARr4GmbWJD6udcynAi96eYkjbTRnwbnGsjoMFUEApdz",
-        )
 
     # Miner
     else:
