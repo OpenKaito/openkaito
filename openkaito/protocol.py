@@ -200,6 +200,8 @@ class OfficialSynapse(bt.Synapse):
 
     normalized: bool = pydantic.Field(True)
 
+    miner_uids: List[int]
+
     version: Optional[Version] = None
 
     results: Optional[List[List[float]]] = None

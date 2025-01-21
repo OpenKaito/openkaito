@@ -52,7 +52,7 @@ from openkaito.tasks import (
     random_eth_conf_segments,
     random_query,
 )
-from openkaito.utils.uids import get_random_uids
+from openkaito.utils.uids import get_miners_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
@@ -122,8 +122,7 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-        #whitelist_env = os.getenv("WHITELIST_HOTKEYS", "5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx")
-        whitelist_env = "5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx"
+        whitelist_env = self.config.official_validator
 
         self.allowed_hotkeys = [
             hk.strip()
@@ -187,11 +186,9 @@ class Validator(BaseValidatorNeuron):
 
     async def forward_official(self, official_synapse: OfficialSynapse):
 
-        bt.logging.info(f"[Official Validator -> Validator] Received OfficialSynapse with texts={official_synapse.texts}")
-        miner_uids = get_random_uids(self, k=2)
-        # NOTE: add the following when debug
-        # miner_uids = get_random_uids(self, k=1, specified_miners=[142])
-        bt.logging.info(f"[Official Validator -> Validator -> Miner] Forwarding these texts to miner UIDs: {miner_uids}...")
+        bt.logging.info(f"[Official Request -> Validator] Received OfficialSynapse with texts={official_synapse.texts}")
+        miner_uids = official_synapse.miner_uids
+        bt.logging.info(f"[Official Request -> Validator -> Miner] Forwarding these texts to miner UIDs: {miner_uids}...")
 
         text_synapse = TextEmbeddingSynapse(
             texts=official_synapse.texts,
@@ -213,8 +210,8 @@ class Validator(BaseValidatorNeuron):
         return official_synapse
 
 
-
     async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
+
         if not synapse.dendrite.hotkey:
             return True, "Not a valid hotkey in `synapse.dendrite.hotkey`"
         if synapse.dendrite.hotkey in self.allowed_hotkeys:
@@ -236,14 +233,10 @@ class Validator(BaseValidatorNeuron):
         - Updating the scores
         """
         try:
-            # NOTE: add the following when debug
-            # miner_uids = get_random_uids(self, k=1, specified_miners=[142])
-            miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-
+ 
+            miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
             random_number = random.random()
-
             query = None
-
             conf_dataset_dir = None
             discord_channel_id = None
             q_indices = None
@@ -353,6 +346,7 @@ class Validator(BaseValidatorNeuron):
                     query, responses, discord_channel_id
                 )
             elif query.name == "TextEmbeddingSynapse":
+                
                 (
                     rewards,
                     losses,
@@ -389,8 +383,6 @@ class Validator(BaseValidatorNeuron):
 
             self.update_scores(rewards, miner_uids)
 
-            # NOTE: add the following when debug
-            # self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),
