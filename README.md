@@ -1,6 +1,6 @@
 <div align="center">
 
-# **OpenKaito - Decentralized Kaito AI** <!-- omit in toc -->
+# **Decentralized Embedding: Bittensor SN5** <!-- omit in toc -->
 
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
