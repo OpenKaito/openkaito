@@ -173,13 +173,20 @@ class Validator(BaseValidatorNeuron):
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
             
-            # Define the burned miner UID - this should be a specific UID that's not in miner_uids
-            burned_miner_uid = None #TODO: add the burned miner uid here
+            # Define the burned miner address and get its UID
+            burned_miner_address = None # TODO: add the burned miner address here
             
-            # Make sure the burned_miner_uid is not in the randomly selected miners
-            if burned_miner_uid in miner_uids:
-                bt.logging.warning(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners. Continuing anyway.")
-            
+            try:
+                burned_miner_uid = self.metagraph.hotkeys.index(burned_miner_address)
+                bt.logging.info(f"Found burned miner UID {burned_miner_uid} for address {burned_miner_address}")
+                
+                # Make sure the burned_miner_uid is not in the randomly selected miners
+                if burned_miner_uid in miner_uids:
+                    bt.logging.warning(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners. Continuing anyway.")
+            except ValueError:
+                bt.logging.warning(f"Burned miner address {burned_miner_address} not found in metagraph. Using regular reward distribution.")
+                burned_miner_uid = None
+
             random_number = random.random()
 
             query = None
@@ -322,7 +329,7 @@ class Validator(BaseValidatorNeuron):
 
             raw_scores = rewards.clone().detach()
 
-            # Allocate 90% to the burned miner and 10% to the randomly selected miners
+            # Allocate 90% to the burned miner and 10% to the randomly selected miners if burned_miner_uid exists
             if burned_miner_uid is not None:
                 # Calculate total reward
                 total_reward = rewards.sum()
