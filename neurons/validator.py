@@ -174,8 +174,7 @@ class Validator(BaseValidatorNeuron):
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
             
             # Define the burned miner UID - this should be a specific UID that's not in miner_uids
-            # For example, you might have a specific miner you want to allocate 90% to
-            burned_miner_uid = None #TODO: add the burned miner uid here  # Replace with your specific miner UID
+            burned_miner_uid = None #TODO: add the burned miner uid here
             
             # Make sure the burned_miner_uid is not in the randomly selected miners
             if burned_miner_uid in miner_uids:
@@ -320,17 +319,16 @@ class Validator(BaseValidatorNeuron):
             else:
                 bt.logging.error(f"Unknown search query name: {query.name}")
                 rewards = torch.zeros(len(miner_uids))
-                burned_uid = None
 
             raw_scores = rewards.clone().detach()
 
             # Allocate 90% to the burned miner and 10% to the randomly selected miners
-            if burned_uid is not None:
+            if burned_miner_uid is not None:
                 # Calculate total reward
                 total_reward = rewards.sum()
                 
                 # Create a new rewards tensor that includes the burned miner
-                all_uids = torch.cat([miner_uids, torch.tensor([burned_uid])])
+                all_uids = torch.cat([miner_uids, torch.tensor([burned_miner_uid])])
                 all_rewards = torch.zeros(len(all_uids))
                 
                 # Allocate 10% of rewards proportionally to the randomly selected miners
@@ -341,7 +339,7 @@ class Validator(BaseValidatorNeuron):
                     burned_idx = len(miner_uids)  # Index of the burned miner in all_uids
                     all_rewards[burned_idx] = total_reward * 0.9
                     
-                    bt.logging.info(f"Allocated 90% incentive to burned miner UID {burned_uid}")
+                    bt.logging.info(f"Allocated 90% incentive to burned miner UID {burned_miner_uid}")
                 
                 # Update the metagraph with the new rewards
                 self.update_scores(all_rewards, all_uids)
