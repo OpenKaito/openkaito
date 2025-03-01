@@ -172,7 +172,15 @@ class Validator(BaseValidatorNeuron):
         """
         try:
             miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-
+            
+            # Define the burned miner UID - this should be a specific UID that's not in miner_uids
+            # For example, you might have a specific miner you want to allocate 90% to
+            burned_miner_uid = None #TODO: add the burned miner uid here  # Replace with your specific miner UID
+            
+            # Make sure the burned_miner_uid is not in the randomly selected miners
+            if burned_miner_uid in miner_uids:
+                bt.logging.warning(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners. Continuing anyway.")
+            
             random_number = random.random()
 
             query = None
@@ -273,6 +281,7 @@ class Validator(BaseValidatorNeuron):
             # Log the results for monitoring purposes.
             bt.logging.trace(f"Received responses: {responses}")
 
+            # Evaluate responses
             if query.name == "SemanticSearchSynapse":
                 rewards = self.evaluator.evaluate_semantic_search(
                     query, responses, conf_dataset_dir
@@ -308,19 +317,39 @@ class Validator(BaseValidatorNeuron):
                 ) = self.evaluator.evaluate_text_embedding(
                     query, [openai_embeddings.tolist()], q_indices, a_indices
                 )
-
             else:
                 bt.logging.error(f"Unknown search query name: {query.name}")
                 rewards = torch.zeros(len(miner_uids))
+                burned_uid = None
 
             raw_scores = rewards.clone().detach()
 
-            # relative scores in a batch
-            rewards = rewards / (rewards.max() + 1e-5)
-
-            bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
-
-            self.update_scores(rewards, miner_uids)
+            # Allocate 90% to the burned miner and 10% to the randomly selected miners
+            if burned_uid is not None:
+                # Calculate total reward
+                total_reward = rewards.sum()
+                
+                # Create a new rewards tensor that includes the burned miner
+                all_uids = torch.cat([miner_uids, torch.tensor([burned_uid])])
+                all_rewards = torch.zeros(len(all_uids))
+                
+                # Allocate 10% of rewards proportionally to the randomly selected miners
+                if total_reward > 0:
+                    all_rewards[:len(miner_uids)] = rewards * 0.1
+                    
+                    # Allocate 90% to the burned miner
+                    burned_idx = len(miner_uids)  # Index of the burned miner in all_uids
+                    all_rewards[burned_idx] = total_reward * 0.9
+                    
+                    bt.logging.info(f"Allocated 90% incentive to burned miner UID {burned_uid}")
+                
+                # Update the metagraph with the new rewards
+                self.update_scores(all_rewards, all_uids)
+            else:
+                # If no burned miner, proceed with normal reward distribution
+                rewards = rewards / (rewards.max() + 1e-5)
+                bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
+                self.update_scores(rewards, miner_uids)
 
             if not self.config.neuron.wandb_off:
                 wandb_log = {
