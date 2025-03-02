@@ -206,6 +206,7 @@ class BaseMinerNeuron(BaseNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+
     def __enter__(self):
         """
         Starts the miner's operations in a background thread upon entering the context.

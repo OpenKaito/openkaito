@@ -49,7 +49,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
-        self.scores = torch.zeros(self.metagraph.S.shape, dtype=torch.float32)
+
+        try:
+            self.scores = torch.zeros(self.metagraph.S.shape, dtype=torch.float32)
+        except AttributeError:
+            try:
+                # NOTE: currently in testnet, the metagraph.S is not a tensor, so we need this step.
+                self.scores = torch.zeros(len(self.metagraph.S), dtype=torch.float32)
+            except Exception as e:
+                raise ValueError(f"Failed to create self.scores: {e}")
 
         self.load_state()
 

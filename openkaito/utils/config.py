@@ -29,7 +29,7 @@ def check_config(cls, config: "bt.Config"):
 
     full_path = os.path.expanduser(
         "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,  # TODO: change from ~/.bittensor/miners to ~/.bittensor/neurons
+            config.logging.logging_dir,  # Changed path from miners to neurons
             config.wallet.name,
             config.wallet.hotkey,
             config.netuid,
@@ -166,6 +166,7 @@ def add_args(cls, parser):
             default=4096,
         )
 
+
     # Miner
     else:
         parser.add_argument(
@@ -207,6 +208,8 @@ def add_args(cls, parser):
             "--blacklist.validator_min_stake",
             type=int,
             help="If set, miners will blacklist requests from validators with stake less than this value.",
+            #  NOTE: change the following when debug
+            # default=0.0,
             default=1000,
         )
 

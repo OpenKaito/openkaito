@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
 import json
 import os
 import random
@@ -24,6 +23,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from traceback import print_exception
+import nest_asyncio
 
 # Bittensor
 import bittensor as bt
@@ -31,20 +31,14 @@ import openai
 import torch
 from dotenv import load_dotenv
 import zlib
-from typing import Tuple
-import asyncio
+from typing import Tuple, List
 
 import openkaito
 import wandb
 from openkaito import __version__
 from openkaito.base.validator import BaseValidatorNeuron
 from openkaito.evaluation.evaluator import Evaluator
-from openkaito.protocol import (
-    SearchSynapse,
-    SemanticSearchSynapse,
-    TextEmbeddingSynapse,
-    OfficialSynapse,
-)
+from openkaito.protocol import SearchSynapse, SemanticSearchSynapse, TextEmbeddingSynapse, OfficialSynapse
 from openkaito.tasks import (
     generate_author_index_task,
     generate_discord_search_task,
@@ -57,46 +51,30 @@ from openkaito.tasks import (
     random_eth_conf_segments,
     random_query,
 )
-from openkaito.utils.uids import get_miners_uids
+from openkaito.utils.uids import get_miners_uids, get_validator_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
 
+nest_asyncio.apply()
 
 class Validator(BaseValidatorNeuron):
     def __init__(self):
         super(Validator, self).__init__()
         load_dotenv()
 
+        self.dendrite = bt.dendrite(wallet=self.wallet)
+
         # for ranking results evaluation
         llm_client = openai.OpenAI(
-            # api_key=os.getenv("OPENAI_API_KEY"),
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=os.getenv("OPENAI_API_KEY"),
             organization=os.getenv("OPENAI_ORGANIZATION"),
             project=os.getenv("OPENAI_PROJECT"),
             max_retries=3,
         )
         self.llm_client = llm_client
-
-        # for integrity check
-        # twitter_crawler = MicroworldsTwitterCrawler(os.environ["APIFY_API_KEY"])
-        # twitter_crawler = ApiDojoTwitterCrawler(os.environ["APIFY_API_KEY"])
-        # deprecated since v0.7.0
         twitter_crawler = None
-
         self.evaluator = Evaluator(llm_client, twitter_crawler)
-
-        with open("twitter_usernames.txt") as f:
-            twitter_usernames = f.read().strip().splitlines()
-        self.twitter_usernames = twitter_usernames
-
-        self.init_eth_denver_dataset()
-        self.init_eth_cc7_dataset()
-
-        # bt.logging.info("Initial Loading Text-Embedding datasets")
-        # self.text_embedding_datasets = load_dataset_from_config(
-        #     fetch_datasets_config(branch="dataset_rotation")["text_embedding_datasets"]
-        # )
 
         netrc_path = Path.home() / ".netrc"
         wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -109,6 +87,7 @@ class Validator(BaseValidatorNeuron):
                 "!!! WANDB_API_KEY not found in environment variables and `wandb login` didn't run. You are strongly recommended to setup wandb. We may enforce to make it required in the future."
             )
             self.config.neuron.wandb_off = True
+
 
         # NOTE: add the following when debug
         # self.config.neuron.wandb_off = True
@@ -127,96 +106,6 @@ class Validator(BaseValidatorNeuron):
                 reinit=True,
             )
 
-        whitelisted_hotkeys = os.getenv("WHITELISTED_HOTKEYS", "").split(",")
-
-        self.allowed_hotkeys = [hk.strip() for hk in whitelisted_hotkeys if hk.strip()]
-        # OpenKaito Validator Hotkey
-        self.allowed_hotkeys.append("5GHGacYexQkcpY36nDjSG3JCHrvK7PDWgowVBRnUTQBPp1Vx")
-
-        bt.logging.info(f"Validator 'allowed_hotkeys': {self.allowed_hotkeys}")
-
-        # if not self.config.neuron.axon_off:
-        self.axon.attach(
-            forward_fn=self.forward_official,
-            blacklist_fn=self.blacklist_official,
-            priority_fn=self.priority_official,
-        )
-
-    def init_eth_denver_dataset(self):
-        root_dir = __file__.split("neurons")[0]
-        dataset_dir = root_dir + "datasets/eth_denver_dataset"
-        self.eth_denver_dataset_dir = dataset_dir
-        dataset_path = Path(dataset_dir)
-
-        with tarfile.open(
-            root_dir + "datasets/eth_denver_dataset.tar.gz", "r:gz"
-        ) as tar:
-            original_file_list = tar.getnames()
-            original_file_list.remove("eth_denver_dataset")
-            if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
-                bt.logging.info(
-                    f"Eth Denver data already extracted to: {dataset_dir}, no need to re-extract"
-                )
-            else:
-                tar.extractall(root_dir + "datasets")
-                bt.logging.info(f"Eth Denver data extracted to: {dataset_dir}")
-
-        bt.logging.info(
-            f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
-        )
-
-    def init_eth_cc7_dataset(self):
-        root_dir = __file__.split("neurons")[0]
-        dataset_dir = root_dir + "datasets/eth_cc7_dataset"
-        self.eth_cc7_dataset_dir = dataset_dir
-        dataset_path = Path(dataset_dir)
-
-        with tarfile.open(root_dir + "datasets/eth_cc7_dataset.tar.gz", "r:gz") as tar:
-            original_file_list = tar.getnames()
-            original_file_list.remove("eth_cc7_dataset")
-            if len(list(dataset_path.glob("*.json"))) == len(original_file_list):
-                bt.logging.info(
-                    f"Eth CC[7] data already extracted to: {dataset_dir}, no need to re-extract"
-                )
-            else:
-                tar.extractall(root_dir + "datasets")
-                bt.logging.info(f"Eth CC[7] data extracted to: {dataset_dir}")
-
-        bt.logging.info(
-            f"{len(list(dataset_path.glob('*.json')))} files in {dataset_dir}"
-        )
-
-    async def forward_official(self, official_synapse: OfficialSynapse):
-        bt.logging.info(
-            f"[Official Request -> Validator] Received OfficialSynapse with texts={official_synapse.texts}"
-        )
-        miner_uids = official_synapse.miner_uids
-        bt.logging.info(
-            f"[Official Request -> Validator -> Miner] Forwarding these texts to miner UIDs: {miner_uids}..."
-        )
-
-        text_synapse = TextEmbeddingSynapse(
-            texts=official_synapse.texts,
-            dimensions=official_synapse.dimensions,
-            normalized=official_synapse.normalized,
-            version=get_version(),
-        )
-        text_synapse.timeout = 60
-
-        responsed_embeddings = await self.dendrite(
-            axons=[self.metagraph.axons[uid] for uid in miner_uids],
-            synapse=text_synapse,
-            deserialize=True,
-            timeout=text_synapse.timeout,
-        )
-        bt.logging.info(
-            f"[Validator] Got {len(responsed_embeddings)} miner response(s):\n\n {responsed_embeddings}\n\n."
-        )
-        official_synapse.results = responsed_embeddings[
-            0
-        ]  # TODO: revise here in the future; need all embeddings rather than single
-
-        return official_synapse
 
     async def blacklist_official(self, synapse: OfficialSynapse) -> Tuple[bool, str]:
         if not synapse.dendrite.hotkey:
@@ -229,6 +118,64 @@ class Validator(BaseValidatorNeuron):
     async def priority_official(self, synapse: OfficialSynapse) -> float:
         return 1.0
 
+    async def send_official_synapse(self, specified_validator_uids: List[int]):
+
+        if specified_validator_uids:
+            validator_uids = specified_validator_uids
+        else:
+            # NOTE: broadcast to all validators
+            validator_uids = get_validator_uids(self, remove_self=True)
+            bt.logging.info(f"Validator IDs: {validator_uids}")
+
+        text_embedding_datasets = cached_datasets_from_config(branch="main")[
+            "text_embedding_datasets"
+        ]
+        selected_dataset = random.choice(list(text_embedding_datasets.items()))
+
+        pairs = generate_relevant_pairs(
+            dataset=selected_dataset[1]["dataset"],
+            num_articles=1, # NOTE: change to random if you want
+            num_pairs_per_article=2, 
+            llm_client=self.llm_client,
+            text_field_name=selected_dataset[1]["text_field_name"],
+            min_sentences=10,
+        )
+
+        embedding_synapse, _, _ = generate_text_embedding_synapse(
+            pairs, dimensions=128
+        )
+        embedding_synapse.timeout = 30
+
+        official_synapse = OfficialSynapse(
+            texts=embedding_synapse.texts,
+            dimensions=embedding_synapse.dimensions,
+            normalized=embedding_synapse.normalized
+        )
+        official_synapse.timeout = 30
+
+        for vuid in validator_uids:
+  
+            if vuid < 0 or vuid >= len(self.metagraph.axons):
+                bt.logging.error(f"Invalid validator_uid: {vuid}")
+                continue
+
+            validator_axon = self.metagraph.axons[vuid]
+
+            try:
+                bt.logging.info(f"Sending OfficialSynapse to validator UID: {vuid}")
+                responses = await self.dendrite(
+                    axons=[validator_axon],
+                    synapse=official_synapse,
+                    deserialize=True,
+                    timeout=official_synapse.timeout,
+                )
+                bt.logging.info(
+                    f"Got {len(responses)} response(s) from validator {vuid}, result: {responses}"
+                )
+            except Exception as e:
+                bt.logging.error(f"Error sending OfficialSynapse to validator {vuid}: {e}")
+
+
     async def forward(self):
         """
         Validator forward pass. Consists of:
@@ -238,25 +185,74 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
+        # NOTE: can remove this, this is just used in testnet
+        specified_validator_uids = [144]
+
+        if specified_validator_uids:
+            validator_uids = specified_validator_uids
+        else:
+            # NOTE: broadcast to all validators
+            validator_uids = get_validator_uids(self, remove_self=True)
+            bt.logging.info(f"Validator IDs: {validator_uids}")
+
+        text_embedding_datasets = cached_datasets_from_config(branch="main")[
+            "text_embedding_datasets"
+        ]
+        selected_dataset = random.choice(list(text_embedding_datasets.items()))
+
+        pairs = generate_relevant_pairs(
+            dataset=selected_dataset[1]["dataset"],
+            num_articles=1, # NOTE: change to random; set it = 1 is only for debugging
+            num_pairs_per_article=2, 
+            llm_client=self.llm_client,
+            text_field_name=selected_dataset[1]["text_field_name"],
+            min_sentences=10,
+        )
+
+        embedding_synapse, _, _ = generate_text_embedding_synapse(
+            pairs, dimensions=128
+        )
+        embedding_synapse.timeout = 30
+
+        official_synapse = OfficialSynapse(
+            texts=embedding_synapse.texts,
+            dimensions=embedding_synapse.dimensions,
+            normalized=embedding_synapse.normalized
+        )
+        official_synapse.timeout = 60
+
+        for vuid in validator_uids:
+  
+            if vuid < 0 or vuid >= len(self.metagraph.axons):
+                bt.logging.error(f"Invalid validator_uid: {vuid}")
+                continue
+
+            validator_axon = self.metagraph.axons[vuid]
+
+            try:
+                bt.logging.info(f"Sending OfficialSynapse to validator UID: {vuid}")
+                responses = await self.dendrite(
+                    axons=[validator_axon],
+                    synapse=official_synapse,
+                    deserialize=True,
+                    timeout=official_synapse.timeout,
+                )
+                bt.logging.info(
+                    f"Got {len(responses)} response(s) from validator {vuid}, result: {responses}"
+                )
+            except Exception as e:
+                bt.logging.error(f"Error sending OfficialSynapse to validator {vuid}: {e}")
+
+                
+        # NOTE: the following is the original forward function
+        """
         try:
             miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
 
-            # Define the burned miner address and get its UID
-            burned_miner_address = "5D7czsG2wen9uKZ9PsjV2unZiZsiA4dA1BrzFYSJE1vahyG3" # TODO: add the burned miner address here
-
-            try:
-                burned_miner_uid = self.metagraph.hotkeys.index(burned_miner_address)
-                bt.logging.info(f"Found burned miner UID {burned_miner_uid} for address {burned_miner_address}")
-
-                # Make sure the burned_miner_uid is not in the randomly selected miners
-                if burned_miner_uid in miner_uids:
-                    bt.logging.warning(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners. Continuing anyway.")
-            except ValueError:
-                bt.logging.warning(f"Burned miner address {burned_miner_address} not found in metagraph. Using regular reward distribution.")
-                burned_miner_uid = None
-
             random_number = random.random()
+
             query = None
+
             conf_dataset_dir = None
             discord_channel_id = None
             q_indices = None
@@ -281,7 +277,7 @@ class Validator(BaseValidatorNeuron):
 
                 pairs = generate_relevant_pairs(
                     dataset=selected_dataset[1]["dataset"],
-                    num_articles=num_articles,  # NOTE: suggest to set = 2 for debugging
+                    num_articles=num_articles,
                     num_pairs_per_article=4,
                     llm_client=self.llm_client,
                     text_field_name=selected_dataset[1]["text_field_name"],
@@ -299,47 +295,6 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(
                     f"Sending {query.name}: {seperator.join(query.texts)} to miner uids: {miner_uids}"
                 )
-            # 2% chance to send ETH Denver semantic search task
-            # elif random_number < 0.98:
-            #     conf_dataset_dir = self.eth_denver_dataset_dir
-            #     segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
-            #     bt.logging.debug(
-            #         f"{len(segments)} segments sampled from ETH Denver dataset."
-            #     )
-            #     bt.logging.trace(segments)
-            #     question = generate_question_from_eth_conf_segments(
-            #         self.llm_client, segments
-            #     )
-            #     query = generate_semantic_search_task(
-            #         query_string=question,
-            #         index_name="eth_denver",
-            #     )
-            #     # should be quick
-            #     query.timeout = 15
-            #     bt.logging.info(
-            #         f"Sending ETH Denver {query.name}: {query.query_string} to miner uids: {miner_uids}"
-            #     )
-            # # 2% chance to send ETH CC[7] semantic search task
-            # else:
-            #     conf_dataset_dir = self.eth_cc7_dataset_dir
-            #     segments = random_eth_conf_segments(conf_dataset_dir, num_sources=3)
-            #     bt.logging.debug(
-            #         f"{len(segments)} segments sampled from ETH CC[7] dataset."
-            #     )
-            #     bt.logging.trace(segments)
-            #     question = generate_question_from_eth_conf_segments(
-            #         self.llm_client, segments
-            #     )
-            #     # must create a `eth_cc7` index in the miner
-            #     query = generate_semantic_search_task(
-            #         query_string=question,
-            #         index_name="eth_cc7",
-            #     )
-            #     # should be quick
-            #     query.timeout = 15
-            #     bt.logging.info(
-            #         f"Sending ETH CC[7] {query.name}: {query.query_string} to miner uids: {miner_uids}"
-            #     )
 
             # The dendrite client queries the network.
             responses = await self.dendrite(
@@ -398,53 +353,12 @@ class Validator(BaseValidatorNeuron):
             # relative scores in a batch
             rewards = rewards / (rewards.max() + 1e-5)
 
-            # Allocate 90% to the burned miner and 10% to the randomly selected miners if burned_miner_uid exists
-            if burned_miner_uid is not None:
-                # Calculate total reward
-                total_reward = rewards.sum()
-                
-                # Check if burned miner is in the selected miners
-                burned_in_selection = burned_miner_uid in miner_uids
-                
-                if burned_in_selection:
-                    bt.logging.info(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners.")
-                    # Get the index of burned_miner_uid in miner_uids
-                    burned_idx_in_random = miner_uids.tolist().index(burned_miner_uid)
-                else:
-                    # Add the burned miner to our lists
-                    miner_uids = torch.cat([miner_uids, torch.tensor([burned_miner_uid])])
-                    # Add a zero reward for now (will be updated later)
-                    rewards = torch.cat([rewards, torch.tensor([0.0])])
-                    burned_idx_in_random = len(rewards) - 1
-                
-                # Create a copy of the original rewards for proportional distribution
-                original_rewards = rewards.clone()
-                
-                # Reset all rewards to prepare for redistribution
-                rewards = torch.zeros_like(rewards)
-                
-                if total_reward > 0:
-                    # Distribute 10% among all miners (including burned miner) proportionally
-                    for i in range(len(miner_uids)):
-                        if i != burned_idx_in_random:
-                            rewards[i] = original_rewards[i] / total_reward * (total_reward * 0.1)
-                    
-                    # Allocate 90% to the burned miner
-                    rewards[burned_idx_in_random] = total_reward * 0.9
-                    
-                    bt.logging.info(f"Allocated 90% incentive to burned miner UID {burned_miner_uid}")
-                    bt.logging.info(f"All rewards: {rewards}")
-                
-                # Update the metagraph with the new rewards
-                self.update_scores(rewards, miner_uids)
+            bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
 
-            else:
-                # If no burned miner, proceed with normal reward distribution
-                bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
-                self.update_scores(rewards, miner_uids)
-                bt.logging.info(f"All rewards: {rewards}")
+            self.update_scores(rewards, miner_uids)
 
-
+            # NOTE: add the following when debug
+            # self.config.neuron.wandb_off = True
             if not self.config.neuron.wandb_off:
                 wandb_log = {
                     "synapse": zlib.compress(query.model_dump_json().encode()).hex(),
@@ -456,15 +370,18 @@ class Validator(BaseValidatorNeuron):
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name + "_scores": {
+                    query.name
+                    + "_scores": {
                         uid.item(): reward.item()
                         for uid, reward in zip(miner_uids, rewards)
                     },
-                    query.name + "_raw_scores": {
+                    query.name
+                    + "_raw_scores": {
                         uid.item(): raw_score.item()
                         for uid, raw_score in zip(miner_uids, raw_scores)
                     },
-                    query.name + "_responses": {
+                    query.name
+                    + "_responses": {
                         uid.item(): (
                             zlib.compress(json.dumps(response).encode()).hex()
                             if raw_score > 1e-5
@@ -551,6 +468,8 @@ class Validator(BaseValidatorNeuron):
         except Exception as e:
             bt.logging.error(f"Error during forward: {e}")
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+        """
+            
 
     def run(self):
         # Check that validator is registered on the network.
@@ -592,38 +511,6 @@ class Validator(BaseValidatorNeuron):
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
             self.should_exit = True
 
-    async def run_async(self):
-        # Check that validator is registered on the network.
-        self.sync()
-
-        bt.logging.info(f"Validator starting at block: {self.block}")
-        self.axon.start()
-        bt.logging.info("Axon started and ready to handle OfficialSynapse requests.")
-
-        try:
-            while True:
-                bt.logging.info(f"step({self.step}) block({self.block})")
-                await self.concurrent_forward()
-
-                if self.should_exit:
-                    break
-
-                # Sync metagraph and potentially set weights.
-                self.sync()
-                self.step += 1
-                await asyncio.sleep(self.config.neuron.search_request_interval)
-
-        except asyncio.CancelledError:
-            self.axon.stop()
-            bt.logging.success("Validator cancelled.")
-        except KeyboardInterrupt:
-            self.axon.stop()
-            bt.logging.success("Validator killed by keyboard interrupt.")
-        except Exception as err:
-            bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-            self.should_exit = True
-
     def print_info(self):
         metagraph = self.metagraph
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
@@ -644,16 +531,26 @@ class Validator(BaseValidatorNeuron):
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     intialization = True
+
     with Validator() as validator:
+
+        miner_hotkey = validator.wallet.hotkey.ss58_address
+        print(f"My Miner hotkey: {miner_hotkey}")
+
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(validator.send_official_synapse([144]))
+
         while True:
             if validator.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-
             # wait before the first print_info, to avoid websocket connection race condition
             if intialization:
                 time.sleep(60 * 5)
                 intialization = False
+
+            # loop = asyncio.get_event_loop()
+            # loop.run_until_complete(validator.send_official_synapse([144]))
 
             time.sleep(60)
             validator.print_info()
