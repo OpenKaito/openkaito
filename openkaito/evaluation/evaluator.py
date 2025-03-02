@@ -45,7 +45,7 @@ class Evaluator:
             f"loaded {len(self.credit_twitter_author_usernames)} credit_twitter_author_usernames"
         )
 
-    def evaluate(self, query: bt.Synapse, responses: list, burned_miner_uid=None):
+    def evaluate(self, query: bt.Synapse, responses: list):
         query_string = query.query_string
         size = query.size
 
@@ -214,7 +214,7 @@ class Evaluator:
         # scores = scores / (scores.max() + 1e-5)
 
         # return raw scores for tracking
-        return scores * zero_score_mask, burned_miner_uid
+        return scores * zero_score_mask
 
     def evaluate_semantic_search(
         self, query: bt.Synapse, responses: list, dataset_dir: str

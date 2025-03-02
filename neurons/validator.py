@@ -61,6 +61,7 @@ from openkaito.utils.uids import get_miners_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
+from openkaito.utils.burned_config import fetch_config
 
 
 class Validator(BaseValidatorNeuron):
@@ -242,7 +243,15 @@ class Validator(BaseValidatorNeuron):
             miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
 
             # Define the burned miner address and get its UID
-            burned_miner_address = "5D7czsG2wen9uKZ9PsjV2unZiZsiA4dA1BrzFYSJE1vahyG3" # TODO: add the burned miner address here
+            try:
+                burned_config = fetch_config(branch="main")
+                burned_miner_address = burned_config["burned_miner_address"]
+                burned_reward_percentage = burned_config["burned_reward_percentage"]
+                bt.logging.info(f"Loaded burned miner address {burned_miner_address} with reward percentage {burned_reward_percentage} from config")
+            except Exception as e:
+                bt.logging.warning(f"Failed to load burned config from GitHub: {e}. Using default values.")
+                burned_miner_address = None
+                burned_reward_percentage = 0.9  # Default to 90%
 
             try:
                 burned_miner_uid = self.metagraph.hotkeys.index(burned_miner_address)
@@ -250,7 +259,7 @@ class Validator(BaseValidatorNeuron):
 
                 # Make sure the burned_miner_uid is not in the randomly selected miners
                 if burned_miner_uid in miner_uids:
-                    bt.logging.warning(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners. Continuing anyway.")
+                    bt.logging.info(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners.")
             except ValueError:
                 bt.logging.warning(f"Burned miner address {burned_miner_address} not found in metagraph. Using regular reward distribution.")
                 burned_miner_uid = None
@@ -394,13 +403,9 @@ class Validator(BaseValidatorNeuron):
                 rewards = torch.zeros(len(miner_uids))
 
             raw_scores = rewards.clone().detach()
-
-            # relative scores in a batch
             rewards = rewards / (rewards.max() + 1e-5)
 
-            # Allocate 90% to the burned miner and 10% to the randomly selected miners if burned_miner_uid exists
             if burned_miner_uid is not None:
-                # Calculate total reward
                 total_reward = rewards.sum()
                 
                 # Check if burned miner is in the selected miners
@@ -411,28 +416,26 @@ class Validator(BaseValidatorNeuron):
                     # Get the index of burned_miner_uid in miner_uids
                     burned_idx_in_random = miner_uids.tolist().index(burned_miner_uid)
                 else:
-                    # Add the burned miner to our lists
                     miner_uids = torch.cat([miner_uids, torch.tensor([burned_miner_uid])])
-                    # Add a zero reward for now (will be updated later)
                     rewards = torch.cat([rewards, torch.tensor([0.0])])
                     burned_idx_in_random = len(rewards) - 1
                 
-                # Create a copy of the original rewards for proportional distribution
                 original_rewards = rewards.clone()
-                
-                # Reset all rewards to prepare for redistribution
                 rewards = torch.zeros_like(rewards)
                 
                 if total_reward > 0:
-                    # Distribute 10% among all miners (including burned miner) proportionally
-                    for i in range(len(miner_uids)):
-                        if i != burned_idx_in_random:
-                            rewards[i] = original_rewards[i] / total_reward * (total_reward * 0.1)
+                    # Calculate total rewards for non-burned miners
+                    non_burned_total = sum(original_rewards[i] for i in range(len(miner_uids)) if i != burned_idx_in_random)
                     
-                    # Allocate 90% to the burned miner
-                    rewards[burned_idx_in_random] = total_reward * 0.9
+                    # Distribute (1-burned_reward_percentage) among all miners (except burned miner) proportionally
+                    if non_burned_total > 0:  # Avoid division by zero
+                        for i in range(len(miner_uids)):
+                            if i != burned_idx_in_random:
+                                rewards[i] = original_rewards[i] / non_burned_total * (total_reward * (1 - burned_reward_percentage))
+                
+                    rewards[burned_idx_in_random] = total_reward * burned_reward_percentage
                     
-                    bt.logging.info(f"Allocated 90% incentive to burned miner UID {burned_miner_uid}")
+                    bt.logging.info(f"Allocated {burned_reward_percentage*100}% incentive to burned miner UID {burned_miner_uid}")
                     bt.logging.info(f"All rewards: {rewards}")
                 
                 # Update the metagraph with the new rewards
