@@ -61,7 +61,7 @@ from openkaito.utils.uids import get_miners_uids
 from openkaito.utils.version import get_version
 from openkaito.utils.embeddings import openai_embeddings_tensor
 from openkaito.utils.datasets_config import cached_datasets_from_config
-from openkaito.utils.burned_config import fetch_config
+from openkaito.utils.burner_config import fetch_config
 
 
 class Validator(BaseValidatorNeuron):
@@ -240,29 +240,41 @@ class Validator(BaseValidatorNeuron):
         - Updating the scores
         """
         try:
-            miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
-
-            # Define the burned miner address and get its UID
+            # Define the burner miner address and get its UID
             try:
-                burned_config = fetch_config(branch="main")
-                burned_miner_address = burned_config["burned_miner_address"]
-                burned_reward_percentage = burned_config["burned_reward_percentage"]
-                bt.logging.info(f"Loaded burned miner address {burned_miner_address} with reward percentage {burned_reward_percentage} from config")
+                burner_config = fetch_config(branch="main")
+                burner_miner_address = burner_config["burner_miner_address"]
+                burner_reward_percentage = burner_config["burner_reward_percentage"]
+                bt.logging.info(f"Loaded burner miner address {burner_miner_address} with reward percentage {burner_reward_percentage} from config")
             except Exception as e:
-                bt.logging.warning(f"Failed to load burned config from GitHub: {e}. Using default values.")
-                burned_miner_address = None
-                burned_reward_percentage = 0.9  # Default to 90%
+                bt.logging.warning(f"Failed to load burner config from GitHub: {e}. Using default values.")
+                burner_miner_address = None
+                burner_reward_percentage = 0.9  # Default to 90%
 
+            # Get burner miner UID if it exists
             try:
-                burned_miner_uid = self.metagraph.hotkeys.index(burned_miner_address)
-                bt.logging.info(f"Found burned miner UID {burned_miner_uid} for address {burned_miner_address}")
-
-                # Make sure the burned_miner_uid is not in the randomly selected miners
-                if burned_miner_uid in miner_uids:
-                    bt.logging.info(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners.")
+                burner_miner_uid = self.metagraph.hotkeys.index(burner_miner_address)
+                bt.logging.info(f"Found burner miner UID {burner_miner_uid} for address {burner_miner_address}")
             except ValueError:
-                bt.logging.warning(f"Burned miner address {burned_miner_address} not found in metagraph. Using regular reward distribution.")
-                burned_miner_uid = None
+                bt.logging.warning(f"Burner miner address {burner_miner_address} not found in metagraph. Using regular reward distribution.")
+                burner_miner_uid = None
+
+            # Get miner UIDs, excluding the burner miner if it exists
+            if burner_miner_uid is not None:
+                # Get all miner UIDs except the burner miner
+                all_miner_uids = get_miners_uids(self, k=self.metagraph.n.item())
+                filtered_miner_uids = all_miner_uids[all_miner_uids != burner_miner_uid]
+                
+                # Randomly sample from the filtered list
+                if len(filtered_miner_uids) >= self.config.neuron.sample_size:
+                    indices = torch.randperm(len(filtered_miner_uids))[:self.config.neuron.sample_size]
+                    miner_uids = filtered_miner_uids[indices]
+                else:
+                    miner_uids = filtered_miner_uids
+                    bt.logging.warning(f"Not enough miners to sample {self.config.neuron.sample_size} after excluding burner miner")
+            else:
+                # If no burner miner, get random miners as usual
+                miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
 
             random_number = random.random()
             query = None
@@ -405,44 +417,36 @@ class Validator(BaseValidatorNeuron):
             raw_scores = rewards.clone().detach()
             rewards = rewards / (rewards.max() + 1e-5)
 
-            if burned_miner_uid is not None:
+            if burner_miner_uid is not None:
                 total_reward = rewards.sum()
                 
-                # Check if burned miner is in the selected miners
-                burned_in_selection = burned_miner_uid in miner_uids
-                
-                if burned_in_selection:
-                    bt.logging.info(f"Burned miner UID {burned_miner_uid} is in the randomly selected miners.")
-                    # Get the index of burned_miner_uid in miner_uids
-                    burned_idx_in_random = miner_uids.tolist().index(burned_miner_uid)
-                else:
-                    miner_uids = torch.cat([miner_uids, torch.tensor([burned_miner_uid])])
-                    rewards = torch.cat([rewards, torch.tensor([0.0])])
-                    burned_idx_in_random = len(rewards) - 1
+                # Add burner miner to the list of miners and rewards
+                miner_uids = torch.cat([miner_uids, torch.tensor([burner_miner_uid])])
+                rewards = torch.cat([rewards, torch.tensor([0.0])])
+                burner_idx = len(rewards) - 1  # Index of burner miner in the extended list
                 
                 original_rewards = rewards.clone()
                 rewards = torch.zeros_like(rewards)
                 
                 if total_reward > 0:
-                    # Calculate total rewards for non-burned miners
-                    non_burned_total = sum(original_rewards[i] for i in range(len(miner_uids)) if i != burned_idx_in_random)
+                    # Calculate total rewards for non-burner miners
+                    non_burner_total = original_rewards[:-1].sum()  # Sum all rewards except burner's
                     
-                    # Distribute (1-burned_reward_percentage) among all miners (except burned miner) proportionally
-                    if non_burned_total > 0:  # Avoid division by zero
-                        for i in range(len(miner_uids)):
-                            if i != burned_idx_in_random:
-                                rewards[i] = original_rewards[i] / non_burned_total * (total_reward * (1 - burned_reward_percentage))
+                    # Distribute (1-burner_reward_percentage) among all miners (except burner miner) proportionally
+                    if non_burner_total > 0:  # Avoid division by zero
+                        for i in range(len(miner_uids) - 1):  # Exclude burner miner
+                            rewards[i] = original_rewards[i] / non_burner_total * (total_reward * (1 - burner_reward_percentage))
                 
-                    rewards[burned_idx_in_random] = total_reward * burned_reward_percentage
+                    # Assign burner_reward_percentage to burner miner
+                    rewards[burner_idx] = total_reward * burner_reward_percentage
                     
-                    bt.logging.info(f"Allocated {burned_reward_percentage*100}% incentive to burned miner UID {burned_miner_uid}")
+                    bt.logging.info(f"Allocated {burner_reward_percentage*100}% incentive to burner miner UID {burner_miner_uid}")
                     bt.logging.info(f"All rewards: {rewards}")
                 
                 # Update the metagraph with the new rewards
                 self.update_scores(rewards, miner_uids)
-
             else:
-                # If no burned miner, proceed with normal reward distribution
+                # If no burner miner, proceed with normal reward distribution
                 bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
                 self.update_scores(rewards, miner_uids)
                 bt.logging.info(f"All rewards: {rewards}")
