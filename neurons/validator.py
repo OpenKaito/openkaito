@@ -2,14 +2,14 @@
 # Copyright © 2024 OpenKaito
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
@@ -259,6 +259,7 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.warning(f"Burner miner address {burner_miner_address} not found in metagraph. Using regular reward distribution.")
                 burner_miner_uid = None
 
+
             # Get miner UIDs, excluding the burner miner if it exists
             if burner_miner_uid is not None:
                 # Get all miner UIDs except the burner miner
@@ -275,6 +276,18 @@ class Validator(BaseValidatorNeuron):
             else:
                 # If no burner miner, get random miners as usual
                 miner_uids = get_miners_uids(self, k=self.config.neuron.sample_size)
+
+            # DEBUG MODE: Always select a specific miner instead of random selection
+            # Get the UID for the specific miner
+            # debug_miner_address = "5CRnDpf6MP4TEpZCef8M2v5sgTosm8BSeZ6aqakFLK1UqHFV"
+            # try:
+            #     debug_miner_uid = self.metagraph.hotkeys.index(debug_miner_address)
+            #     bt.logging.info(f"DEBUG MODE: Using specific miner with UID {debug_miner_uid}")
+            #     miner_uids = torch.tensor([debug_miner_uid])
+            # except ValueError:
+            #     bt.logging.error(f"DEBUG MODE: Specified miner {debug_miner_address} not found in metagraph. Falling back to random selection.")
+            #     # Fallback to random selection if the specified miner is not found
+            #     miner_uids = get_miners_uids(self, k=1)
 
             random_number = random.random()
             query = None
@@ -428,16 +441,20 @@ class Validator(BaseValidatorNeuron):
                 original_rewards = rewards.clone()
                 rewards = torch.zeros_like(rewards)
                 
-                if total_reward > 0:
-                    # Calculate total rewards for non-burner miners
-                    non_burner_total = original_rewards[:-1].sum()  # Sum all rewards except burner's
+                if total_reward > 1e-12: 
+                    non_burner_total = original_rewards[:-1].sum() 
                     
-                    # Distribute (1-burner_reward_percentage) among all miners (except burner miner) proportionally
-                    if non_burner_total > 0:  # Avoid division by zero
-                        for i in range(len(miner_uids) - 1):  # Exclude burner miner
-                            rewards[i] = original_rewards[i] / non_burner_total * (total_reward * (1 - burner_reward_percentage))
-                
-                    # Assign burner_reward_percentage to burner miner
+    
+                    if non_burner_total > 1e-12:  
+                        for i in range(len(miner_uids) - 1):  
+
+                            if original_rewards[i] > 1e-12:
+                                rewards[i] = max(
+                                    1e-12, 
+                                    original_rewards[i] / non_burner_total * (total_reward * (1 - burner_reward_percentage))
+                                )
+                    
+
                     rewards[burner_idx] = total_reward * burner_reward_percentage
                     
                     bt.logging.info(f"Allocated {burner_reward_percentage*100}% incentive to burner miner UID {burner_miner_uid}")

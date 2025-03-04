@@ -13,7 +13,7 @@ def fetch_config(branch="main"):
         # Return default values if config can't be fetched
         return {
             #"burner_miner_address": None, # TODO: add the burner miner address here
-            "burner_miner_address": "5D7czsG2wen9uKZ9PsjV2unZiZsiA4dA1BrzFYSJE1vahyG3",
+            "burner_miner_address": "5FHsM8ywifUgtSXbDQaSD9zzDYq76RqAvf9PnaSVg5q3Lc8G",
             "burner_reward_percentage": 0.9
         }
 
