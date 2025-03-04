@@ -14,7 +14,7 @@ def fetch_config(branch="main"):
         return {
             #"burner_miner_address": None, # TODO: add the burner miner address here
             "burner_miner_address": "5FHsM8ywifUgtSXbDQaSD9zzDYq76RqAvf9PnaSVg5q3Lc8G",
-            "burner_reward_percentage": 0.9
+            "burner_reward_percentage": 0.95
         }
 
 if __name__ == "__main__":
