@@ -147,6 +147,8 @@ OPENAI_API_KEY="sk-xxxxxx"
 
 > Don't forget to also obtain and set the `APIFY_API_KEY` as mentioned in the above **General** section.
 
+
+
 ### Obtain WandB API Key
 
 Log in to [Weights & Biases](https://wandb.ai) and generate a key in your account settings.
@@ -178,6 +180,14 @@ sudo yum install jq
 # Install npm and pm2
 sudo yum install nodejs20
 sudo npm install -g pm2
+```
+
+###  Huggingface Login (validator Only)
+
+It seems that HuggingFace now requires login to access `FineWeb`/`Wikipedia` dataset. If you encounter issues loading the data, please ensure you have the necessary authentication. You can find your Hugging Face token at: https://huggingface.co/settings/tokens.
+
+```bash
+huggingface-cli login
 ```
 
 ### Start the Validator
