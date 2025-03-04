@@ -107,7 +107,7 @@ class Miner(BaseMinerNeuron):
             "Miner | "
             f"Epoch:{self.step} | "
             f"UID:{self.uid} | "
-            f"Block:{self.block} | "
+            #f"Block:{self.block} | "
             f"Stake:{metagraph.S[self.uid]} | "
             f"Rank:{metagraph.R[self.uid]} | "
             f"Trust:{metagraph.T[self.uid]} | "
