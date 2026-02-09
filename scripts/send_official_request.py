@@ -291,9 +291,9 @@ class Validator(BaseValidatorNeuron):
                 # the payload might be large, need sometime for network transfer
                 query.timeout = 60
 
-                seperator = "\n---\n"
+                separator = "\n---\n"
                 bt.logging.info(
-                    f"Sending {query.name}: {seperator.join(query.texts)} to miner uids: {miner_uids}"
+                    f"Sending {query.name}: {separator.join(query.texts)} to miner uids: {miner_uids}"
                 )
 
             # The dendrite client queries the network.
