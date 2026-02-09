@@ -157,7 +157,7 @@ options:
   --batch_size BATCH_SIZE
                         optional, batch size for importing data, default is 100
   --time_bucket_ids [TIME_BUCKET_IDS ...]
-                        optional, a list of SN13 timeBucketId to be imported, seperate by space, e.g., 474957 474958 474959
+                        optional, a list of SN13 timeBucketId to be imported, separate by space, e.g., 474957 474958 474959
 ```
 
 ## Engineering Roadmap
